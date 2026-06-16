@@ -1,0 +1,7 @@
+{
+  "game_name": "carriage_run",
+  "display_name": "Carriage Run",
+  "save_slot": "campaign",
+  "version": "0.1.0",
+  "starting_gold": 125
+}

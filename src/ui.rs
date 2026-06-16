@@ -1,0 +1,327 @@
+//! Immediate-mode UI entry points and menu screens for Carriage Run.
+
+mod carriage;
+mod gameplay;
+mod gameplay_hud;
+mod loadout;
+mod management;
+mod mission_map;
+mod mission_map_art;
+mod upgrade_visuals;
+mod upgrades;
+mod widgets;
+
+use crate::data::GameData;
+use crate::state::{Screen, PLAY_BOTTOM, PLAY_TOP};
+use macroquad::prelude::*;
+use macroquad_toolkit::assets::AssetManager;
+use macroquad_toolkit::prelude::*;
+use macroquad_toolkit::ui::draw_ui_text_ex;
+use upgrade_visuals::{
+    draw_crest, draw_panel, draw_section_label, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED,
+};
+use widgets::*;
+
+pub const LOGICAL_WIDTH: f32 = 1280.0;
+pub const LOGICAL_HEIGHT: f32 = 720.0;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UiAction {
+    NewCampaign,
+    ContinueCampaign,
+    OpenMap,
+    OpenLoadout,
+    OpenShop,
+    OpenGuards,
+    OpenUpgrades,
+    OpenSettings,
+    ReturnTitle,
+    PauseGame,
+    ResumeGame,
+    SelectMission(String),
+    SelectRouteChoice(String),
+    SelectGuard(String),
+    AssignGuardSlot(usize, String),
+    ClearGuardSlot(usize),
+    AssignRangedSlot(usize, String),
+    ClearRangedSlot(usize),
+    AssignEquipmentSlot(usize, String),
+    ClearEquipmentSlot(usize),
+    HireGuard(String),
+    UpgradeGuardStar(String),
+    ToggleSetting(String),
+    BeginMission,
+    RetryMission,
+    UseRepair,
+    BuyUpgrade(String),
+    Save,
+    Load,
+    ExitGame,
+}
+
+pub struct UiContext<'a> {
+    pub data: &'a GameData,
+    pub session: &'a crate::state::GameSession,
+    pub assets: &'a AssetManager,
+    pub save_exists: bool,
+    pub loaded_assets: usize,
+    pub ui: &'a VirtualUi,
+}
+
+pub fn play_rect() -> Rect {
+    Rect::new(0.0, PLAY_TOP, LOGICAL_WIDTH, PLAY_BOTTOM - PLAY_TOP)
+}
+
+pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
+    let mouse = ctx.ui.mouse_position();
+    let mut actions = Vec::new();
+
+    match ctx.session.screen {
+        Screen::Title => draw_title(&ctx, mouse, &mut actions),
+        Screen::MissionMap => mission_map::draw_mission_map(&ctx, mouse, &mut actions),
+        Screen::Loadout => loadout::draw_loadout(&ctx, mouse, &mut actions),
+        Screen::Shop => management::draw_shop(&ctx, mouse, &mut actions),
+        Screen::Guards => management::draw_guards(&ctx, mouse, &mut actions),
+        Screen::Upgrades => upgrades::draw_upgrades(&ctx, mouse, &mut actions),
+        Screen::Settings => management::draw_settings(&ctx, mouse, &mut actions),
+        Screen::Playing => gameplay::draw_gameplay(&ctx, mouse, &mut actions),
+        Screen::Paused => management::draw_pause(&ctx, mouse, &mut actions),
+        Screen::Results => draw_results(&ctx, mouse, &mut actions),
+    }
+
+    actions
+}
+
+fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    let using_title_art = draw_title_art(ctx);
+    if !using_title_art {
+        draw_menu_backdrop(0.0);
+        draw_crest(Rect::new(62.0, 42.0, 112.0, 106.0));
+        draw_ui_text_ex(
+            &ctx.data.config.display_name,
+            206.0,
+            88.0,
+            TextStyle::new(62.0, INK).params(),
+        );
+        draw_ui_text_ex(
+            "Escort strategy campaign",
+            212.0,
+            126.0,
+            TextStyle::new(24.0, MUTED).params(),
+        );
+        draw_line(64.0, 176.0, 1074.0, 176.0, 2.0, GOLD_SOFT);
+    }
+
+    let panel = if using_title_art {
+        Rect::new(72.0, 310.0, 366.0, 340.0)
+    } else {
+        Rect::new(86.0, 244.0, 390.0, 358.0)
+    };
+    draw_panel(panel, true);
+    draw_section_label("Main Menu", panel.x + 26.0, panel.y + 24.0, panel.w - 52.0);
+
+    let mut y = panel.y + 58.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 44.0),
+        "New Campaign",
+        true,
+        ButtonTone::Primary,
+        mouse,
+    ) {
+        actions.push(UiAction::NewCampaign);
+    }
+    y += 58.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
+        "Continue",
+        ctx.save_exists,
+        ButtonTone::Positive,
+        mouse,
+    ) {
+        actions.push(UiAction::ContinueCampaign);
+    }
+    y += 54.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
+        "Load Game",
+        ctx.save_exists,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::Load);
+    }
+    y += 54.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
+        "Settings",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenSettings);
+    }
+    y += 54.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
+        "Exit Game",
+        true,
+        ButtonTone::Muted,
+        mouse,
+    ) {
+        actions.push(UiAction::ExitGame);
+    }
+    let _ = ctx.loaded_assets;
+}
+
+fn draw_title_art(ctx: &UiContext<'_>) -> bool {
+    let Some(texture) = ctx.assets.get_texture("title_screen") else {
+        return false;
+    };
+    draw_cover_texture(texture, Rect::new(0.0, 0.0, LOGICAL_WIDTH, LOGICAL_HEIGHT));
+    draw_rectangle(
+        0.0,
+        0.0,
+        LOGICAL_WIDTH,
+        LOGICAL_HEIGHT,
+        Color::new(0.0, 0.0, 0.0, 0.10),
+    );
+    draw_rectangle(
+        0.0,
+        0.0,
+        500.0,
+        LOGICAL_HEIGHT,
+        Color::new(0.0, 0.0, 0.0, 0.24),
+    );
+    draw_rectangle(
+        0.0,
+        LOGICAL_HEIGHT * 0.70,
+        LOGICAL_WIDTH,
+        LOGICAL_HEIGHT * 0.30,
+        Color::new(0.0, 0.0, 0.0, 0.18),
+    );
+    true
+}
+
+fn draw_cover_texture(texture: &Texture2D, rect: Rect) {
+    let texture_w = texture.width().max(1.0);
+    let texture_h = texture.height().max(1.0);
+    let scale = (rect.w / texture_w).max(rect.h / texture_h);
+    let draw_w = texture_w * scale;
+    let draw_h = texture_h * scale;
+    draw_texture_ex(
+        texture,
+        rect.x + (rect.w - draw_w) * 0.5,
+        rect.y + (rect.h - draw_h) * 0.5,
+        WHITE,
+        DrawTextureParams {
+            dest_size: Some(vec2(draw_w, draw_h)),
+            ..Default::default()
+        },
+    );
+}
+
+fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    draw_menu_backdrop(110.0);
+    let Some(result) = &ctx.session.result else {
+        mission_map::draw_mission_map(ctx, mouse, actions);
+        return;
+    };
+
+    let panel = Rect::new(330.0, 120.0, 620.0, 430.0);
+    draw_panel(panel, true);
+
+    draw_text_centered_in_box(
+        if result.success {
+            "Route Complete"
+        } else {
+            "Route Failed"
+        },
+        panel.x + 30.0,
+        panel.y + 30.0,
+        panel.w - 60.0,
+        46.0,
+        38.0,
+        INK,
+    );
+    draw_text_centered_in_box(
+        &result.mission_name,
+        panel.x + 30.0,
+        panel.y + 76.0,
+        panel.w - 60.0,
+        30.0,
+        22.0,
+        MUTED,
+    );
+    draw_text_centered_in_box(
+        &star_label(result.stars),
+        panel.x + 30.0,
+        panel.y + 118.0,
+        panel.w - 60.0,
+        36.0,
+        28.0,
+        UI_GOLD,
+    );
+
+    let mut stats = vec![
+        ("Outcome".to_owned(), result.reason.clone()),
+        ("Route".to_owned(), result.route_name.clone()),
+        ("Score".to_owned(), result.score.to_string()),
+        ("Reward".to_owned(), format!("{} gold", result.reward)),
+        (
+            "Carriage".to_owned(),
+            format!("{:.0}%", result.carriage_health_ratio * 100.0),
+        ),
+        (
+            "Cargo".to_owned(),
+            format!("{:.0}%", result.cargo_ratio * 100.0),
+        ),
+    ];
+    if let (Some(label), Some(ratio)) = (&result.special_label, result.special_ratio) {
+        stats.push((label.clone(), format!("{:.0}%", ratio * 100.0)));
+    }
+    stats.push(("Threats".to_owned(), result.enemies_defeated.to_string()));
+    let time_value = result
+        .time_limit
+        .map(|limit| format!("{:.0}s / {:.0}s", result.elapsed, limit))
+        .unwrap_or_else(|| format!("{:.0}s", result.elapsed));
+    stats.push(("Time".to_owned(), time_value));
+    let mut y = panel.y + 178.0;
+    for (label, value) in stats {
+        draw_ui_text_ex(
+            &label,
+            panel.x + 82.0,
+            y,
+            TextStyle::new(18.0, MUTED).params(),
+        );
+        draw_text_right(&value, panel.right() - 82.0, y, TextStyle::new(18.0, INK));
+        y += 30.0;
+    }
+
+    if virtual_button(
+        Rect::new(panel.x + 72.0, panel.bottom() - 68.0, 136.0, 40.0),
+        "Map",
+        true,
+        ButtonTone::Primary,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenMap);
+    }
+    if virtual_button(
+        Rect::new(panel.x + 242.0, panel.bottom() - 68.0, 136.0, 40.0),
+        "Retry",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::RetryMission);
+    }
+    if virtual_button(
+        Rect::new(panel.x + 412.0, panel.bottom() - 68.0, 136.0, 40.0),
+        "Upgrades",
+        true,
+        ButtonTone::Positive,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenUpgrades);
+    }
+}

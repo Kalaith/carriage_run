@@ -1,0 +1,44 @@
+[
+  {
+    "id": "carriage_armor",
+    "name": "Iron Plating",
+    "description": "Increases carriage health and reduces collision and melee damage.",
+    "base_cost": 70,
+    "max_level": 4
+  },
+  {
+    "id": "guard_training",
+    "name": "Guard Training",
+    "description": "Improves the swordsman's health, movement, and melee damage.",
+    "base_cost": 55,
+    "max_level": 4
+  },
+  {
+    "id": "mounted_archer",
+    "name": "Mounted Ranged Slots",
+    "description": "Improves mounted ranged guard stats and unlocks a second carriage slot at level 3.",
+    "base_cost": 60,
+    "max_level": 4
+  },
+  {
+    "id": "reinforced_wheels",
+    "name": "Reinforced Wheels",
+    "description": "Raises route speed and reduces mud slowdown.",
+    "base_cost": 50,
+    "max_level": 3
+  },
+  {
+    "id": "cargo_straps",
+    "name": "Cargo Straps",
+    "description": "Reduces cargo loss from mud, crashes, and bandit theft.",
+    "base_cost": 45,
+    "max_level": 3
+  },
+  {
+    "id": "repair_kit",
+    "name": "Emergency Repair Kit",
+    "description": "Adds a once-per-route repair ability that restores carriage health.",
+    "base_cost": 80,
+    "max_level": 3
+  }
+]

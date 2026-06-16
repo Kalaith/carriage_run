@@ -1,0 +1,462 @@
+[
+  {
+    "id": "muddy_road",
+    "name": "The Muddy Road",
+    "order": 1,
+    "mission_type": "cargo_transfer",
+    "route": "Forest Road",
+    "cargo": "Basic Supplies",
+    "objective": "Reach the village with the supply carriage intact.",
+    "bonus_objective": "Arrive with cargo above 85%.",
+    "unlock_level": 1,
+    "distance": 940.0,
+    "difficulty": 1.0,
+    "base_reward": 100,
+    "enemy_mix": ["wolf"],
+    "hazard_mix": ["mud"],
+    "route_choices": [
+      {
+        "id": "wagon_track",
+        "name": "Wagon Track",
+        "description": "A longer road with predictable mud.",
+        "distance_delta": 90.0,
+        "difficulty_delta": -0.08,
+        "reward_delta": -5,
+        "hazard_add": ["mud"]
+      },
+      {
+        "id": "old_shortcut",
+        "name": "Old Shortcut",
+        "description": "Cut through wolf country for a faster trip.",
+        "distance_delta": -120.0,
+        "difficulty_delta": 0.16,
+        "reward_delta": 18,
+        "enemy_add": ["wolf"],
+        "hazard_add": ["rocks"]
+      }
+    ]
+  },
+  {
+    "id": "bandit_bend",
+    "name": "Bandit Bend",
+    "order": 2,
+    "mission_type": "cargo_transfer",
+    "route": "Woodcutter Pass",
+    "cargo": "Grain and Tools",
+    "objective": "Keep the bandits away from the cargo hold.",
+    "bonus_objective": "Defeat at least eight threats.",
+    "unlock_level": 1,
+    "distance": 1160.0,
+    "difficulty": 1.22,
+    "base_reward": 140,
+    "enemy_mix": ["wolf", "bandit", "bandit", "bandit_archer"],
+    "hazard_mix": ["fallen_tree", "mud", "rocks"],
+    "prerequisite_missions": ["muddy_road"],
+    "route_choices": [
+      {
+        "id": "guarded_crossing",
+        "name": "Guarded Crossing",
+        "description": "Pay attention to ambush lanes but avoid the worst cliffs.",
+        "distance_delta": 120.0,
+        "difficulty_delta": -0.06,
+        "reward_delta": 0,
+        "enemy_add": ["bandit"]
+      },
+      {
+        "id": "smugglers_cut",
+        "name": "Smugglers Cut",
+        "description": "Short and profitable, with more archers on the ridge.",
+        "distance_delta": -160.0,
+        "difficulty_delta": 0.20,
+        "reward_delta": 32,
+        "enemy_add": ["bandit_archer"],
+        "hazard_add": ["rocks"]
+      }
+    ]
+  },
+  {
+    "id": "courier_deadline",
+    "name": "Courier Deadline",
+    "order": 3,
+    "mission_type": "time_delivery",
+    "route": "Messenger Road",
+    "cargo": "Sealed Dispatch",
+    "objective": "Deliver the sealed dispatch before the warning expires.",
+    "bonus_objective": "Arrive with at least 12 seconds remaining.",
+    "unlock_level": 1,
+    "distance": 980.0,
+    "difficulty": 1.16,
+    "base_reward": 150,
+    "enemy_mix": ["wolf", "bandit"],
+    "hazard_mix": ["mud", "fallen_tree"],
+    "time_limit": 60.0,
+    "prerequisite_missions": ["muddy_road"],
+    "route_choices": [
+      {
+        "id": "main_road",
+        "name": "Main Road",
+        "description": "Steady travel with a more forgiving deadline.",
+        "distance_delta": 80.0,
+        "difficulty_delta": -0.08,
+        "reward_delta": -8,
+        "time_limit_delta": 8.0
+      },
+      {
+        "id": "river_ford",
+        "name": "River Ford",
+        "description": "A faster ford, but the carriage will be exposed.",
+        "distance_delta": -130.0,
+        "difficulty_delta": 0.18,
+        "reward_delta": 24,
+        "time_limit_delta": -6.0,
+        "enemy_add": ["wolf"],
+        "hazard_add": ["mud"]
+      }
+    ]
+  },
+  {
+    "id": "bonebridge_pass",
+    "name": "Bonebridge Pass",
+    "order": 4,
+    "mission_type": "cargo_transfer",
+    "route": "Haunted Crossing",
+    "cargo": "Temple Relics",
+    "objective": "Survive the haunted road and deliver the relics.",
+    "bonus_objective": "Finish with carriage health above 60%.",
+    "unlock_level": 2,
+    "distance": 1320.0,
+    "difficulty": 1.48,
+    "base_reward": 190,
+    "enemy_mix": ["wolf", "bandit", "skeleton", "skeleton", "necromancer"],
+    "hazard_mix": ["mud", "fallen_tree", "rocks"],
+    "unlock_any_missions": ["bandit_bend", "courier_deadline"],
+    "route_choices": [
+      {
+        "id": "chapel_road",
+        "name": "Chapel Road",
+        "description": "Blessed stones reduce the worst undead pressure.",
+        "distance_delta": 150.0,
+        "difficulty_delta": -0.10,
+        "reward_delta": -12,
+        "hazard_add": ["rocks"]
+      },
+      {
+        "id": "crypt_bridge",
+        "name": "Crypt Bridge",
+        "description": "A direct bridge watched by necromancers.",
+        "distance_delta": -170.0,
+        "difficulty_delta": 0.22,
+        "reward_delta": 38,
+        "enemy_add": ["necromancer"],
+        "hazard_add": ["fire_patch"]
+      }
+    ]
+  },
+  {
+    "id": "prisoner_wagon",
+    "name": "Prisoner Wagon",
+    "order": 5,
+    "mission_type": "prisoner_escort",
+    "route": "Narrow Road",
+    "cargo": "Captured Bandit Leader",
+    "objective": "Deliver the prisoner before rescuers can open the wagon.",
+    "bonus_objective": "Keep security above 70%.",
+    "unlock_level": 2,
+    "distance": 1240.0,
+    "difficulty": 1.38,
+    "base_reward": 175,
+    "enemy_mix": ["bandit", "bandit", "bandit_archer", "wolf"],
+    "hazard_mix": ["rocks", "fallen_tree", "mud"],
+    "prerequisite_missions": ["bandit_bend"],
+    "route_choices": [
+      {
+        "id": "jailers_road",
+        "name": "Jailers Road",
+        "description": "More road time, fewer rescue attempts.",
+        "distance_delta": 130.0,
+        "difficulty_delta": -0.07,
+        "reward_delta": -6
+      },
+      {
+        "id": "ravine_run",
+        "name": "Ravine Run",
+        "description": "Short ravine route with coordinated ambushes.",
+        "distance_delta": -140.0,
+        "difficulty_delta": 0.18,
+        "reward_delta": 26,
+        "enemy_add": ["bandit", "bandit_archer"],
+        "hazard_add": ["fallen_tree"]
+      }
+    ]
+  },
+  {
+    "id": "medicine_run",
+    "name": "Medicine Run",
+    "order": 6,
+    "mission_type": "medicine_run",
+    "route": "Marsh Road",
+    "cargo": "Village Medicine",
+    "objective": "Keep fragile medicine potent and arrive before it spoils.",
+    "bonus_objective": "Finish with potency above 75%.",
+    "unlock_level": 2,
+    "distance": 1120.0,
+    "difficulty": 1.30,
+    "base_reward": 180,
+    "enemy_mix": ["wolf", "bandit"],
+    "hazard_mix": ["mud", "rocks", "fire_patch"],
+    "time_limit": 78.0,
+    "unlock_any_missions": ["bandit_bend", "courier_deadline"],
+    "route_choices": [
+      {
+        "id": "dry_ridge",
+        "name": "Dry Ridge",
+        "description": "A slower ridge road that protects the medicine.",
+        "distance_delta": 150.0,
+        "difficulty_delta": -0.05,
+        "reward_delta": -10,
+        "time_limit_delta": 8.0,
+        "hazard_add": ["rocks"]
+      },
+      {
+        "id": "marsh_shortcut",
+        "name": "Marsh Shortcut",
+        "description": "Fast, wet, and hard on the medicine crates.",
+        "distance_delta": -155.0,
+        "difficulty_delta": 0.20,
+        "reward_delta": 34,
+        "time_limit_delta": -8.0,
+        "hazard_add": ["mud", "mud"],
+        "enemy_add": ["wolf"]
+      }
+    ]
+  },
+  {
+    "id": "gold_shipment",
+    "name": "Gold Shipment",
+    "order": 7,
+    "mission_type": "gold_shipment",
+    "route": "Mint Road",
+    "cargo": "Royal Gold",
+    "objective": "Move the gold shipment without letting raiders drain the strongbox.",
+    "bonus_objective": "Finish with gold integrity above 80%.",
+    "unlock_level": 2,
+    "distance": 1220.0,
+    "difficulty": 1.52,
+    "base_reward": 230,
+    "enemy_mix": ["bandit", "bandit", "bandit_archer", "wolf"],
+    "hazard_mix": ["rocks", "fallen_tree"],
+    "prerequisite_missions": ["bandit_bend"],
+    "route_choices": [
+      {
+        "id": "market_road",
+        "name": "Market Road",
+        "description": "Crowded but easier to defend.",
+        "distance_delta": 170.0,
+        "difficulty_delta": -0.08,
+        "reward_delta": -14
+      },
+      {
+        "id": "toll_cut",
+        "name": "Toll Cut",
+        "description": "Avoid tolls and invite heavier raids.",
+        "distance_delta": -120.0,
+        "difficulty_delta": 0.22,
+        "reward_delta": 44,
+        "enemy_add": ["bandit", "bandit_archer"],
+        "hazard_add": ["rocks"]
+      }
+    ]
+  },
+  {
+    "id": "monster_egg",
+    "name": "Monster Egg Transport",
+    "order": 8,
+    "mission_type": "monster_egg_transport",
+    "route": "Quarry Road",
+    "cargo": "Unhatched Monster Egg",
+    "objective": "Keep the monster egg stable through impacts and attacks.",
+    "bonus_objective": "Finish with egg stability above 70%.",
+    "unlock_level": 3,
+    "distance": 1280.0,
+    "difficulty": 1.62,
+    "base_reward": 240,
+    "enemy_mix": ["wolf", "skeleton", "bandit_archer"],
+    "hazard_mix": ["rocks", "fallen_tree", "fire_patch"],
+    "prerequisite_missions": ["bonebridge_pass"],
+    "route_choices": [
+      {
+        "id": "quarry_floor",
+        "name": "Quarry Floor",
+        "description": "Longer, flatter, and safer for the egg.",
+        "distance_delta": 170.0,
+        "difficulty_delta": -0.07,
+        "reward_delta": -12,
+        "hazard_add": ["rocks"]
+      },
+      {
+        "id": "ridge_lift",
+        "name": "Ridge Lift",
+        "description": "Short and rocky with unstable drops.",
+        "distance_delta": -160.0,
+        "difficulty_delta": 0.24,
+        "reward_delta": 42,
+        "hazard_add": ["rocks", "fallen_tree"],
+        "enemy_add": ["wolf"]
+      }
+    ]
+  },
+  {
+    "id": "refugee_escort",
+    "name": "Refugee Escort",
+    "order": 9,
+    "mission_type": "refugee_escort",
+    "route": "Border Road",
+    "cargo": "Refugee Families",
+    "objective": "Protect frightened passengers until the carriage reaches safety.",
+    "bonus_objective": "Finish with safety above 80%.",
+    "unlock_level": 3,
+    "distance": 1340.0,
+    "difficulty": 1.58,
+    "base_reward": 220,
+    "enemy_mix": ["wolf", "bandit", "bandit_archer", "skeleton"],
+    "hazard_mix": ["mud", "fallen_tree", "fire_patch"],
+    "unlock_any_missions": ["medicine_run", "prisoner_wagon"],
+    "route_choices": [
+      {
+        "id": "settlers_way",
+        "name": "Settlers Way",
+        "description": "More road, more cover, fewer panic spikes.",
+        "distance_delta": 160.0,
+        "difficulty_delta": -0.08,
+        "reward_delta": -8
+      },
+      {
+        "id": "border_cut",
+        "name": "Border Cut",
+        "description": "A dangerous cut that clears the border faster.",
+        "distance_delta": -150.0,
+        "difficulty_delta": 0.22,
+        "reward_delta": 36,
+        "enemy_add": ["bandit_archer", "skeleton"],
+        "hazard_add": ["fire_patch"]
+      }
+    ]
+  },
+  {
+    "id": "princess_road",
+    "name": "The Princess Road",
+    "order": 10,
+    "mission_type": "princess_escort",
+    "route": "Royal Detour",
+    "cargo": "Royal Passenger",
+    "objective": "Arrive safely while keeping the ride comfortable.",
+    "bonus_objective": "Finish with comfort above 80%.",
+    "unlock_level": 3,
+    "distance": 1360.0,
+    "difficulty": 1.56,
+    "base_reward": 235,
+    "enemy_mix": ["wolf", "bandit", "bandit_archer", "skeleton"],
+    "hazard_mix": ["mud", "rocks", "fallen_tree", "fire_patch"],
+    "prerequisite_missions": ["prisoner_wagon"],
+    "route_choices": [
+      {
+        "id": "royal_parade",
+        "name": "Royal Parade",
+        "description": "A smoother road with a larger escort footprint.",
+        "distance_delta": 180.0,
+        "difficulty_delta": -0.09,
+        "reward_delta": -12
+      },
+      {
+        "id": "hunting_lane",
+        "name": "Hunting Lane",
+        "description": "Shorter but rougher and more exposed.",
+        "distance_delta": -150.0,
+        "difficulty_delta": 0.20,
+        "reward_delta": 38,
+        "enemy_add": ["wolf", "bandit_archer"],
+        "hazard_add": ["fallen_tree"]
+      }
+    ]
+  },
+  {
+    "id": "royal_banquet",
+    "name": "Royal Banquet Supplies",
+    "order": 11,
+    "mission_type": "royal_banquet_supplies",
+    "route": "Palace Road",
+    "cargo": "Banquet Food and Glassware",
+    "objective": "Deliver feast supplies quickly while keeping them fresh.",
+    "bonus_objective": "Finish with freshness above 75%.",
+    "unlock_level": 3,
+    "distance": 1260.0,
+    "difficulty": 1.46,
+    "base_reward": 245,
+    "enemy_mix": ["bandit", "wolf", "bandit_archer"],
+    "hazard_mix": ["mud", "rocks", "fire_patch"],
+    "time_limit": 86.0,
+    "unlock_any_missions": ["princess_road", "refugee_escort"],
+    "route_choices": [
+      {
+        "id": "stone_avenue",
+        "name": "Stone Avenue",
+        "description": "Long, smooth, and kind to fragile glassware.",
+        "distance_delta": 160.0,
+        "difficulty_delta": -0.07,
+        "reward_delta": -10,
+        "time_limit_delta": 6.0
+      },
+      {
+        "id": "kitchen_cut",
+        "name": "Kitchen Cut",
+        "description": "A fast service road with heat and raiders.",
+        "distance_delta": -145.0,
+        "difficulty_delta": 0.20,
+        "reward_delta": 40,
+        "time_limit_delta": -7.0,
+        "enemy_add": ["bandit"],
+        "hazard_add": ["fire_patch"]
+      }
+    ]
+  },
+  {
+    "id": "siege_supply",
+    "name": "Siege Supply Run",
+    "order": 12,
+    "mission_type": "siege_supply_run",
+    "route": "War Road",
+    "cargo": "Arrows, Bandages, and Rations",
+    "objective": "Break through to the besieged keep with enough supplies intact.",
+    "bonus_objective": "Arrive before the keep's reserve timer expires.",
+    "unlock_level": 4,
+    "distance": 1500.0,
+    "difficulty": 1.86,
+    "base_reward": 310,
+    "enemy_mix": ["bandit", "bandit_archer", "skeleton", "necromancer"],
+    "hazard_mix": ["rocks", "fallen_tree", "fire_patch", "mud"],
+    "time_limit": 98.0,
+    "unlock_any_missions": ["gold_shipment", "refugee_escort", "royal_banquet"],
+    "route_choices": [
+      {
+        "id": "supply_column",
+        "name": "Supply Column",
+        "description": "Move with allied wagons for a longer but steadier push.",
+        "distance_delta": 180.0,
+        "difficulty_delta": -0.06,
+        "reward_delta": -16,
+        "time_limit_delta": 8.0
+      },
+      {
+        "id": "breach_road",
+        "name": "Breach Road",
+        "description": "Drive straight through the breach before enemies regroup.",
+        "distance_delta": -170.0,
+        "difficulty_delta": 0.26,
+        "reward_delta": 52,
+        "time_limit_delta": -9.0,
+        "enemy_add": ["necromancer", "bandit_archer"],
+        "hazard_add": ["fire_patch", "rocks"]
+      }
+    ]
+  }
+]

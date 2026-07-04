@@ -19,6 +19,7 @@ pub(super) fn draw_gameplay_hud(
 ) {
     draw_top_hud(run, mouse, actions);
     draw_bottom_hud(run);
+    draw_speed_gauge(run);
 
     if ctx.session.campaign.alerts_enabled && run.alert.timer > 0.0 {
         let alpha = (run.alert.timer / 1.6).clamp(0.0, 1.0);
@@ -89,6 +90,48 @@ fn draw_top_hud(run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
     ) {
         actions.push(UiAction::PauseGame);
     }
+}
+
+fn draw_speed_gauge(run: &MissionRun) {
+    let rect = Rect::new(14.0, 526.0, 162.0, 62.0);
+    draw_divider_panel(rect);
+    let (accent, state) = if run.is_slowed() {
+        (Color::new(0.95, 0.62, 0.18, 1.0), "SLOWED")
+    } else if run.is_boosted() {
+        (GREEN, "BOOST")
+    } else {
+        (Color::new(0.52, 0.78, 0.92, 1.0), "CRUISE")
+    };
+    draw_ui_text_ex(
+        "SPEED",
+        rect.x + 12.0,
+        rect.y + 18.0,
+        TextStyle::new(13.0, GOLD).params(),
+    );
+    draw_text_right(
+        state,
+        rect.right() - 12.0,
+        rect.y + 18.0,
+        TextStyle::new(12.0, accent),
+    );
+    draw_ui_text_ex(
+        &format!("{:.0}", run.speed_readout()),
+        rect.x + 12.0,
+        rect.y + 43.0,
+        TextStyle::new(24.0, INK).params(),
+    );
+    draw_ui_text_ex(
+        "mph",
+        rect.x + 50.0,
+        rect.y + 43.0,
+        TextStyle::new(13.0, MUTED).params(),
+    );
+    draw_meter_bar(
+        Rect::new(rect.x + 12.0, rect.y + 49.0, rect.w - 24.0, 8.0),
+        run.speed_ratio(),
+        accent,
+        "",
+    );
 }
 
 fn draw_bottom_hud(run: &MissionRun) {

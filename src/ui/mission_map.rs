@@ -20,7 +20,15 @@ pub(super) fn draw_mission_map(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut V
     draw_routes_header(ctx, mouse, actions);
 
     let missions = ctx.data.missions_ordered();
-    for (index, mission) in missions.iter().enumerate() {
+    let campaign = &ctx.session.campaign;
+    let visible: Vec<&MissionDef> = missions
+        .iter()
+        .copied()
+        .filter(|mission| {
+            campaign.is_mission_unlocked(mission) || campaign.is_mission_near_unlock(mission)
+        })
+        .collect();
+    for (index, mission) in visible.iter().enumerate() {
         let col = index % 4;
         let row = index / 4;
         let rect = Rect::new(
@@ -29,8 +37,12 @@ pub(super) fn draw_mission_map(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut V
             280.0,
             92.0,
         );
-        if draw_mission_card(ctx, mission, rect, mouse) {
-            actions.push(UiAction::SelectMission(mission.id.clone()));
+        if campaign.is_mission_unlocked(mission) {
+            if draw_mission_card(ctx, mission, rect, mouse) {
+                actions.push(UiAction::SelectMission(mission.id.clone()));
+            }
+        } else {
+            draw_teaser_card(ctx, mission, rect);
         }
     }
 
@@ -193,6 +205,40 @@ fn draw_mission_card(ctx: &UiContext<'_>, mission: &MissionDef, rect: Rect, mous
     }
 
     hovered && is_mouse_button_released(MouseButton::Left)
+}
+
+fn draw_teaser_card(ctx: &UiContext<'_>, mission: &MissionDef, rect: Rect) {
+    draw_panel_with_fill(rect, Color::new(0.040, 0.045, 0.043, 0.96), false);
+
+    let thumb = Rect::new(rect.x + 13.0, rect.y + 12.0, 66.0, 68.0);
+    draw_panel_with_fill(thumb, Color::new(0.060, 0.070, 0.060, 0.96), false);
+    draw_text_centered_in_box("?", thumb.x, thumb.y, thumb.w, thumb.h, 40.0, MUTED);
+
+    draw_ui_text_ex(
+        "Undiscovered Route",
+        rect.x + 94.0,
+        rect.y + 34.0,
+        TextStyle::new(17.0, MUTED).params(),
+    );
+    draw_ui_text_ex(
+        "Locked",
+        rect.x + 94.0,
+        rect.y + 55.0,
+        TextStyle::new(14.0, Color::new(0.58, 0.50, 0.30, 1.0)).params(),
+    );
+    draw_line(
+        rect.x + 94.0,
+        rect.y + 66.0,
+        rect.right() - 16.0,
+        rect.y + 66.0,
+        1.0,
+        Color::new(0.55, 0.40, 0.18, 0.36),
+    );
+    draw_mission_status(
+        Rect::new(rect.right() - 108.0, rect.bottom() - 30.0, 92.0, 22.0),
+        false,
+        &ctx.session.campaign.mission_unlock_label(mission),
+    );
 }
 
 fn draw_selected_tab(rect: Rect) {

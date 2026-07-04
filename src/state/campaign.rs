@@ -17,6 +17,33 @@ impl CampaignState {
                     .any(|id| self.is_mission_completed(id)))
     }
 
+    /// True when a mission is still locked but only one requirement away from
+    /// unlocking, so the routes screen can tease it instead of hiding it.
+    pub fn is_mission_near_unlock(&self, mission: &MissionDef) -> bool {
+        if self.is_mission_unlocked(mission) {
+            return false;
+        }
+
+        let level_steps = mission.unlock_level.saturating_sub(self.carriage_level);
+        let prereq_steps = mission
+            .prerequisite_missions
+            .iter()
+            .filter(|id| !self.is_mission_completed(id))
+            .count() as u32;
+        let branch_steps = if mission.unlock_any_missions.is_empty()
+            || mission
+                .unlock_any_missions
+                .iter()
+                .any(|id| self.is_mission_completed(id))
+        {
+            0
+        } else {
+            1
+        };
+
+        level_steps + prereq_steps + branch_steps <= 1
+    }
+
     pub fn mission_unlock_label(&self, mission: &MissionDef) -> String {
         if self.carriage_level < mission.unlock_level {
             return format!("Carriage Level {}", mission.unlock_level);

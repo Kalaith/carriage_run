@@ -108,6 +108,7 @@ pub struct MissionRun {
     pub elapsed: f32,
     pub time_limit: Option<f32>,
     pub road_scroll: f32,
+    pub terrain_scroll: f32,
     pub enemies_defeated: u32,
     pub damage_taken: f32,
     pub guard_damage_taken: f32,
@@ -233,6 +234,7 @@ impl MissionRun {
             elapsed: 0.0,
             time_limit,
             road_scroll: 0.0,
+            terrain_scroll: 0.0,
             enemies_defeated: 0,
             damage_taken: 0.0,
             guard_damage_taken: 0.0,
@@ -286,7 +288,28 @@ impl MissionRun {
     }
 
     pub fn scroll_speed(&self) -> f32 {
-        (128.0 + self.wheel_bonus * 9.0) * self.speed_factor()
+        (Self::BASE_SCROLL_SPEED + self.wheel_bonus * 9.0) * self.speed_factor()
+    }
+
+    /// Cruising scroll speed with no wheel upgrades and no slowdown, in px/sec.
+    pub const BASE_SCROLL_SPEED: f32 = 128.0;
+
+    /// Stylized speed readout for the HUD; base cruising speed reads ~18.
+    pub fn speed_readout(&self) -> f32 {
+        self.scroll_speed() / Self::BASE_SCROLL_SPEED * 18.0
+    }
+
+    /// Fraction of the speed gauge to fill (full wheel upgrades approach 1.0).
+    pub fn speed_ratio(&self) -> f32 {
+        (self.scroll_speed() / (Self::BASE_SCROLL_SPEED * 1.4)).clamp(0.0, 1.0)
+    }
+
+    pub fn is_slowed(&self) -> bool {
+        self.carriage.slow_timer > 0.0
+    }
+
+    pub fn is_boosted(&self) -> bool {
+        !self.is_slowed() && self.scroll_speed() > Self::BASE_SCROLL_SPEED + 0.5
     }
 
     pub fn special_ratio(&self) -> Option<f32> {

@@ -10,7 +10,7 @@
     "id": "guard_training",
     "name": "Guard Training",
     "description": "Improves the swordsman's health, movement, and melee damage.",
-    "base_cost": 55,
+    "base_cost": 45,
     "max_level": 4
   },
   {

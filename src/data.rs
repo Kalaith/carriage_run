@@ -134,4 +134,23 @@ mod tests {
             .iter()
             .any(|texture| texture.key == "title_screen"));
     }
+
+    #[test]
+    fn mission_difficulty_is_non_decreasing_by_order() {
+        let data = GameData::load().unwrap();
+        let ordered = data.missions_ordered();
+        for pair in ordered.windows(2) {
+            let (prev, next) = (pair[0], pair[1]);
+            assert!(
+                next.difficulty >= prev.difficulty,
+                "difficulty regresses: '{}' (order {}) is {} but earlier '{}' (order {}) is {}",
+                next.id,
+                next.order,
+                next.difficulty,
+                prev.id,
+                prev.order,
+                prev.difficulty,
+            );
+        }
+    }
 }

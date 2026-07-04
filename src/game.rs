@@ -62,6 +62,21 @@ impl Game {
         game
     }
 
+    /// Seed a specific scene for the screenshot harness (see `run_capture`).
+    pub fn begin_capture_scene(&mut self, scene: &str) {
+        match scene {
+            "map" => self.session.open_map(),
+            "loadout" => self.session.open_loadout(),
+            "upgrades" => self.session.open_upgrades(),
+            _ => {
+                self.session.select_mission("muddy_road");
+                if !self.session.start_selected_mission(&self.data) {
+                    self.session.open_map();
+                }
+            }
+        }
+    }
+
     pub fn update(&mut self, dt: f32) {
         self.notifications.update(dt);
         self.handle_global_keys();

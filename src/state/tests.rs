@@ -136,6 +136,34 @@ fn mission_unlock_requires_completed_path() {
     assert!(campaign.is_mission_unlocked(&mission));
 }
 
+#[test]
+fn near_unlock_covers_only_one_step_away_missions() {
+    let config = test_config();
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    // One carriage level short: teased on the map.
+    let level_gated = test_mission("gold_shipment", &[], &[], 2);
+    assert!(!campaign.is_mission_unlocked(&level_gated));
+    assert!(campaign.is_mission_near_unlock(&level_gated));
+
+    // Two levels short: still hidden.
+    let far = test_mission("siege_supply", &[], &[], 3);
+    assert!(!campaign.is_mission_near_unlock(&far));
+
+    // One prerequisite away: teased, then unlocked once completed.
+    let prereq_gated = test_mission("bandit_bend", &["muddy_road"], &[], 1);
+    assert!(campaign.is_mission_near_unlock(&prereq_gated));
+    campaign
+        .records
+        .insert("muddy_road".to_owned(), test_record());
+    assert!(campaign.is_mission_unlocked(&prereq_gated));
+    assert!(!campaign.is_mission_near_unlock(&prereq_gated));
+
+    // A prerequisite plus a level gap is two steps: hidden.
+    let two_steps = test_mission("bonebridge_pass", &["courier_deadline"], &[], 2);
+    assert!(!campaign.is_mission_near_unlock(&two_steps));
+}
+
 fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
     MissionReport {
         mission_id: "muddy_road".to_owned(),

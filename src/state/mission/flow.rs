@@ -149,8 +149,10 @@ impl MissionRun {
 
     fn update_carriage(&mut self, dt: f32) {
         let previous_center = road_center_at_y(CARRIAGE_Y, self.progress);
+        let scroll_step = self.scroll_speed() * dt;
         self.progress += self.progress_speed() * dt;
-        self.road_scroll = (self.road_scroll + self.scroll_speed() * dt) % 96.0;
+        self.road_scroll = (self.road_scroll + scroll_step) % 96.0;
+        self.terrain_scroll = (self.terrain_scroll + scroll_step) % 1_000_000.0;
         let center_delta = road_center_at_y(CARRIAGE_Y, self.progress) - previous_center;
         self.carriage.target_x = self.clamp_carriage_x(self.carriage.target_x + center_delta);
         self.carriage.pos.x = self.clamp_carriage_x(self.carriage.pos.x + center_delta);
@@ -164,16 +166,32 @@ impl MissionRun {
             return;
         }
 
+        let grace = self.early_grace_multiplier();
+
         self.spawn_timer -= dt;
         if self.spawn_timer <= 0.0 && !self.enemy_mix.is_empty() {
             self.spawn_enemy();
-            self.spawn_timer = (self.rng_range(1.4, 2.8) / self.difficulty.max(0.75)).max(0.85);
+            self.spawn_timer =
+                (self.rng_range(1.4, 2.8) * grace / self.difficulty.max(0.75)).max(0.85);
         }
 
         self.hazard_timer -= dt;
         if self.hazard_timer <= 0.0 && !self.hazard_mix.is_empty() {
             self.spawn_hazard();
-            self.hazard_timer = (self.rng_range(2.1, 4.2) / self.difficulty.max(0.8)).max(1.4);
+            self.hazard_timer =
+                (self.rng_range(2.1, 4.2) * grace / self.difficulty.max(0.8)).max(1.4);
+        }
+    }
+
+    /// Eases spawn pressure at the start of a route so the player can settle
+    /// guards before threats ramp up. Returns 1.6x spacing at the start,
+    /// tapering to 1.0x by the time 25% of the route is covered.
+    fn early_grace_multiplier(&self) -> f32 {
+        let ratio = self.progress_ratio();
+        if ratio >= 0.25 {
+            1.0
+        } else {
+            1.6 - 0.6 * (ratio / 0.25)
         }
     }
 

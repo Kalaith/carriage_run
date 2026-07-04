@@ -3,6 +3,16 @@
 use super::*;
 use macroquad::prelude::*;
 
+struct PendingGuardHit {
+    kind: GuardKind,
+    stars: u8,
+    enemy_id: u32,
+    enemy_kind: EnemyKind,
+    damage: f32,
+    origin: Vec2,
+    target: Vec2,
+}
+
 impl MissionRun {
     pub(super) fn update_guard_orders(&mut self, dt: f32) {
         let enemies: Vec<(u32, Vec2, f32, EnemyKind)> = self
@@ -34,15 +44,15 @@ impl MissionRun {
                     if let Some((enemy_id, target, _, kind)) =
                         nearest_enemy_in_range(&enemies, guard.pos, guard.range)
                     {
-                        pending_hits.push((
-                            guard.kind,
-                            guard.star_level,
+                        pending_hits.push(PendingGuardHit {
+                            kind: guard.kind,
+                            stars: guard.star_level,
                             enemy_id,
-                            kind,
-                            guard_hit_damage(guard, kind),
-                            guard.pos,
+                            enemy_kind: kind,
+                            damage: guard_hit_damage(guard, kind),
+                            origin: guard.pos,
                             target,
-                        ));
+                        });
                         guard.cooldown = guard.attack_cooldown;
                         guard.attack_flash = 0.16;
                     }
@@ -57,15 +67,15 @@ impl MissionRun {
                         if let Some((enemy_id, target, _, kind)) =
                             nearest_enemy_in_range(&enemies, guard.pos, auto_attack_range(guard))
                         {
-                            pending_hits.push((
-                                guard.kind,
-                                guard.star_level,
+                            pending_hits.push(PendingGuardHit {
+                                kind: guard.kind,
+                                stars: guard.star_level,
                                 enemy_id,
-                                kind,
-                                guard_hit_damage(guard, kind),
-                                guard.pos,
+                                enemy_kind: kind,
+                                damage: guard_hit_damage(guard, kind),
+                                origin: guard.pos,
                                 target,
-                            ));
+                            });
                             guard.cooldown = guard.attack_cooldown;
                             guard.attack_flash = 0.16;
                         }
@@ -82,15 +92,15 @@ impl MissionRun {
                         if let Some((enemy_id, target, _, kind)) =
                             nearest_enemy_in_range(&enemies, guard.pos, auto_attack_range(guard))
                         {
-                            pending_hits.push((
-                                guard.kind,
-                                guard.star_level,
+                            pending_hits.push(PendingGuardHit {
+                                kind: guard.kind,
+                                stars: guard.star_level,
                                 enemy_id,
-                                kind,
-                                guard_hit_damage(guard, kind),
-                                guard.pos,
+                                enemy_kind: kind,
+                                damage: guard_hit_damage(guard, kind),
+                                origin: guard.pos,
                                 target,
-                            ));
+                            });
                             guard.cooldown = guard.attack_cooldown;
                             guard.attack_flash = 0.16;
                         }
@@ -106,15 +116,15 @@ impl MissionRun {
                     if guard.pos.distance(*target) > guard.range + *radius {
                         guard.pos = move_towards(guard.pos, *target, guard.speed * dt);
                     } else if guard.cooldown <= 0.0 {
-                        pending_hits.push((
-                            guard.kind,
-                            guard.star_level,
+                        pending_hits.push(PendingGuardHit {
+                            kind: guard.kind,
+                            stars: guard.star_level,
                             enemy_id,
-                            *kind,
-                            guard_hit_damage(guard, *kind),
-                            guard.pos,
-                            *target,
-                        ));
+                            enemy_kind: *kind,
+                            damage: guard_hit_damage(guard, *kind),
+                            origin: guard.pos,
+                            target: *target,
+                        });
                         guard.cooldown = guard.attack_cooldown;
                         guard.attack_flash = 0.16;
                     }
@@ -122,8 +132,8 @@ impl MissionRun {
             }
         }
 
-        for (kind, stars, enemy_id, enemy_kind, damage, origin, target) in pending_hits {
-            self.apply_guard_hit(kind, stars, enemy_id, enemy_kind, damage, origin, target);
+        for hit in pending_hits {
+            self.apply_guard_hit(hit);
         }
     }
 
@@ -386,55 +396,51 @@ impl MissionRun {
             .retain(|hazard| hazard.pos.y < PLAY_BOTTOM + 95.0);
     }
 
-    fn apply_guard_hit(
-        &mut self,
-        kind: GuardKind,
-        stars: u8,
-        enemy_id: u32,
-        enemy_kind: EnemyKind,
-        mut damage: f32,
-        origin: Vec2,
-        target: Vec2,
-    ) {
-        if kind == GuardKind::CrossbowGuard
-            && stars >= 2
-            && matches!(enemy_kind, EnemyKind::Skeleton | EnemyKind::Necromancer)
+    fn apply_guard_hit(&mut self, hit: PendingGuardHit) {
+        let mut damage = hit.damage;
+        if hit.kind == GuardKind::CrossbowGuard
+            && hit.stars >= 2
+            && matches!(hit.enemy_kind, EnemyKind::Skeleton | EnemyKind::Necromancer)
         {
             damage *= 1.35;
         }
 
-        let Some(primary_pos) = self.damage_enemy(enemy_id, damage) else {
+        let Some(primary_pos) = self.damage_enemy(hit.enemy_id, damage) else {
             return;
         };
 
-        if kind.is_ranged() {
+        if hit.kind.is_ranged() {
             self.shots
-                .push(Shot::new(origin, target, kind.shot_color()));
+                .push(Shot::new(hit.origin, hit.target, hit.kind.shot_color()));
         }
 
-        match kind {
-            GuardKind::Swordsman if stars >= 3 => {
-                if let Some(extra_id) = self.nearby_enemy(enemy_id, primary_pos, 48.0) {
+        match hit.kind {
+            GuardKind::Swordsman if hit.stars >= 3 => {
+                if let Some(extra_id) = self.nearby_enemy(hit.enemy_id, primary_pos, 48.0) {
                     self.damage_enemy(extra_id, damage * 0.45);
                 }
             }
-            GuardKind::Archer if stars >= 3 => {
-                if let Some(extra_id) = self.nearby_enemy(enemy_id, primary_pos, 78.0) {
+            GuardKind::Archer if hit.stars >= 3 => {
+                if let Some(extra_id) = self.nearby_enemy(hit.enemy_id, primary_pos, 78.0) {
                     self.damage_enemy(extra_id, damage * 0.65);
                 }
             }
-            GuardKind::CrossbowGuard if stars >= 3 => {
-                if let Some(enemy) = self.enemies.iter_mut().find(|enemy| enemy.id == enemy_id) {
+            GuardKind::CrossbowGuard if hit.stars >= 3 => {
+                if let Some(enemy) = self
+                    .enemies
+                    .iter_mut()
+                    .find(|enemy| enemy.id == hit.enemy_id)
+                {
                     enemy.slow_timer = 1.25;
                 }
             }
             GuardKind::Mage => {
-                if stars >= 2 {
+                if hit.stars >= 2 {
                     let splash_ids: Vec<u32> = self
                         .enemies
                         .iter()
                         .filter(|enemy| {
-                            enemy.id != enemy_id
+                            enemy.id != hit.enemy_id
                                 && enemy.is_active()
                                 && enemy.pos.distance(primary_pos) < 62.0
                         })
@@ -444,7 +450,7 @@ impl MissionRun {
                         self.damage_enemy(splash_id, damage * 0.38);
                     }
                 }
-                if stars >= 3 {
+                if hit.stars >= 3 {
                     self.heal_weak_guard(4.0 + damage * 0.08);
                 }
             }

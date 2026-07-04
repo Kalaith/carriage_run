@@ -235,7 +235,7 @@ impl CampaignState {
 
         self.selected_guard_ids = normalize_selection(
             &self.selected_guard_ids,
-            &[self.selected_guard_id.clone()],
+            std::slice::from_ref(&self.selected_guard_id),
             self.guard_slot_count(),
             false,
             &self.hired_guard_ids,

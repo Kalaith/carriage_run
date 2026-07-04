@@ -255,7 +255,7 @@ struct SelectedRouteLayout {
 fn selected_route_layout(screen_w: f32, screen_h: f32) -> SelectedRouteLayout {
     let panel_width = (screen_w - 88.0).clamp(980.0, 1192.0);
     let panel_x = ((screen_w - panel_width) * 0.5).max(20.0);
-    let panel_y = (screen_h - 248.0).min(452.0).max(424.0);
+    let panel_y = (screen_h - 248.0).clamp(424.0, 452.0);
     let panel = Rect::new(panel_x, panel_y, panel_width, 236.0);
 
     let cta_width = if panel.w < 1160.0 { 128.0 } else { 134.0 };

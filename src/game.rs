@@ -70,6 +70,14 @@ impl Game {
             "loadout" => self.session.open_loadout(),
             "upgrades" => self.session.open_upgrades(),
             "carriages" => self.session.open_carriages(),
+            "guards" => {
+                // Seed an injured guard so the infirmary UI is visible.
+                self.session
+                    .campaign
+                    .guard_recovery
+                    .insert("swordsman".to_owned(), 2);
+                self.session.open_guards();
+            }
             _ => {
                 self.session.select_mission("muddy_road");
                 if !self.session.start_selected_mission(&self.data) {
@@ -260,6 +268,16 @@ impl Game {
                     self.notifications.info("Guard already at 3 stars");
                 } else {
                     self.notifications.warning("Not enough gold");
+                }
+            }
+            UiAction::TreatGuard(id) => {
+                let kind = GuardKind::from_id(&id);
+                if self.session.treat_guard(&id) {
+                    self.notifications
+                        .success(format!("{} treated and back on duty", kind.label()));
+                    self.auto_save();
+                } else {
+                    self.notifications.warning("Not enough gold to treat");
                 }
             }
             UiAction::ToggleSetting(id) => {

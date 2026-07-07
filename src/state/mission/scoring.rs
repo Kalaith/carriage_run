@@ -50,6 +50,16 @@ impl MissionRun {
         } else {
             (self.base_reward as f32 * 0.12).round() as i64 + self.enemies_defeated as i64 * 2
         };
+        // A failed run costs gold: emergency repairs scale with carriage
+        // damage, and spoiled/looted cargo scales with cargo lost. The worse
+        // the run went, the more it stings.
+        let gold_penalty = if success {
+            0
+        } else {
+            let repairs = (1.0 - health_ratio) * 30.0;
+            let lost_cargo = (1.0 - cargo_ratio) * 20.0;
+            (repairs + lost_cargo).round() as i64
+        };
 
         MissionReport {
             mission_id: mission.id.clone(),
@@ -60,6 +70,7 @@ impl MissionRun {
             stars,
             score,
             reward,
+            gold_penalty,
             elapsed: self.elapsed,
             time_limit: self.time_limit,
             carriage_health_ratio: health_ratio,

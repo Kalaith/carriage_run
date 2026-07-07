@@ -66,26 +66,69 @@ fn upgrading_guard_star_spends_gold() {
 }
 
 #[test]
-fn injured_guard_recovers_after_one_mission() {
+fn injured_guard_is_benched_and_recovers_over_missions() {
     let config = test_config();
     let mut session = GameSession::new(&config, Some("muddy_road"));
-    let report = test_report(false, vec!["swordsman".to_owned()]);
 
-    session.apply_report(report);
+    // A failed run leaves the guard worse off (3 missions).
+    session.apply_report(test_report(false, vec!["swordsman".to_owned()]));
     assert_eq!(
         session
             .campaign
             .guard_recovery_missions(GuardKind::Swordsman),
-        1
+        3
     );
 
-    session.apply_report(test_report(false, Vec::new()));
+    session.apply_report(test_report(true, Vec::new()));
+    assert_eq!(
+        session
+            .campaign
+            .guard_recovery_missions(GuardKind::Swordsman),
+        2
+    );
+}
+
+#[test]
+fn failed_run_deducts_repair_penalty_without_going_negative() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    let start_gold = session.campaign.gold;
+
+    let mut report = test_report(false, Vec::new());
+    report.reward = 5;
+    report.gold_penalty = 40;
+    session.apply_report(report);
+    assert_eq!(session.campaign.gold, start_gold + 5 - 40);
+
+    // A ruinous penalty cannot push gold below zero.
+    session.campaign.gold = 10;
+    let mut report = test_report(false, Vec::new());
+    report.gold_penalty = 500;
+    session.apply_report(report);
+    assert_eq!(session.campaign.gold, 0);
+}
+
+#[test]
+fn treating_injured_guard_costs_gold_and_clears_recovery() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    session.apply_report(test_report(false, vec!["swordsman".to_owned()]));
+    session.campaign.gold = 500;
+
+    let cost = session
+        .campaign
+        .guard_treat_cost(GuardKind::Swordsman)
+        .unwrap();
+    assert!(session.treat_guard("swordsman"));
+    assert_eq!(session.campaign.gold, 500 - cost);
     assert_eq!(
         session
             .campaign
             .guard_recovery_missions(GuardKind::Swordsman),
         0
     );
+    // Nothing to treat once healed.
+    assert!(!session.treat_guard("swordsman"));
 }
 
 #[test]
@@ -233,6 +276,7 @@ fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
         stars: if success { 1 } else { 0 },
         score: 0,
         reward: 0,
+        gold_penalty: 0,
         elapsed: 0.0,
         time_limit: None,
         carriage_health_ratio: 1.0,

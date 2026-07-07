@@ -31,6 +31,8 @@ pub struct MissionReport {
     pub stars: u8,
     pub score: i64,
     pub reward: i64,
+    /// Gold lost to repairs and spoiled cargo when a run fails (0 on success).
+    pub gold_penalty: i64,
     pub elapsed: f32,
     pub time_limit: Option<f32>,
     pub carriage_health_ratio: f32,

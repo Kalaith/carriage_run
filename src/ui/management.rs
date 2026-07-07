@@ -372,27 +372,43 @@ fn draw_roster_guard_card(
         TextStyle::new(13.0, MUTED).params(),
     );
 
-    let label = if selected {
-        "Active"
-    } else if hired {
-        "Set Active"
-    } else {
-        "Shop"
-    };
-    let action = if hired {
-        UiAction::SelectGuard(kind.id().to_owned())
-    } else {
-        UiAction::OpenShop
-    };
+    // When a guard is recovering, the primary action becomes paying the
+    // infirmary to bring them back early.
+    let (label, enabled, action, tone) =
+        if let Some(cost) = campaign.guard_treat_cost(kind).filter(|_| hired) {
+            (
+                format!("Treat {}", cost),
+                campaign.gold >= cost,
+                UiAction::TreatGuard(kind.id().to_owned()),
+                ButtonTone::Positive,
+            )
+        } else if selected {
+            (
+                "Active".to_owned(),
+                false,
+                UiAction::SelectGuard(kind.id().to_owned()),
+                ButtonTone::Positive,
+            )
+        } else if hired {
+            (
+                "Set Active".to_owned(),
+                true,
+                UiAction::SelectGuard(kind.id().to_owned()),
+                ButtonTone::Positive,
+            )
+        } else {
+            (
+                "Shop".to_owned(),
+                true,
+                UiAction::OpenShop,
+                ButtonTone::Secondary,
+            )
+        };
     if virtual_button(
         Rect::new(rect.right() - 224.0, rect.bottom() - 38.0, 88.0, 30.0),
-        label,
-        !selected && hired && recovery == 0,
-        if hired {
-            ButtonTone::Positive
-        } else {
-            ButtonTone::Secondary
-        },
+        &label,
+        enabled,
+        tone,
         mouse,
     ) {
         actions.push(action);

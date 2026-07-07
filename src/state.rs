@@ -213,6 +213,13 @@ impl CampaignState {
         self.guard_recovery.get(kind.id()).copied().unwrap_or(0)
     }
 
+    /// Gold cost to instantly treat an injured guard at the infirmary. `None`
+    /// when the guard is not currently recovering.
+    pub fn guard_treat_cost(&self, kind: GuardKind) -> Option<i64> {
+        let recovery = self.guard_recovery_missions(kind);
+        (recovery > 0).then(|| 30 + kind.hire_cost() / 5 + recovery as i64 * 15)
+    }
+
     pub fn is_guard_available(&self, kind: GuardKind) -> bool {
         self.is_guard_hired(kind) && self.guard_recovery_missions(kind) == 0
     }
@@ -585,6 +592,21 @@ impl GameSession {
         true
     }
 
+    /// Pay to clear an injured guard's recovery time immediately.
+    pub fn treat_guard(&mut self, id: &str) -> bool {
+        let kind = GuardKind::from_id(id);
+        let Some(cost) = self.campaign.guard_treat_cost(kind) else {
+            return false;
+        };
+        if self.campaign.gold < cost {
+            return false;
+        }
+
+        self.campaign.gold -= cost;
+        self.campaign.guard_recovery.remove(kind.id());
+        true
+    }
+
     pub fn toggle_setting(&mut self, id: &str) -> bool {
         match id {
             "route_motion" => {
@@ -670,11 +692,15 @@ impl GameSession {
 
     fn apply_report(&mut self, report: MissionReport) {
         self.advance_guard_recovery();
-        self.campaign.gold += report.reward;
+        self.campaign.gold = (self.campaign.gold + report.reward - report.gold_penalty).max(0);
+        // Guards that fall are benched; a botched run leaves them worse off.
+        let recovery = if report.success { 2 } else { 3 };
         for id in &report.injured_guard_ids {
             let kind = GuardKind::from_id(id);
             if self.campaign.is_guard_hired(kind) {
-                self.campaign.guard_recovery.insert(kind.id().to_owned(), 1);
+                self.campaign
+                    .guard_recovery
+                    .insert(kind.id().to_owned(), recovery);
             }
         }
 

@@ -51,6 +51,7 @@ pub enum UiAction {
     ClearEquipmentSlot(usize),
     HireGuard(String),
     UpgradeGuardStar(String),
+    TreatGuard(String),
     ToggleSetting(String),
     BeginMission,
     RetryMission,
@@ -272,6 +273,14 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         ("Route".to_owned(), result.route_name.clone()),
         ("Score".to_owned(), result.score.to_string()),
         ("Reward".to_owned(), format!("{} gold", result.reward)),
+    ];
+    if result.gold_penalty > 0 {
+        stats.push((
+            "Losses".to_owned(),
+            format!("-{} gold", result.gold_penalty),
+        ));
+    }
+    stats.extend([
         (
             "Carriage".to_owned(),
             format!("{:.0}%", result.carriage_health_ratio * 100.0),
@@ -280,7 +289,7 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
             "Cargo".to_owned(),
             format!("{:.0}%", result.cargo_ratio * 100.0),
         ),
-    ];
+    ]);
     if let (Some(label), Some(ratio)) = (&result.special_label, result.special_ratio) {
         stats.push((label.clone(), format!("{:.0}%", ratio * 100.0)));
     }

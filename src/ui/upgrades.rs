@@ -108,9 +108,11 @@ fn draw_nav_tiles(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>)
 
 fn draw_available_upgrades(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let upgrades = ordered_upgrades(ctx);
-    let start_x = 48.0;
-    let card_w = 180.0;
-    let gap = 14.0;
+    let count = upgrades.len().max(1) as f32;
+    let start_x = 44.0;
+    let gap = 12.0;
+    let usable = 1280.0 - start_x * 2.0;
+    let card_w = (usable - gap * (count - 1.0)) / count;
     for (index, upgrade) in upgrades.iter().enumerate() {
         let rect = Rect::new(
             start_x + index as f32 * (card_w + gap),
@@ -127,6 +129,8 @@ fn ordered_upgrades<'a>(ctx: &'a UiContext<'_>) -> Vec<&'a UpgradeDef> {
         "carriage_armor",
         "reinforced_wheels",
         "cargo_straps",
+        "spiked_hubs",
+        "warding_lantern",
         "mounted_archer",
         "guard_training",
         "repair_kit",
@@ -506,6 +510,8 @@ fn equipment_for_upgrade(id: &str) -> Option<CarriageEquipment> {
         "reinforced_wheels" => Some(CarriageEquipment::ReinforcedWheels),
         "cargo_straps" => Some(CarriageEquipment::CargoStraps),
         "repair_kit" => Some(CarriageEquipment::RepairKit),
+        "spiked_hubs" => Some(CarriageEquipment::SpikedHubs),
+        "warding_lantern" => Some(CarriageEquipment::WardingLantern),
         _ => None,
     }
 }

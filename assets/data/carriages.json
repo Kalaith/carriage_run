@@ -1,0 +1,32 @@
+[
+  {
+    "id": "scout_cart",
+    "name": "Scout Cart",
+    "order": 1,
+    "slots": 2,
+    "speed_mult": 1.12,
+    "health_mult": 0.86,
+    "cost": 0,
+    "description": "Light and quick. Two slots and a fragile frame, but the fastest wheels on the road."
+  },
+  {
+    "id": "standard_wagon",
+    "name": "Standard Wagon",
+    "order": 2,
+    "slots": 3,
+    "speed_mult": 1.0,
+    "health_mult": 1.0,
+    "cost": 160,
+    "description": "The balanced hauler. Three slots and even handling for guards and gear alike."
+  },
+  {
+    "id": "heavy_wagon",
+    "name": "Heavy Wagon",
+    "order": 3,
+    "slots": 4,
+    "speed_mult": 0.9,
+    "health_mult": 1.22,
+    "cost": 360,
+    "description": "A rolling fortress. Four slots and a heavy hull that shrugs off blows, but it lumbers."
+  }
+]

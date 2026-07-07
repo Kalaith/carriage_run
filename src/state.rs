@@ -1,6 +1,7 @@
 //! Campaign state, save data, and screen-level mission orchestration.
 
 mod campaign;
+mod chassis;
 mod entities;
 mod equipment;
 mod mission;
@@ -20,6 +21,7 @@ pub enum Screen {
     MissionMap,
     Loadout,
     Shop,
+    Carriages,
     Guards,
     Upgrades,
     Settings,
@@ -46,6 +48,10 @@ pub struct CampaignState {
     pub cargo_level: u32,
     #[serde(default)]
     pub repair_level: u32,
+    #[serde(default)]
+    pub hubs_level: u32,
+    #[serde(default)]
+    pub lantern_level: u32,
     #[serde(default = "default_guard_id")]
     pub selected_guard_id: String,
     #[serde(default = "default_selected_guard_ids")]
@@ -56,6 +62,19 @@ pub struct CampaignState {
     pub hired_guard_ids: Vec<String>,
     #[serde(default = "default_selected_equipment_ids")]
     pub selected_equipment_ids: Vec<String>,
+    #[serde(default)]
+    pub chassis_id: String,
+    #[serde(default)]
+    pub owned_chassis_ids: Vec<String>,
+    /// Cached from the active chassis def (see `refresh_chassis_stats`). Zero
+    /// means "not yet resolved" and falls back to the legacy carriage-level
+    /// slot formula.
+    #[serde(default)]
+    pub chassis_slots: usize,
+    #[serde(default = "default_mult")]
+    pub chassis_speed_mult: f32,
+    #[serde(default = "default_mult")]
+    pub chassis_health_mult: f32,
     #[serde(default)]
     pub guard_stars: HashMap<String, u8>,
     #[serde(default)]
@@ -82,11 +101,18 @@ impl CampaignState {
             wheel_level: 0,
             cargo_level: 0,
             repair_level: 0,
+            hubs_level: 0,
+            lantern_level: 0,
             selected_guard_id: default_guard_id(),
             selected_guard_ids: default_selected_guard_ids(),
             selected_ranged_ids: default_selected_ranged_ids(),
             hired_guard_ids: default_hired_guard_ids(),
             selected_equipment_ids: default_selected_equipment_ids(),
+            chassis_id: String::new(),
+            owned_chassis_ids: Vec::new(),
+            chassis_slots: 0,
+            chassis_speed_mult: 1.0,
+            chassis_health_mult: 1.0,
             guard_stars: HashMap::new(),
             guard_recovery: HashMap::new(),
             route_motion_enabled: true,
@@ -106,6 +132,8 @@ impl CampaignState {
             "reinforced_wheels" => self.wheel_level,
             "cargo_straps" => self.cargo_level,
             "repair_kit" => self.repair_level,
+            "spiked_hubs" => self.hubs_level,
+            "warding_lantern" => self.lantern_level,
             _ => 0,
         }
     }
@@ -138,13 +166,7 @@ impl CampaignState {
     }
 
     pub fn guard_slot_count(&self) -> usize {
-        if self.carriage_level >= 4 {
-            4
-        } else if self.carriage_level >= 2 {
-            3
-        } else {
-            2
-        }
+        self.chassis_slot_count()
     }
 
     pub fn ranged_slot_count(&self) -> usize {
@@ -283,6 +305,8 @@ impl CampaignState {
             "reinforced_wheels" => self.wheel_level += 1,
             "cargo_straps" => self.cargo_level += 1,
             "repair_kit" => self.repair_level += 1,
+            "spiked_hubs" => self.hubs_level += 1,
+            "warding_lantern" => self.lantern_level += 1,
             _ => {}
         }
     }
@@ -306,6 +330,10 @@ fn default_hired_guard_ids() -> Vec<String> {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_mult() -> f32 {
+    1.0
 }
 
 fn normalize_selection(
@@ -395,6 +423,11 @@ impl GameSession {
 
     pub fn open_shop(&mut self) {
         self.screen = Screen::Shop;
+        self.mission = None;
+    }
+
+    pub fn open_carriages(&mut self) {
+        self.screen = Screen::Carriages;
         self.mission = None;
     }
 

@@ -18,7 +18,10 @@ impl MissionRun {
                 .iter()
                 .find(|guard| guard.is_active() && guard.pos.distance(input.mouse) <= 28.0)
             {
-                self.drag = DragState::Guard { guard_id: guard.id };
+                self.drag = DragState::Guard {
+                    guard_id: guard.id,
+                    grab: input.mouse,
+                };
             }
         }
 
@@ -26,8 +29,8 @@ impl MissionRun {
             DragState::Carriage if input.down => {
                 self.carriage.target_x = self.clamp_carriage_x(input.mouse.x);
             }
-            DragState::Guard { guard_id } if input.released => {
-                self.issue_guard_order(guard_id, input.mouse);
+            DragState::Guard { guard_id, grab } if input.released => {
+                self.issue_guard_order(guard_id, grab, input.mouse);
                 self.drag = DragState::None;
             }
             _ => {}
@@ -89,11 +92,13 @@ impl MissionRun {
             MissionKind::TimeDelivery => 18.3,
             _ => 17.5,
         };
-        (base + self.wheel_bonus) * self.speed_factor()
+        (base + self.wheel_bonus) * self.speed_factor() * self.throttle * self.chassis_speed_mult
     }
 
-    fn issue_guard_order(&mut self, guard_id: u32, point: Vec2) {
+    fn issue_guard_order(&mut self, guard_id: u32, grab: Vec2, point: Vec2) {
         let carriage_near = point.distance(self.carriage.pos) < 70.0;
+        // A near-stationary press/release is a tap, not a drag.
+        let tapped = point.distance(grab) < 12.0;
         let slot_target = self.ranged_slot_at(point);
         let enemy_target = self
             .enemies
@@ -122,7 +127,14 @@ impl MissionRun {
             guard.order = if let Some(enemy_id) = enemy_target {
                 GuardOrder::Attack(enemy_id)
             } else if carriage_near {
-                GuardOrder::Escort
+                // Dropping a guard on the carriage restores its default stance.
+                guard.home_stance()
+            } else if tapped {
+                // Tapping a guard toggles between roaming and holding formation.
+                match guard.order {
+                    GuardOrder::Roam => GuardOrder::Escort,
+                    _ => GuardOrder::Roam,
+                }
             } else {
                 GuardOrder::Move(clamp_to_field(point))
             };
@@ -145,6 +157,15 @@ impl MissionRun {
             self.carriage.target_x =
                 self.clamp_carriage_x(self.carriage.target_x + axis * 270.0 * dt);
         }
+
+        // Manual throttle: rush past danger or slow down to let guards work.
+        self.throttle = if is_key_down(KeyCode::Up) || is_key_down(KeyCode::Space) {
+            1.32
+        } else if is_key_down(KeyCode::Down) || is_key_down(KeyCode::LeftShift) {
+            0.58
+        } else {
+            1.0
+        };
     }
 
     fn update_carriage(&mut self, dt: f32) {
@@ -156,7 +177,9 @@ impl MissionRun {
         let center_delta = road_center_at_y(CARRIAGE_Y, self.progress) - previous_center;
         self.carriage.target_x = self.clamp_carriage_x(self.carriage.target_x + center_delta);
         self.carriage.pos.x = self.clamp_carriage_x(self.carriage.pos.x + center_delta);
-        let response = 1.0 - (-5.0 * dt).exp();
+        // Steering bites harder when braking and gets looser at speed, so
+        // boosting past hazards is a genuine risk.
+        let response = 1.0 - (-(5.0 / self.throttle) * dt).exp();
         self.carriage.pos.x += (self.carriage.target_x - self.carriage.pos.x) * response;
         self.carriage.pos.x = self.clamp_carriage_x(self.carriage.pos.x);
     }
@@ -167,13 +190,7 @@ impl MissionRun {
         }
 
         let grace = self.early_grace_multiplier();
-
-        self.spawn_timer -= dt;
-        if self.spawn_timer <= 0.0 && !self.enemy_mix.is_empty() {
-            self.spawn_enemy();
-            self.spawn_timer =
-                (self.rng_range(1.4, 2.8) * grace / self.difficulty.max(0.75)).max(0.85);
-        }
+        self.update_wave(dt, grace);
 
         self.hazard_timer -= dt;
         if self.hazard_timer <= 0.0 && !self.hazard_mix.is_empty() {
@@ -181,6 +198,65 @@ impl MissionRun {
             self.hazard_timer =
                 (self.rng_range(2.1, 4.2) * grace / self.difficulty.max(0.8)).max(1.4);
         }
+    }
+
+    /// Advances the lull -> telegraph -> burst cycle that drives enemy spawns.
+    fn update_wave(&mut self, dt: f32, grace: f32) {
+        if self.enemy_mix.is_empty() {
+            return;
+        }
+
+        self.wave = match self.wave.clone() {
+            WavePhase::Lull(timer) => {
+                let remaining = timer - dt;
+                if remaining <= 0.0 {
+                    self.wave_index += 1;
+                    self.alert
+                        .set(&format!("Wave {} incoming", self.wave_index));
+                    WavePhase::Telegraph(1.3)
+                } else {
+                    WavePhase::Lull(remaining)
+                }
+            }
+            WavePhase::Telegraph(timer) => {
+                let remaining = timer - dt;
+                if remaining <= 0.0 {
+                    WavePhase::Active {
+                        remaining: self.wave_size(),
+                        timer: 0.0,
+                    }
+                } else {
+                    WavePhase::Telegraph(remaining)
+                }
+            }
+            WavePhase::Active {
+                mut remaining,
+                timer,
+            } => {
+                let mut next = timer - dt;
+                if next <= 0.0 && remaining > 0 {
+                    self.spawn_enemy();
+                    remaining -= 1;
+                    next = self.rng_range(0.45, 0.8);
+                }
+                if remaining == 0 {
+                    let lull =
+                        (self.rng_range(3.4, 5.2) * grace / self.difficulty.max(0.8)).max(1.6);
+                    WavePhase::Lull(lull)
+                } else {
+                    WavePhase::Active {
+                        remaining,
+                        timer: next,
+                    }
+                }
+            }
+        };
+    }
+
+    /// Enemies per burst, growing gently with difficulty and wave count.
+    fn wave_size(&self) -> u32 {
+        let base = 2.0 + self.difficulty * 1.4 + self.wave_index as f32 * 0.25;
+        (base.round() as u32).clamp(2, 7)
     }
 
     /// Eases spawn pressure at the start of a route so the player can settle

@@ -662,14 +662,17 @@ fn draw_guard(guard: &Guard) {
             );
         }
     }
-    if matches!(guard.order, GuardOrder::Attack(_)) {
-        draw_circle_lines(
-            guard.pos.x,
-            guard.pos.y,
-            31.0,
-            2.0,
-            Color::new(0.95, 0.76, 0.28, 0.72),
-        );
+    if !down && guard.mounted_slot.is_none() {
+        // Stance ring: read a guard's standing order at a glance.
+        let stance_ring = match guard.order {
+            GuardOrder::Attack(_) => Some(Color::new(0.95, 0.76, 0.28, 0.72)),
+            GuardOrder::Roam => Some(Color::new(0.86, 0.44, 0.24, 0.60)),
+            GuardOrder::Hold | GuardOrder::Move(_) => Some(Color::new(0.42, 0.70, 0.95, 0.55)),
+            GuardOrder::Escort => None,
+        };
+        if let Some(color) = stance_ring {
+            draw_circle_lines(guard.pos.x, guard.pos.y, 31.0, 2.0, color);
+        }
     }
     if guard.attack_flash > 0.0 {
         let alpha = (guard.attack_flash / 0.16).clamp(0.0, 1.0);
@@ -722,7 +725,7 @@ fn draw_drag_feedback(run: &MissionRun, mouse: Vec2) {
                 Color::new(0.95, 0.78, 0.28, 0.85),
             );
         }
-        DragState::Guard { guard_id } => {
+        DragState::Guard { guard_id, .. } => {
             if let Some(guard) = run.guards.iter().find(|guard| guard.id == guard_id) {
                 draw_line(
                     guard.pos.x,

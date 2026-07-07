@@ -1,6 +1,7 @@
 //! Immediate-mode UI entry points and menu screens for Carriage Run.
 
 mod carriage;
+mod carriages;
 mod gameplay;
 mod gameplay_hud;
 mod loadout;
@@ -32,6 +33,7 @@ pub enum UiAction {
     OpenMap,
     OpenLoadout,
     OpenShop,
+    OpenCarriages,
     OpenGuards,
     OpenUpgrades,
     OpenSettings,
@@ -54,6 +56,8 @@ pub enum UiAction {
     RetryMission,
     UseRepair,
     BuyUpgrade(String),
+    BuyChassis(String),
+    SelectChassis(String),
     Save,
     Load,
     ExitGame,
@@ -81,6 +85,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::MissionMap => mission_map::draw_mission_map(&ctx, mouse, &mut actions),
         Screen::Loadout => loadout::draw_loadout(&ctx, mouse, &mut actions),
         Screen::Shop => management::draw_shop(&ctx, mouse, &mut actions),
+        Screen::Carriages => carriages::draw_carriages(&ctx, mouse, &mut actions),
         Screen::Guards => management::draw_guards(&ctx, mouse, &mut actions),
         Screen::Upgrades => upgrades::draw_upgrades(&ctx, mouse, &mut actions),
         Screen::Settings => management::draw_settings(&ctx, mouse, &mut actions),

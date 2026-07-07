@@ -48,7 +48,8 @@ impl Game {
             loaded_assets
         ));
 
-        let session = GameSession::new(&data.config, data.first_mission_id());
+        let mut session = GameSession::new(&data.config, data.first_mission_id());
+        session.sync_chassis(&data);
         let mut game = Self {
             data,
             session,
@@ -68,6 +69,7 @@ impl Game {
             "map" => self.session.open_map(),
             "loadout" => self.session.open_loadout(),
             "upgrades" => self.session.open_upgrades(),
+            "carriages" => self.session.open_carriages(),
             _ => {
                 self.session.select_mission("muddy_road");
                 if !self.session.start_selected_mission(&self.data) {
@@ -149,6 +151,7 @@ impl Game {
                 }
                 Screen::Loadout
                 | Screen::Shop
+                | Screen::Carriages
                 | Screen::Guards
                 | Screen::Upgrades
                 | Screen::Settings => self.events.push(UiAction::OpenMap),
@@ -169,6 +172,7 @@ impl Game {
         match action {
             UiAction::NewCampaign => {
                 self.session = GameSession::new(&self.data.config, self.data.first_mission_id());
+                self.session.sync_chassis(&self.data);
                 self.session.open_map();
                 self.notifications.info("New caravan charter started");
                 self.auto_save();
@@ -183,6 +187,7 @@ impl Game {
             UiAction::OpenMap => self.session.open_map(),
             UiAction::OpenLoadout => self.session.open_loadout(),
             UiAction::OpenShop => self.session.open_shop(),
+            UiAction::OpenCarriages => self.session.open_carriages(),
             UiAction::OpenGuards => self.session.open_guards(),
             UiAction::OpenUpgrades => self.session.open_upgrades(),
             UiAction::OpenSettings => self.session.open_settings(),
@@ -304,6 +309,32 @@ impl Game {
                     self.notifications.warning("Not enough gold");
                 }
             }
+            UiAction::BuyChassis(id) => {
+                if self.session.buy_chassis(&self.data, &id) {
+                    let name = self
+                        .data
+                        .chassis
+                        .get(&id)
+                        .map(|chassis| chassis.name.clone())
+                        .unwrap_or(id);
+                    self.notifications.success(format!("Bought {}", name));
+                    self.auto_save();
+                } else {
+                    self.notifications.warning("Cannot buy that carriage");
+                }
+            }
+            UiAction::SelectChassis(id) => {
+                if self.session.select_chassis(&self.data, &id) {
+                    let name = self
+                        .data
+                        .chassis
+                        .get(&id)
+                        .map(|chassis| chassis.name.clone())
+                        .unwrap_or(id);
+                    self.notifications.info(format!("Now driving the {}", name));
+                    self.auto_save();
+                }
+            }
             UiAction::Save => self.save_game(),
             UiAction::Load => self.load_game(),
             UiAction::ExitGame => macroquad::miniquad::window::quit(),
@@ -354,6 +385,7 @@ impl Game {
         match loaded {
             Ok(save) => {
                 self.session = GameSession::from_save(save, self.data.first_mission_id());
+                self.session.sync_chassis(&self.data);
                 self.notifications.success("Campaign loaded");
                 self.refresh_save_state();
             }

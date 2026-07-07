@@ -370,7 +370,7 @@ impl Guard {
             speed: profile.speed,
             range: profile.range,
             armor: profile.armor,
-            order: GuardOrder::Escort,
+            order: default_stance(kind),
             star_level,
             mounted_slot,
             cooldown: 0.0,
@@ -382,15 +382,52 @@ impl Guard {
     pub fn is_active(&self) -> bool {
         self.health > 0.0
     }
+
+    /// The stance a guard falls back to when a direct order (attack/return)
+    /// completes: melee guards roam, ranged guards hold formation to mount.
+    pub fn home_stance(&self) -> GuardOrder {
+        default_stance(self.kind)
+    }
+
+    /// Short label describing the guard's current standing order for the HUD.
+    pub fn stance_label(&self) -> &'static str {
+        if self.mounted_slot.is_some() {
+            "Mounted"
+        } else {
+            match self.order {
+                GuardOrder::Roam => "Roam",
+                GuardOrder::Escort => "Escort",
+                GuardOrder::Hold => "Hold",
+                GuardOrder::Move(_) => "Move",
+                GuardOrder::Attack(_) => "Attack",
+            }
+        }
+    }
+}
+
+fn default_stance(kind: GuardKind) -> GuardOrder {
+    if kind.is_melee() {
+        GuardOrder::Roam
+    } else {
+        GuardOrder::Escort
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum GuardOrder {
+    /// Hold formation next to the carriage, attacking only what wanders into range.
     Escort,
+    /// Self-directing stance: intercept the nearest enemy inside the carriage
+    /// leash radius, then fall back to formation when the area is clear.
+    Roam,
     Move(Vec2),
     Hold,
     Attack(u32),
 }
+
+/// Radius around the carriage inside which a roaming guard will chase enemies
+/// before returning to escort formation.
+pub const ROAM_LEASH_RADIUS: f32 = 232.0;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EnemyKind {
@@ -422,6 +459,30 @@ impl EnemyKind {
             Self::Necromancer => "Dark bolt",
         }
     }
+
+    /// Ranged skirmishers keep their distance: if a target closes inside this
+    /// range they back away instead of standing to fight. `None` = no kiting.
+    pub(super) fn kite_min_range(self) -> Option<f32> {
+        match self {
+            Self::BanditArcher => Some(150.0),
+            Self::Necromancer => Some(168.0),
+            _ => None,
+        }
+    }
+
+    /// Melee chargers commit to a burst of speed on the final approach.
+    pub(super) fn charge_multiplier(self) -> f32 {
+        match self {
+            Self::Wolf => 1.85,
+            _ => 1.0,
+        }
+    }
+
+    /// Bandits grab cargo and run for the map edge; killing a fleeing thief
+    /// recovers what it stole.
+    pub(super) fn steals_and_flees(self) -> bool {
+        matches!(self, Self::Bandit)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -440,6 +501,10 @@ pub struct Enemy {
     pub special_timer: f32,
     pub slow_timer: f32,
     pub hit_flash: f32,
+    /// Cargo a fleeing bandit is carrying off; recovered if it is killed.
+    pub carried_cargo: f32,
+    /// True once a thief has stolen cargo and is running for the map edge.
+    pub retreating: bool,
 }
 
 impl Enemy {
@@ -472,6 +537,8 @@ impl Enemy {
             special_timer: 2.4,
             slow_timer: 0.0,
             hit_flash: 0.0,
+            carried_cargo: 0.0,
+            retreating: false,
         }
     }
 
@@ -574,7 +641,7 @@ impl Shot {
 pub enum DragState {
     None,
     Carriage,
-    Guard { guard_id: u32 },
+    Guard { guard_id: u32, grab: Vec2 },
 }
 
 #[derive(Debug, Clone)]

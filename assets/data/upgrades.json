@@ -40,5 +40,19 @@
     "description": "Adds a once-per-route repair ability that restores carriage health.",
     "base_cost": 80,
     "max_level": 3
+  },
+  {
+    "id": "spiked_hubs",
+    "name": "Spiked Hubs",
+    "description": "Wheel spikes wound enemies that crowd the carriage.",
+    "base_cost": 60,
+    "max_level": 3
+  },
+  {
+    "id": "warding_lantern",
+    "name": "Warding Lantern",
+    "description": "A lantern's glow slows enemies that draw near the carriage.",
+    "base_cost": 65,
+    "max_level": 3
   }
 ]

@@ -290,6 +290,8 @@ pub(super) fn draw_upgrade_icon(id: &str, pos: Vec2, scale: f32) {
         "mounted_archer" => draw_quiver_icon(pos, scale),
         "guard_training" => draw_helmet_icon(pos, scale),
         "repair_kit" => draw_hammer_icon(pos, scale),
+        "spiked_hubs" => draw_spikes_icon(pos, scale),
+        "warding_lantern" => draw_lantern_icon(pos, scale),
         _ => draw_box_icon(pos, scale),
     }
 }
@@ -300,7 +302,58 @@ pub(super) fn draw_equipment_icon(equipment: CarriageEquipment, pos: Vec2, scale
         CarriageEquipment::ReinforcedWheels => draw_wheel_icon(pos, scale),
         CarriageEquipment::CargoStraps => draw_straps_icon(pos, scale),
         CarriageEquipment::RepairKit => draw_hammer_icon(pos, scale),
+        CarriageEquipment::SpikedHubs => draw_spikes_icon(pos, scale),
+        CarriageEquipment::WardingLantern => draw_lantern_icon(pos, scale),
     }
+}
+
+fn draw_spikes_icon(pos: Vec2, scale: f32) {
+    let hub = Color::new(0.22, 0.14, 0.08, 1.0);
+    let spike = Color::new(0.82, 0.84, 0.80, 1.0);
+    draw_circle(pos.x, pos.y, 10.0 * scale, hub);
+    draw_circle_lines(pos.x, pos.y, 10.0 * scale, 2.0 * scale, spike);
+    for i in 0..8 {
+        let angle = i as f32 * std::f32::consts::TAU / 8.0;
+        let (sin, cos) = angle.sin_cos();
+        let base = vec2(pos.x + cos * 10.0 * scale, pos.y + sin * 10.0 * scale);
+        let tip = vec2(pos.x + cos * 19.0 * scale, pos.y + sin * 19.0 * scale);
+        let side = vec2(-sin, cos) * 3.0 * scale;
+        draw_triangle(base + side, base - side, tip, spike);
+    }
+}
+
+fn draw_lantern_icon(pos: Vec2, scale: f32) {
+    let frame = Color::new(0.30, 0.24, 0.14, 1.0);
+    let glass = Color::new(1.0, 0.86, 0.42, 0.92);
+    draw_line(
+        pos.x,
+        pos.y - 18.0 * scale,
+        pos.x,
+        pos.y - 12.0 * scale,
+        2.0 * scale,
+        frame,
+    );
+    draw_rectangle(
+        pos.x - 9.0 * scale,
+        pos.y - 12.0 * scale,
+        18.0 * scale,
+        6.0 * scale,
+        frame,
+    );
+    draw_circle(pos.x, pos.y + 2.0 * scale, 11.0 * scale, glass);
+    draw_circle(
+        pos.x,
+        pos.y + 2.0 * scale,
+        5.0 * scale,
+        Color::new(1.0, 0.97, 0.8, 1.0),
+    );
+    draw_rectangle(
+        pos.x - 11.0 * scale,
+        pos.y + 12.0 * scale,
+        22.0 * scale,
+        5.0 * scale,
+        frame,
+    );
 }
 
 fn draw_corner_marks(rect: Rect, color: Color) {

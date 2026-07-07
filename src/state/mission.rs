@@ -2,6 +2,7 @@
 
 mod combat;
 mod flow;
+mod pressure;
 mod scoring;
 
 use super::entities::*;
@@ -38,6 +39,18 @@ pub struct MissionReport {
     pub special_ratio: Option<f32>,
     pub enemies_defeated: u32,
     pub injured_guard_ids: Vec<String>,
+}
+
+/// Drives enemy spawning as telegraphed bursts with breathing room between
+/// them, rather than a constant trickle.
+#[derive(Debug, Clone)]
+pub(super) enum WavePhase {
+    /// Quiet stretch; `timer` counts down to the next telegraph.
+    Lull(f32),
+    /// Warning shown; `timer` counts down to the burst.
+    Telegraph(f32),
+    /// Spawning a burst: `remaining` enemies left, `timer` to the next spawn.
+    Active { remaining: u32, timer: f32 },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -116,8 +129,13 @@ pub struct MissionRun {
     pub special_meter: f32,
     pub repair_used: bool,
     pub carriage_visual: CarriageVisual,
+    /// Player throttle: >1 while boosting, <1 while braking, 1 at cruise.
+    pub(super) throttle: f32,
+    /// Active chassis speed multiplier (Scout fast, Heavy slow).
+    pub(super) chassis_speed_mult: f32,
+    pub(super) wave: WavePhase,
+    pub(super) wave_index: u32,
     pub(super) next_enemy_id: u32,
-    pub(super) spawn_timer: f32,
     pub(super) hazard_timer: f32,
     pub(super) rng: SeededRng,
     pub ranged_slots: usize,
@@ -125,11 +143,18 @@ pub struct MissionRun {
     pub(super) cargo_protection: f32,
     pub(super) wheel_bonus: f32,
     pub(super) repair_heal: f32,
+    /// Contact damage per second dealt to enemies hugging the carriage (Spiked
+    /// Hubs). Zero when not equipped.
+    pub(super) hub_damage: f32,
+    /// Radius within which the Warding Lantern slows enemies. Zero when not
+    /// equipped.
+    pub(super) ward_radius: f32,
 }
 
 impl MissionRun {
     pub fn new(mission: &MissionDef, campaign: &CampaignState) -> Self {
-        let max_health = 100.0 + campaign.carriage_level as f32 * 26.0;
+        let max_health =
+            (100.0 + campaign.carriage_level as f32 * 26.0) * campaign.chassis_health_mult;
         let cargo_max = 100.0 + campaign.cargo_level as f32 * 6.0;
         let route_choice = campaign.selected_route_choice(mission);
         let route_choice_id = route_choice
@@ -210,6 +235,8 @@ impl MissionRun {
         let wheels_equipped = campaign.is_equipment_equipped(CarriageEquipment::ReinforcedWheels);
         let straps_equipped = campaign.is_equipment_equipped(CarriageEquipment::CargoStraps);
         let repair_equipped = campaign.is_equipment_equipped(CarriageEquipment::RepairKit);
+        let hubs_equipped = campaign.is_equipment_equipped(CarriageEquipment::SpikedHubs);
+        let lantern_equipped = campaign.is_equipment_equipped(CarriageEquipment::WardingLantern);
 
         Self {
             mission_id: mission.id.clone(),
@@ -247,8 +274,11 @@ impl MissionRun {
             },
             repair_used: false,
             carriage_visual: CarriageVisual::from_campaign(campaign),
+            throttle: 1.0,
+            chassis_speed_mult: campaign.chassis_speed_mult,
+            wave: WavePhase::Lull(2.2),
+            wave_index: 0,
             next_enemy_id: 10,
-            spawn_timer: 1.0,
             hazard_timer: 1.6,
             rng: SeededRng::new(seed),
             ranged_slots,
@@ -272,6 +302,16 @@ impl MissionRun {
             } else {
                 0.0
             },
+            hub_damage: if hubs_equipped {
+                8.0 + campaign.hubs_level as f32 * 7.0
+            } else {
+                0.0
+            },
+            ward_radius: if lantern_equipped {
+                86.0 + campaign.lantern_level as f32 * 20.0
+            } else {
+                0.0
+            },
         }
     }
 
@@ -288,7 +328,10 @@ impl MissionRun {
     }
 
     pub fn scroll_speed(&self) -> f32 {
-        (Self::BASE_SCROLL_SPEED + self.wheel_bonus * 9.0) * self.speed_factor()
+        (Self::BASE_SCROLL_SPEED + self.wheel_bonus * 9.0)
+            * self.speed_factor()
+            * self.throttle
+            * self.chassis_speed_mult
     }
 
     /// Cruising scroll speed with no wheel upgrades and no slowdown, in px/sec.
@@ -309,7 +352,17 @@ impl MissionRun {
     }
 
     pub fn is_boosted(&self) -> bool {
-        !self.is_slowed() && self.scroll_speed() > Self::BASE_SCROLL_SPEED + 0.5
+        !self.is_slowed() && self.throttle > 1.02
+    }
+
+    /// True while the player is actively holding the brake (not mud-slowed).
+    pub fn is_braking(&self) -> bool {
+        !self.is_slowed() && self.throttle < 0.98
+    }
+
+    /// The wave number being telegraphed, if a warning is currently showing.
+    pub fn wave_telegraph(&self) -> Option<u32> {
+        matches!(self.wave, WavePhase::Telegraph(_)).then_some(self.wave_index)
     }
 
     pub fn special_ratio(&self) -> Option<f32> {

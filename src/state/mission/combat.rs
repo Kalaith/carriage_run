@@ -25,6 +25,7 @@ impl MissionRun {
         let slot_positions: Vec<Vec2> = (0..self.ranged_slots)
             .map(|slot| self.carriage_slot_pos(slot))
             .collect();
+        let carriage_pos = self.carriage.pos;
         let mut pending_hits = Vec::new();
 
         for (index, guard) in self.guards.iter_mut().enumerate() {
@@ -81,6 +82,40 @@ impl MissionRun {
                         }
                     }
                 }
+                GuardOrder::Roam => {
+                    // Chase the nearest threat inside the carriage leash radius,
+                    // otherwise ease back into escort formation.
+                    let leash_target = enemies
+                        .iter()
+                        .filter(|(_, pos, _, _)| pos.distance(carriage_pos) <= ROAM_LEASH_RADIUS)
+                        .min_by(|(_, a, _, _), (_, b, _, _)| {
+                            a.distance(guard.pos)
+                                .partial_cmp(&b.distance(guard.pos))
+                                .unwrap_or(std::cmp::Ordering::Equal)
+                        })
+                        .copied();
+
+                    if let Some((enemy_id, target, radius, kind)) = leash_target {
+                        if guard.pos.distance(target) > guard.range + radius {
+                            guard.pos = move_towards(guard.pos, target, guard.speed * dt);
+                        } else if guard.cooldown <= 0.0 {
+                            pending_hits.push(PendingGuardHit {
+                                kind: guard.kind,
+                                stars: guard.star_level,
+                                enemy_id,
+                                enemy_kind: kind,
+                                damage: guard_hit_damage(guard, kind),
+                                origin: guard.pos,
+                                target,
+                            });
+                            guard.cooldown = guard.attack_cooldown;
+                            guard.attack_flash = 0.16;
+                        }
+                    } else {
+                        guard.pos =
+                            move_towards(guard.pos, escort_positions[index], guard.speed * dt);
+                    }
+                }
                 GuardOrder::Move(target) => {
                     guard.pos = move_towards(guard.pos, target, guard.speed * dt);
                     if guard.pos.distance(target) < 5.0 {
@@ -110,7 +145,7 @@ impl MissionRun {
                     let Some((_, target, radius, kind)) =
                         enemies.iter().find(|(id, _, _, _)| *id == enemy_id)
                     else {
-                        guard.order = GuardOrder::Escort;
+                        guard.order = guard.home_stance();
                         continue;
                     };
                     if guard.pos.distance(*target) > guard.range + *radius {
@@ -151,6 +186,9 @@ impl MissionRun {
             })
             .collect();
         let carriage_pos = self.carriage.pos;
+        let cargo_protection = self.cargo_protection;
+        let hub_damage = self.hub_damage;
+        let ward_radius = self.ward_radius;
         let mut pending_guard_damage = Vec::new();
         let mut pending_carriage_damage = Vec::new();
         let mut pending_summons = Vec::new();
@@ -164,6 +202,20 @@ impl MissionRun {
             enemy.special_timer = (enemy.special_timer - dt).max(0.0);
             enemy.slow_timer = (enemy.slow_timer - dt).max(0.0);
             enemy.hit_flash = (enemy.hit_flash - dt).max(0.0);
+
+            // Warding Lantern: keep nearby enemies slowed while they linger.
+            if ward_radius > 0.0 && enemy.pos.distance(carriage_pos) < ward_radius {
+                enemy.slow_timer = enemy.slow_timer.max(0.4);
+            }
+            // Spiked Hubs: bleed enemies that press against the carriage.
+            if hub_damage > 0.0 && enemy.pos.distance(carriage_pos) < 60.0 {
+                enemy.health -= hub_damage * dt;
+                enemy.hit_flash = 0.08;
+                if !enemy.is_active() {
+                    continue;
+                }
+            }
+
             if enemy.kind == EnemyKind::Necromancer && enemy.special_timer <= 0.0 {
                 pending_summons.push(enemy.pos + vec2(0.0, 36.0));
                 enemy.special_timer = 4.6;
@@ -184,19 +236,51 @@ impl MissionRun {
                 .map(|(id, pos, _)| (pos, Some(id)))
                 .unwrap_or((carriage_pos, None));
 
-            if enemy.pos.distance(target_pos) > enemy.attack_range {
-                let speed = if enemy.slow_timer > 0.0 {
-                    enemy.speed * 0.48
-                } else {
-                    enemy.speed
-                };
-                enemy.pos = move_towards(enemy.pos, target_pos, speed * dt);
-            } else if enemy.cooldown <= 0.0 {
+            let base_speed = if enemy.slow_timer > 0.0 {
+                enemy.speed * 0.48
+            } else {
+                enemy.speed
+            };
+
+            // A thief that already grabbed cargo sprints for the top edge and
+            // ignores everything until it either escapes or is cut down.
+            if enemy.retreating {
+                enemy.pos = move_towards(enemy.pos, vec2(enemy.pos.x, -160.0), base_speed * dt);
+                continue;
+            }
+
+            let dist = enemy.pos.distance(target_pos);
+            let in_attack_range = match enemy.kind.kite_min_range() {
+                // Skirmishers back away when a target crowds them.
+                Some(min_range) if dist < min_range => {
+                    let away = clamp_to_field(enemy.pos + (enemy.pos - target_pos));
+                    enemy.pos = move_towards(enemy.pos, away, base_speed * dt);
+                    false
+                }
+                _ => {
+                    if dist > enemy.attack_range {
+                        // Chargers commit to a speed burst on the final approach.
+                        let charge = if dist < 150.0 {
+                            enemy.kind.charge_multiplier()
+                        } else {
+                            1.0
+                        };
+                        enemy.pos = move_towards(enemy.pos, target_pos, base_speed * charge * dt);
+                        false
+                    } else {
+                        true
+                    }
+                }
+            };
+
+            if in_attack_range && enemy.cooldown <= 0.0 {
                 enemy.cooldown = enemy.attack_cooldown;
                 if let Some(guard_id) = target_guard {
                     pending_guard_damage.push((guard_id, enemy.damage));
                 } else {
-                    let cargo_loss = if enemy.kind == EnemyKind::Bandit {
+                    let cargo_loss = if enemy.kind.steals_and_flees() {
+                        enemy.carried_cargo += 6.0 * (1.0 - cargo_protection);
+                        enemy.retreating = true;
                         6.0
                     } else {
                         0.0
@@ -281,104 +365,6 @@ impl MissionRun {
         }
     }
 
-    pub(super) fn update_mission_pressure(&mut self, dt: f32) {
-        match self.mission_kind {
-            MissionKind::CargoTransfer | MissionKind::TimeDelivery => {}
-            MissionKind::PrisonerEscort => {
-                let nearby_bandits = self
-                    .enemies
-                    .iter()
-                    .filter(|enemy| {
-                        matches!(enemy.kind, EnemyKind::Bandit | EnemyKind::BanditArcher)
-                            && enemy.pos.distance(self.carriage.pos) < 145.0
-                    })
-                    .count() as f32;
-                let rough_road_relief = if self.carriage.slow_timer > 0.0 {
-                    2.4
-                } else {
-                    0.0
-                };
-                self.special_meter += dt * (1.1 + nearby_bandits * 2.1 - rough_road_relief);
-                self.special_meter = self.special_meter.clamp(0.0, 100.0);
-            }
-            MissionKind::PrincessEscort => {
-                let road_discomfort = if self.carriage.slow_timer > 0.0 {
-                    0.7
-                } else {
-                    0.12
-                };
-                self.special_meter = (self.special_meter - dt * road_discomfort).clamp(0.0, 100.0);
-            }
-            MissionKind::MedicineRun => {
-                let rough_decay = if self.carriage.slow_timer > 0.0 {
-                    0.78
-                } else {
-                    0.18
-                };
-                self.special_meter = (self.special_meter - dt * rough_decay).clamp(0.0, 100.0);
-            }
-            MissionKind::GoldShipment => {
-                let nearby_bandits = self
-                    .enemies
-                    .iter()
-                    .filter(|enemy| {
-                        matches!(enemy.kind, EnemyKind::Bandit | EnemyKind::BanditArcher)
-                            && enemy.pos.distance(self.carriage.pos) < 150.0
-                    })
-                    .count() as f32;
-                self.special_meter =
-                    (self.special_meter - dt * nearby_bandits * 0.85).clamp(0.0, 100.0);
-            }
-            MissionKind::MonsterEggTransport => {
-                let rough_decay = if self.carriage.slow_timer > 0.0 {
-                    0.45
-                } else {
-                    0.06
-                };
-                self.special_meter = (self.special_meter - dt * rough_decay).clamp(0.0, 100.0);
-            }
-            MissionKind::RefugeeEscort => {
-                let nearby_threats = self
-                    .enemies
-                    .iter()
-                    .filter(|enemy| enemy.pos.distance(self.carriage.pos) < 170.0)
-                    .count() as f32;
-                self.special_meter =
-                    (self.special_meter - dt * nearby_threats * 0.42).clamp(0.0, 100.0);
-            }
-            MissionKind::RoyalBanquetSupplies => {
-                let heat_decay = self
-                    .hazards
-                    .iter()
-                    .filter(|hazard| hazard.kind == HazardKind::FirePatch && hazard.triggered)
-                    .count() as f32
-                    * 0.18;
-                let road_decay = if self.carriage.slow_timer > 0.0 {
-                    0.42
-                } else {
-                    0.15
-                };
-                self.special_meter =
-                    (self.special_meter - dt * (road_decay + heat_decay)).clamp(0.0, 100.0);
-            }
-            MissionKind::SiegeSupplyRun => {
-                let enemy_pressure = self
-                    .enemies
-                    .iter()
-                    .filter(|enemy| enemy.pos.distance(self.carriage.pos) < 190.0)
-                    .count() as f32
-                    * 0.28;
-                let road_drag = if self.carriage.slow_timer > 0.0 {
-                    0.34
-                } else {
-                    0.10
-                };
-                self.special_meter =
-                    (self.special_meter - dt * (road_drag + enemy_pressure)).clamp(0.0, 100.0);
-            }
-        }
-    }
-
     pub(super) fn cleanup_entities(&mut self) {
         self.enemies_defeated += self
             .enemies
@@ -386,8 +372,22 @@ impl MissionRun {
             .filter(|enemy| enemy.health <= 0.0)
             .count() as u32;
 
+        // Killing a fleeing thief returns the cargo it was carrying off.
+        let recovered: f32 = self
+            .enemies
+            .iter()
+            .filter(|enemy| enemy.health <= 0.0 && enemy.carried_cargo > 0.0)
+            .map(|enemy| enemy.carried_cargo)
+            .sum();
+        if recovered > 0.0 {
+            self.carriage.cargo = (self.carriage.cargo + recovered).min(self.carriage.max_cargo);
+            self.cargo_lost = (self.cargo_lost - recovered).max(0.0);
+            self.alert.set("Cargo recovered");
+        }
+
         self.enemies.retain(|enemy| {
             enemy.health > 0.0
+                && enemy.pos.y > PLAY_TOP - 150.0
                 && enemy.pos.y < PLAY_BOTTOM + 120.0
                 && enemy.pos.x > -170.0
                 && enemy.pos.x < PLAY_WIDTH + 170.0
@@ -652,8 +652,7 @@ mod tests {
     use crate::data::MissionDef;
     use crate::state::CampaignState;
 
-    #[test]
-    fn escorting_melee_guard_auto_hits_nearby_enemy() {
+    fn test_run() -> MissionRun {
         let config = crate::data::GameConfig {
             game_name: "carriage_run".to_owned(),
             display_name: "Carriage Run".to_owned(),
@@ -682,7 +681,12 @@ mod tests {
             unlock_any_missions: Vec::new(),
             time_limit: None,
         };
-        let mut run = MissionRun::new(&mission, &campaign);
+        MissionRun::new(&mission, &campaign)
+    }
+
+    #[test]
+    fn roaming_melee_guard_auto_hits_nearby_enemy() {
+        let mut run = test_run();
         let guard_pos = run
             .guards
             .iter()
@@ -701,5 +705,81 @@ mod tests {
 
         assert!(run.enemies[0].health < before);
         assert!(run.guards.iter().any(|guard| guard.attack_flash > 0.0));
+    }
+
+    #[test]
+    fn roaming_guard_advances_on_distant_enemy_within_leash() {
+        let mut run = test_run();
+        // An enemy inside the leash but well beyond weapon reach should be
+        // chased, not ignored.
+        let target = run.carriage.pos + vec2(0.0, -190.0);
+        run.enemies
+            .push(Enemy::new(77, EnemyKind::Wolf, target, 1.0));
+        let guard_id = run
+            .guards
+            .iter()
+            .find(|guard| guard.kind == GuardKind::Swordsman)
+            .unwrap()
+            .id;
+        let before = run
+            .guards
+            .iter()
+            .find(|guard| guard.id == guard_id)
+            .unwrap()
+            .pos
+            .distance(target);
+
+        run.update_guard_orders(0.2);
+
+        let after = run
+            .guards
+            .iter()
+            .find(|guard| guard.id == guard_id)
+            .unwrap()
+            .pos
+            .distance(target);
+        assert!(after < before, "roaming guard should close on the threat");
+    }
+
+    #[test]
+    fn spiked_hubs_wound_adjacent_enemies() {
+        let mut run = test_run();
+        run.hub_damage = 20.0;
+        run.enemies
+            .push(Enemy::new(42, EnemyKind::Wolf, run.carriage.pos, 1.0));
+        let before = run.enemies[0].health;
+
+        run.update_enemies(0.5);
+
+        assert!(run.enemies[0].health < before);
+    }
+
+    #[test]
+    fn killing_fleeing_thief_recovers_cargo() {
+        let mut run = test_run();
+        run.guards.clear(); // isolate the carriage so the bandit targets it
+        let full_cargo = run.carriage.cargo;
+        run.enemies
+            .push(Enemy::new(55, EnemyKind::Bandit, run.carriage.pos, 1.0));
+
+        // Advance until the bandit steals and turns to flee.
+        for _ in 0..40 {
+            run.update_enemies(0.2);
+            if run.enemies.iter().any(|enemy| enemy.retreating) {
+                break;
+            }
+        }
+        let thief = &run.enemies[0];
+        assert!(thief.retreating, "bandit should flee after stealing");
+        assert!(thief.carried_cargo > 0.0);
+        assert!(
+            run.carriage.cargo < full_cargo,
+            "cargo should drop on theft"
+        );
+
+        // Cutting it down before it escapes returns the stolen cargo.
+        run.enemies[0].health = 0.0;
+        run.cleanup_entities();
+        assert!((run.carriage.cargo - full_cargo).abs() < 0.001);
     }
 }

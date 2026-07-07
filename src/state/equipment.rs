@@ -8,6 +8,8 @@ pub enum CarriageEquipment {
     ReinforcedWheels,
     CargoStraps,
     RepairKit,
+    SpikedHubs,
+    WardingLantern,
 }
 
 impl CarriageEquipment {
@@ -16,6 +18,8 @@ impl CarriageEquipment {
             "reinforced_wheels" => Self::ReinforcedWheels,
             "cargo_straps" => Self::CargoStraps,
             "repair_kit" => Self::RepairKit,
+            "spiked_hubs" => Self::SpikedHubs,
+            "warding_lantern" => Self::WardingLantern,
             _ => Self::IronPlating,
         }
     }
@@ -26,6 +30,8 @@ impl CarriageEquipment {
             Self::ReinforcedWheels => "reinforced_wheels",
             Self::CargoStraps => "cargo_straps",
             Self::RepairKit => "repair_kit",
+            Self::SpikedHubs => "spiked_hubs",
+            Self::WardingLantern => "warding_lantern",
         }
     }
 
@@ -35,6 +41,8 @@ impl CarriageEquipment {
             Self::ReinforcedWheels => "Reinforced Wheels",
             Self::CargoStraps => "Cargo Straps",
             Self::RepairKit => "Repair Kit",
+            Self::SpikedHubs => "Spiked Hubs",
+            Self::WardingLantern => "Warding Lantern",
         }
     }
 }
@@ -42,10 +50,14 @@ impl CarriageEquipment {
 #[derive(Debug, Clone, Copy)]
 pub struct CarriageVisual {
     pub chassis_level: u32,
+    /// Slot count of the active chassis (2 Scout / 3 Standard / 4 Heavy).
+    pub chassis_slots: usize,
     pub iron_plating: bool,
     pub reinforced_wheels: bool,
     pub cargo_straps: bool,
     pub repair_kit: bool,
+    pub spiked_hubs: bool,
+    pub warding_lantern: bool,
     pub ranged_slots: usize,
 }
 
@@ -53,10 +65,13 @@ impl CarriageVisual {
     pub fn from_campaign(campaign: &CampaignState) -> Self {
         Self {
             chassis_level: campaign.carriage_level,
+            chassis_slots: campaign.chassis_slot_count(),
             iron_plating: campaign.is_equipment_equipped(CarriageEquipment::IronPlating),
             reinforced_wheels: campaign.is_equipment_equipped(CarriageEquipment::ReinforcedWheels),
             cargo_straps: campaign.is_equipment_equipped(CarriageEquipment::CargoStraps),
             repair_kit: campaign.is_equipment_equipped(CarriageEquipment::RepairKit),
+            spiked_hubs: campaign.is_equipment_equipped(CarriageEquipment::SpikedHubs),
+            warding_lantern: campaign.is_equipment_equipped(CarriageEquipment::WardingLantern),
             ranged_slots: campaign.ranged_slot_count(),
         }
     }
@@ -64,13 +79,7 @@ impl CarriageVisual {
 
 impl CampaignState {
     pub fn carriage_equipment_slot_count(&self) -> usize {
-        if self.carriage_level >= 4 {
-            4
-        } else if self.carriage_level >= 2 {
-            3
-        } else {
-            2
-        }
+        self.chassis_slot_count()
     }
 
     pub fn equipment_level(&self, equipment: CarriageEquipment) -> u32 {
@@ -79,6 +88,8 @@ impl CampaignState {
             CarriageEquipment::ReinforcedWheels => self.wheel_level,
             CarriageEquipment::CargoStraps => self.cargo_level,
             CarriageEquipment::RepairKit => self.repair_level,
+            CarriageEquipment::SpikedHubs => self.hubs_level,
+            CarriageEquipment::WardingLantern => self.lantern_level,
         }
     }
 

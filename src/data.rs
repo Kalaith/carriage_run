@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 const GAME_CONFIG_JSON: &str = include_str!("../assets/data/game_config.json");
 const MISSIONS_JSON: &str = include_str!("../assets/data/missions.json");
 const UPGRADES_JSON: &str = include_str!("../assets/data/upgrades.json");
+const CARRIAGES_JSON: &str = include_str!("../assets/data/carriages.json");
 const TEXTURE_MANIFEST_JSON: &str = include_str!("../assets/data/texture_manifest.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -74,11 +75,26 @@ pub struct UpgradeDef {
     pub max_level: u32,
 }
 
+/// A purchasable carriage chassis. Determines guard/equipment slot count and
+/// the carriage's speed and health multipliers.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChassisDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub order: u32,
+    pub slots: usize,
+    pub speed_mult: f32,
+    pub health_mult: f32,
+    pub cost: i64,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
     pub missions: DataRegistry<MissionDef>,
     pub upgrades: DataRegistry<UpgradeDef>,
+    pub chassis: DataRegistry<ChassisDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -87,12 +103,14 @@ impl GameData {
         let config = load_embedded_json_labeled("game_config", GAME_CONFIG_JSON)?;
         let missions = DataRegistry::from_embedded_json(MISSIONS_JSON, "id")?;
         let upgrades = DataRegistry::from_embedded_json(UPGRADES_JSON, "id")?;
+        let chassis = DataRegistry::from_embedded_json(CARRIAGES_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
             config,
             missions,
             upgrades,
+            chassis,
             texture_manifest,
         })
     }
@@ -108,6 +126,38 @@ impl GameData {
         missions.sort_by_key(|mission| mission.order);
         missions
     }
+
+    pub fn chassis_ordered(&self) -> Vec<&ChassisDef> {
+        let mut chassis: Vec<_> = self.chassis.iter().map(|(_, chassis)| chassis).collect();
+        chassis.sort_by_key(|chassis| chassis.order);
+        chassis
+    }
+
+    /// The starter chassis every campaign begins with (lowest order).
+    pub fn default_chassis_id(&self) -> String {
+        self.chassis_ordered()
+            .first()
+            .map(|chassis| chassis.id.clone())
+            .unwrap_or_else(|| "scout_cart".to_owned())
+    }
+
+    /// Best-fit chassis for a legacy save's carriage level, so migrated saves
+    /// keep the slot count they had before chassis existed.
+    pub fn chassis_for_level(&self, carriage_level: u32) -> String {
+        let target_slots = if carriage_level >= 4 {
+            4
+        } else if carriage_level >= 2 {
+            3
+        } else {
+            2
+        };
+        self.chassis_ordered()
+            .into_iter()
+            .find(|chassis| chassis.slots >= target_slots)
+            .or_else(|| self.chassis_ordered().into_iter().last())
+            .map(|chassis| chassis.id.clone())
+            .unwrap_or_else(|| self.default_chassis_id())
+    }
 }
 
 #[cfg(test)]
@@ -122,7 +172,13 @@ mod tests {
         assert!(data.missions.contains("muddy_road"));
         assert!(data.missions.contains("siege_supply"));
         assert!(data.upgrades.contains("carriage_armor"));
+        assert!(data.upgrades.contains("spiked_hubs"));
+        assert!(data.upgrades.contains("warding_lantern"));
         assert_eq!(data.missions_ordered()[0].id, "muddy_road");
+        assert_eq!(data.default_chassis_id(), "scout_cart");
+        assert_eq!(data.chassis_ordered().len(), 3);
+        assert_eq!(data.chassis_for_level(4), "heavy_wagon");
+        assert_eq!(data.chassis_for_level(1), "scout_cart");
         assert!(!data
             .missions
             .get("bandit_bend")

@@ -21,6 +21,10 @@ pub(super) fn draw_gameplay_hud(
     draw_bottom_hud(run);
     draw_speed_gauge(run);
 
+    if let Some(wave) = run.wave_telegraph() {
+        draw_wave_telegraph(wave);
+    }
+
     if ctx.session.campaign.alerts_enabled && run.alert.timer > 0.0 {
         let alpha = (run.alert.timer / 1.6).clamp(0.0, 1.0);
         draw_text_centered_in_box(
@@ -99,6 +103,8 @@ fn draw_speed_gauge(run: &MissionRun) {
         (Color::new(0.95, 0.62, 0.18, 1.0), "SLOWED")
     } else if run.is_boosted() {
         (GREEN, "BOOST")
+    } else if run.is_braking() {
+        (Color::new(0.52, 0.66, 0.98, 1.0), "BRAKE")
     } else {
         (Color::new(0.52, 0.78, 0.92, 1.0), "CRUISE")
     };
@@ -131,6 +137,34 @@ fn draw_speed_gauge(run: &MissionRun) {
         run.speed_ratio(),
         accent,
         "",
+    );
+}
+
+fn draw_wave_telegraph(wave: u32) {
+    let rect = Rect::new(LOGICAL_WIDTH * 0.5 - 150.0, 150.0, 300.0, 42.0);
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.20, 0.04, 0.03, 0.82),
+    );
+    draw_rectangle_lines(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        2.0,
+        Color::new(0.95, 0.42, 0.24, 0.95),
+    );
+    draw_text_centered_in_box(
+        &format!("! WAVE {} INCOMING !", wave),
+        rect.x,
+        rect.y + 8.0,
+        rect.w,
+        24.0,
+        22.0,
+        Color::new(1.0, 0.72, 0.40, 1.0),
     );
 }
 
@@ -280,10 +314,8 @@ fn draw_guard_card(rect: Rect, guard: &Guard) {
         Rect::new(rect.x + 82.0, rect.y + 61.0, 68.0, 18.0),
         if !active {
             "Down"
-        } else if guard.mounted_slot.is_some() {
-            "Mounted"
         } else {
-            "Guard"
+            guard.stance_label()
         },
         active,
     );
@@ -296,21 +328,24 @@ fn draw_command_panel(rect: Rect, hidden_guards: usize) {
     draw_text_block(
         "Protect the carriage and deliver the cargo safely to the end of the route.",
         rect.x + 112.0,
-        rect.y + 28.0,
+        rect.y + 24.0,
         rect.w - 132.0,
-        38.0,
+        34.0,
         16.0,
         2.0,
         INK,
     );
-    if hidden_guards > 0 {
-        draw_ui_text_ex(
-            &format!("{} more guards active", hidden_guards),
-            rect.x + 112.0,
-            rect.y + 72.0,
-            TextStyle::new(12.0, MUTED).params(),
-        );
-    }
+    let hint = if hidden_guards > 0 {
+        format!("Tap guard: Roam/Hold  |  ^ Boost  v Brake  |  {hidden_guards} more active")
+    } else {
+        "Tap guard: Roam/Hold  |  ^ Boost  v Brake".to_owned()
+    };
+    draw_ui_text_ex(
+        &hint,
+        rect.x + 112.0,
+        rect.y + 72.0,
+        TextStyle::new(12.0, MUTED).params(),
+    );
 }
 
 fn draw_mission_panel(rect: Rect, run: &MissionRun) {

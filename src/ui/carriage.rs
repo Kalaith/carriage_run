@@ -37,6 +37,7 @@ pub(super) fn draw_carriage(run: &MissionRun) {
         Color::new(0.38, 0.20, 0.10, 1.0),
     );
 
+    draw_chassis_frame(rect, visual.chassis_slots);
     if visual.iron_plating {
         draw_armor_plates(rect);
     }
@@ -45,6 +46,12 @@ pub(super) fn draw_carriage(run: &MissionRun) {
     }
     if visual.repair_kit {
         draw_repair_kit(rect);
+    }
+    if visual.spiked_hubs {
+        draw_spiked_hubs(rect);
+    }
+    if visual.warding_lantern {
+        draw_warding_lantern(carriage.pos);
     }
     if visual.chassis_level >= 3 {
         draw_roof_trim(rect, visual.chassis_level);
@@ -112,6 +119,37 @@ fn draw_wheels(rect: Rect, reinforced: bool) {
     }
 }
 
+/// Chassis silhouette accents: a light canvas peak for the Scout Cart, heavy
+/// reinforced corner blocks for the Heavy Wagon.
+fn draw_chassis_frame(rect: Rect, slots: usize) {
+    match slots {
+        s if s <= 2 => {
+            // Scout: a light canvas top drawn as a shallow peak.
+            let canvas = Color::new(0.80, 0.74, 0.58, 0.95);
+            draw_triangle(
+                vec2(rect.x + 12.0, rect.y + 12.0),
+                vec2(rect.right() - 12.0, rect.y + 12.0),
+                vec2(rect.center().x, rect.y - 6.0),
+                canvas,
+            );
+        }
+        3 => {}
+        _ => {
+            // Heavy: bolted corner blocks to read as an armored hull.
+            let block = Color::new(0.34, 0.30, 0.26, 1.0);
+            for (bx, by) in [
+                (rect.x + 2.0, rect.y + 2.0),
+                (rect.right() - 12.0, rect.y + 2.0),
+                (rect.x + 2.0, rect.bottom() - 12.0),
+                (rect.right() - 12.0, rect.bottom() - 12.0),
+            ] {
+                draw_rectangle(bx, by, 10.0, 10.0, block);
+                draw_rectangle_lines(bx, by, 10.0, 10.0, 1.0, Color::new(0.62, 0.64, 0.60, 0.9));
+            }
+        }
+    }
+}
+
 fn draw_armor_plates(rect: Rect) {
     let plate = Color::new(0.62, 0.64, 0.60, 0.96);
     draw_rectangle(rect.x + 5.0, rect.y + 9.0, 9.0, rect.h - 18.0, plate);
@@ -155,6 +193,48 @@ fn draw_repair_kit(rect: Rect) {
         4.0,
         Color::new(0.65, 0.12, 0.10, 1.0),
     );
+}
+
+fn draw_spiked_hubs(rect: Rect) {
+    let spike = Color::new(0.86, 0.88, 0.84, 1.0);
+    for (cx, cy) in [
+        (rect.x + 8.0, rect.y + 22.0),
+        (rect.right() - 8.0, rect.y + 22.0),
+        (rect.x + 8.0, rect.bottom() - 20.0),
+        (rect.right() - 8.0, rect.bottom() - 20.0),
+    ] {
+        for i in 0..6 {
+            let angle = i as f32 * std::f32::consts::TAU / 6.0;
+            let (sin, cos) = angle.sin_cos();
+            draw_triangle(
+                vec2(cx + cos * 9.0 - sin * 2.5, cy + sin * 9.0 + cos * 2.5),
+                vec2(cx + cos * 9.0 + sin * 2.5, cy + sin * 9.0 - cos * 2.5),
+                vec2(cx + cos * 16.0, cy + sin * 16.0),
+                spike,
+            );
+        }
+    }
+}
+
+fn draw_warding_lantern(center: Vec2) {
+    // Soft glow rings plus the lantern itself mounted at the carriage front.
+    for (radius, alpha) in [(58.0, 0.10), (44.0, 0.14)] {
+        draw_circle(
+            center.x,
+            center.y,
+            radius,
+            Color::new(1.0, 0.86, 0.42, alpha),
+        );
+    }
+    let pos = vec2(center.x, center.y - 44.0);
+    draw_rectangle(
+        pos.x - 6.0,
+        pos.y - 8.0,
+        12.0,
+        16.0,
+        Color::new(0.30, 0.24, 0.14, 1.0),
+    );
+    draw_circle(pos.x, pos.y, 5.0, Color::new(1.0, 0.9, 0.5, 1.0));
 }
 
 fn draw_roof_trim(rect: Rect, level: u32) {

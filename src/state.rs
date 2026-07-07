@@ -4,10 +4,12 @@ mod campaign;
 mod chassis;
 mod entities;
 mod equipment;
+mod journey;
 mod mission;
 
 pub use entities::*;
 pub use equipment::*;
+pub use journey::Journey;
 pub use mission::{MissionInput, MissionReport, MissionRun};
 
 use crate::data::{GameConfig, GameData, UpgradeDef};
@@ -28,6 +30,7 @@ pub enum Screen {
     Playing,
     Paused,
     Results,
+    Journey,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -382,6 +385,8 @@ pub struct GameSession {
     pub screen: Screen,
     pub mission: Option<MissionRun>,
     pub result: Option<MissionReport>,
+    /// Active roguelite expedition, if one is in progress (session-only).
+    pub journey: Option<Journey>,
 }
 
 impl GameSession {
@@ -391,6 +396,7 @@ impl GameSession {
             screen: Screen::Title,
             mission: None,
             result: None,
+            journey: None,
         }
     }
 
@@ -403,6 +409,7 @@ impl GameSession {
             screen: Screen::MissionMap,
             mission: None,
             result: None,
+            journey: None,
         }
     }
 
@@ -680,10 +687,14 @@ impl GameSession {
         };
 
         if let Some(report) = report {
-            self.apply_report(report.clone());
-            self.result = Some(report.clone());
-            self.mission = None;
-            self.screen = Screen::Results;
+            if self.journey.is_some() {
+                self.resolve_journey_leg(&report);
+            } else {
+                self.apply_report(report.clone());
+                self.result = Some(report.clone());
+                self.mission = None;
+                self.screen = Screen::Results;
+            }
             Some(report)
         } else {
             None

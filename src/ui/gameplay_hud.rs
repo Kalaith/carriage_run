@@ -21,6 +21,10 @@ pub(super) fn draw_gameplay_hud(
     draw_bottom_hud(run);
     draw_speed_gauge(run);
 
+    if let Some(journey) = &ctx.session.journey {
+        draw_expedition_tag(journey.leg, journey.banked_gold);
+    }
+
     if let Some(wave) = run.wave_telegraph() {
         draw_wave_telegraph(wave);
     }
@@ -137,6 +141,27 @@ fn draw_speed_gauge(run: &MissionRun) {
         run.speed_ratio(),
         accent,
         "",
+    );
+}
+
+fn draw_expedition_tag(leg: u32, banked: i64) {
+    let rect = Rect::new(LOGICAL_WIDTH * 0.5 - 108.0, 100.0, 216.0, 26.0);
+    draw_rectangle(
+        rect.x,
+        rect.y,
+        rect.w,
+        rect.h,
+        Color::new(0.06, 0.10, 0.06, 0.86),
+    );
+    draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, GOLD_SOFT);
+    draw_text_centered_in_box(
+        &format!("EXPEDITION  -  Leg {}  -  {}g banked", leg, banked),
+        rect.x,
+        rect.y + 5.0,
+        rect.w,
+        16.0,
+        14.0,
+        Color::new(0.86, 0.92, 0.72, 1.0),
     );
 }
 

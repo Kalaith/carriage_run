@@ -317,6 +317,13 @@ impl MissionRun {
         }
     }
 
+    /// Applies expedition modifiers to a freshly-built leg: harder enemies and
+    /// a carriage that starts at its carried-over health rather than full.
+    pub fn scale_for_journey(&mut self, difficulty_scale: f32, health_ratio: f32) {
+        self.difficulty *= difficulty_scale;
+        self.carriage.health = (self.carriage.max_health * health_ratio).max(1.0);
+    }
+
     pub fn progress_ratio(&self) -> f32 {
         (self.progress / self.distance.max(1.0)).clamp(0.0, 1.0)
     }

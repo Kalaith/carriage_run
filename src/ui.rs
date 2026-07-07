@@ -4,6 +4,7 @@ mod carriage;
 mod carriages;
 mod gameplay;
 mod gameplay_hud;
+mod journey;
 mod loadout;
 mod management;
 mod mission_map;
@@ -54,6 +55,10 @@ pub enum UiAction {
     TreatGuard(String),
     ToggleSetting(String),
     BeginMission,
+    StartExpedition,
+    JourneyPressOn,
+    JourneyRepair,
+    JourneyBank,
     RetryMission,
     UseRepair,
     BuyUpgrade(String),
@@ -93,6 +98,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Playing => gameplay::draw_gameplay(&ctx, mouse, &mut actions),
         Screen::Paused => management::draw_pause(&ctx, mouse, &mut actions),
         Screen::Results => draw_results(&ctx, mouse, &mut actions),
+        Screen::Journey => journey::draw_journey(&ctx, mouse, &mut actions),
     }
 
     actions

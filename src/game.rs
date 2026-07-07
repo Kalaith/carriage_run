@@ -78,6 +78,19 @@ impl Game {
                     .insert("swordsman".to_owned(), 2);
                 self.session.open_guards();
             }
+            "journey" => {
+                // Seed a mid-run expedition so the hub screen is visible.
+                self.session.journey = Some(crate::state::Journey {
+                    leg: 3,
+                    banked_gold: 148,
+                    carriage_health_ratio: 0.52,
+                    alive: true,
+                    last_reward: 66,
+                    last_mission_name: "Bandit Bend".to_owned(),
+                    payout: 0,
+                });
+                self.session.screen = crate::state::Screen::Journey;
+            }
             _ => {
                 self.session.select_mission("muddy_road");
                 if !self.session.start_selected_mission(&self.data) {
@@ -164,6 +177,9 @@ impl Game {
                 | Screen::Upgrades
                 | Screen::Settings => self.events.push(UiAction::OpenMap),
                 Screen::MissionMap => self.events.push(UiAction::ReturnTitle),
+                // Expedition decisions must be made with the on-screen buttons
+                // so a run is never abandoned by an accidental keypress.
+                Screen::Journey => {}
                 Screen::Title => {}
             }
         }
@@ -302,6 +318,40 @@ impl Game {
                 } else {
                     self.notifications.warning("Route locked");
                 }
+            }
+            UiAction::StartExpedition => {
+                if self.session.start_journey(&self.data) {
+                    self.notifications.info("Expedition begun — leg 1");
+                } else {
+                    self.notifications.warning("Could not start expedition");
+                }
+            }
+            UiAction::JourneyPressOn => {
+                if let Some(leg) = self.session.journey.as_ref().map(|j| j.leg) {
+                    if self.session.journey_press_on(&self.data) {
+                        self.notifications.info(format!("Leg {} — set out", leg));
+                    }
+                }
+            }
+            UiAction::JourneyRepair => {
+                if self.session.journey_repair() {
+                    self.notifications.success("Carriage repaired");
+                } else {
+                    self.notifications.warning("Cannot afford repairs");
+                }
+            }
+            UiAction::JourneyBank => {
+                let banked = self
+                    .session
+                    .journey
+                    .as_ref()
+                    .filter(|j| j.alive)
+                    .map(|j| j.banked_gold);
+                self.session.journey_bank_and_return();
+                if let Some(gold) = banked {
+                    self.notifications.success(format!("Banked {} gold", gold));
+                }
+                self.auto_save();
             }
             UiAction::RetryMission => {
                 if !self.session.retry_result_mission(&self.data) {

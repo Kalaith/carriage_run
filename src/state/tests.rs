@@ -266,6 +266,65 @@ fn legacy_save_without_chassis_keeps_slot_count() {
     assert!(session.campaign.is_chassis_owned("scout_cart"));
 }
 
+#[test]
+fn expedition_banks_rewards_and_advances_legs() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    assert!(session.start_journey(&data));
+    assert_eq!(session.journey.as_ref().unwrap().leg, 1);
+    assert!(session.mission.is_some());
+
+    // Clear leg 1: banks its reward, advances, and carries damage forward.
+    let mut report = test_report(true, Vec::new());
+    report.carriage_health_ratio = 0.6;
+    session.resolve_journey_leg(&report);
+    let journey = session.journey.as_ref().unwrap();
+    assert_eq!(journey.leg, 2);
+    assert_eq!(journey.banked_gold, super::Journey::leg_reward(1));
+    assert!((journey.carriage_health_ratio - 0.6).abs() < 0.001);
+    assert!(session.mission.is_none());
+}
+
+#[test]
+fn expedition_bank_and_return_pays_out_full() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    let start_gold = session.campaign.gold;
+
+    session.start_journey(&data);
+    session.resolve_journey_leg(&test_report(true, Vec::new()));
+    let banked = session.journey.as_ref().unwrap().banked_gold;
+
+    session.journey_bank_and_return();
+    assert!(session.journey.is_none());
+    assert_eq!(session.campaign.gold, start_gold + banked);
+}
+
+#[test]
+fn expedition_failure_pays_half_and_ends_run() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    let start_gold = session.campaign.gold;
+
+    session.start_journey(&data);
+    session.resolve_journey_leg(&test_report(true, Vec::new())); // leg 1 banked
+    let banked = session.journey.as_ref().unwrap().banked_gold;
+
+    session.resolve_journey_leg(&test_report(false, Vec::new())); // leg 2 lost
+    let journey = session.journey.as_ref().unwrap();
+    assert!(!journey.alive);
+    assert_eq!(journey.payout, banked / 2);
+    assert_eq!(session.campaign.gold, start_gold + banked / 2);
+
+    // Leaving the summary adds nothing further.
+    session.journey_bank_and_return();
+    assert_eq!(session.campaign.gold, start_gold + banked / 2);
+}
+
 fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
     MissionReport {
         mission_id: "muddy_road".to_owned(),

@@ -3,6 +3,7 @@
 use macroquad::prelude::*;
 use macroquad_toolkit::capture;
 
+mod crash;
 mod data;
 mod game;
 mod state;
@@ -21,6 +22,9 @@ fn window_conf() -> Conf {
 
 #[macroquad::main(window_conf)]
 async fn main() {
+    // Install early so even the startup data-load panic leaves a crash log.
+    crash::install_panic_hook("carriage_run");
+
     let mut game = Game::new().await;
 
     // Screenshot harness: when CARRIAGE_CAPTURE_PATH is set, seed a scene,

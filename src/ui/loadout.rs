@@ -92,11 +92,26 @@ fn draw_mission_summary(ctx: &UiContext<'_>, mission: &crate::data::MissionDef, 
         rect.x + 176.0,
         rect.y + 28.0,
         420.0,
-        54.0,
+        36.0,
         16.0,
         3.0,
         MUTED,
     );
+    if !mission.intro_text.is_empty() {
+        // Courier-log flavor: a warm parchment tone sets it apart from the
+        // mechanical objective above without adding another panel.
+        const COURIER_LOG: Color = Color::new(0.82, 0.71, 0.49, 0.92);
+        draw_text_block(
+            &mission.intro_text,
+            rect.x + 176.0,
+            rect.y + 66.0,
+            432.0,
+            42.0,
+            14.0,
+            3.0,
+            COURIER_LOG,
+        );
+    }
     draw_mix_list(
         Rect::new(rect.x + 628.0, rect.y + 24.0, 204.0, 74.0),
         "Threats",

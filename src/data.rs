@@ -31,6 +31,10 @@ pub struct MissionDef {
     pub cargo: String,
     pub objective: String,
     pub bonus_objective: String,
+    /// One- or two-sentence courier-log vignette shown on the loadout brief;
+    /// connects the missions into a single journey (light flavor, not plot).
+    #[serde(default)]
+    pub intro_text: String,
     pub unlock_level: u32,
     pub distance: f32,
     pub difficulty: f32,
@@ -175,6 +179,10 @@ mod tests {
         assert!(data.upgrades.contains("spiked_hubs"));
         assert!(data.upgrades.contains("warding_lantern"));
         assert_eq!(data.missions_ordered()[0].id, "muddy_road");
+        assert!(data
+            .missions_ordered()
+            .iter()
+            .all(|mission| !mission.intro_text.is_empty()));
         assert_eq!(data.default_chassis_id(), "scout_cart");
         assert_eq!(data.chassis_ordered().len(), 3);
         assert_eq!(data.chassis_for_level(4), "heavy_wagon");

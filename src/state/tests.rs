@@ -394,6 +394,7 @@ fn test_mission(
         cargo: "Test Cargo".to_owned(),
         objective: "Test objective.".to_owned(),
         bonus_objective: "Test bonus.".to_owned(),
+        intro_text: String::new(),
         unlock_level,
         distance: 100.0,
         difficulty: 1.0,

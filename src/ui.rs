@@ -213,7 +213,7 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
 /// own escort classes, reachable from the title menu. Reuses the in-game
 /// procedural sprites so players learn to recognise both.
 fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
-    use crate::state::{CodexTab, EnemyKind, GuardKind};
+    use crate::state::{CodexTab, EnemyKind, GuardKind, HazardKind};
     draw_menu_backdrop(96.0);
 
     let panel = Rect::new(150.0, 40.0, 980.0, 656.0);
@@ -226,14 +226,17 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     );
 
     let tab = ctx.session.codex_tab;
-    let tab_w = 160.0;
-    let tab_gap = 16.0;
-    let tab_x = panel.x + (panel.w - (tab_w * 2.0 + tab_gap)) * 0.5;
+    let tabs = [
+        ("Threats", CodexTab::Threats),
+        ("Guards", CodexTab::Guards),
+        ("Hazards", CodexTab::Hazards),
+    ];
+    let tab_w = 150.0;
+    let tab_gap = 14.0;
+    let tabs_total = tabs.len() as f32 * tab_w + (tabs.len() as f32 - 1.0) * tab_gap;
+    let tab_x = panel.x + (panel.w - tabs_total) * 0.5;
     let tab_y = panel.y + 56.0;
-    for (index, (label, which)) in [("Threats", CodexTab::Threats), ("Guards", CodexTab::Guards)]
-        .into_iter()
-        .enumerate()
-    {
+    for (index, (label, which)) in tabs.into_iter().enumerate() {
         let tone = if tab == which {
             ButtonTone::Positive
         } else {
@@ -276,6 +279,14 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
                     "Melee escort"
                 };
                 draw_codex_row_text(row, kind.label(), role, kind.description());
+            }
+        }
+        CodexTab::Hazards => {
+            for (index, kind) in HazardKind::all().into_iter().enumerate() {
+                let row = codex_row_rect(panel, content_top, row_h, index);
+                upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
+                gameplay::draw_hazard_icon(kind, vec2(row.x + 52.0, row.y + row.h * 0.5 + 2.0));
+                draw_codex_row_text(row, kind.label(), kind.effect_tag(), kind.codex_blurb());
             }
         }
     }

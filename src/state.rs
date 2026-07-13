@@ -48,6 +48,7 @@ pub enum CodexTab {
     #[default]
     Threats,
     Guards,
+    Hazards,
 }
 
 /// Player-chosen challenge level, applied as a multiplier on each mission's

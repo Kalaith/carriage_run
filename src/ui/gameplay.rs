@@ -296,6 +296,74 @@ fn draw_road_pebble(pos: Vec2, scale: f32) {
     );
 }
 
+/// Draw a hazard's procedural look as a fixed-size icon for the field guide,
+/// independent of a live `Hazard` instance.
+pub(super) fn draw_hazard_icon(kind: HazardKind, pos: Vec2) {
+    match kind {
+        HazardKind::Mud => {
+            let color = Color::new(0.16, 0.10, 0.07, 0.95);
+            draw_circle(pos.x, pos.y, 18.0, color);
+            draw_circle(pos.x + 13.0, pos.y - 4.0, 11.0, color);
+            draw_circle(pos.x - 11.0, pos.y + 5.0, 10.0, color);
+            draw_circle_lines(pos.x, pos.y, 18.0, 2.0, Color::new(0.42, 0.29, 0.17, 0.8));
+        }
+        HazardKind::FallenTree => {
+            let trunk = Color::new(0.38, 0.21, 0.11, 1.0);
+            draw_rectangle(pos.x - 24.0, pos.y - 7.0, 48.0, 14.0, trunk);
+            draw_rectangle_lines(
+                pos.x - 24.0,
+                pos.y - 7.0,
+                48.0,
+                14.0,
+                2.0,
+                Color::new(0.16, 0.08, 0.04, 1.0),
+            );
+            draw_line(
+                pos.x - 12.0,
+                pos.y - 7.0,
+                pos.x - 20.0,
+                pos.y - 22.0,
+                6.0,
+                trunk,
+            );
+            draw_line(
+                pos.x + 14.0,
+                pos.y + 7.0,
+                pos.x + 22.0,
+                pos.y + 20.0,
+                5.0,
+                trunk,
+            );
+        }
+        HazardKind::Rocks => {
+            let color = Color::new(0.36, 0.35, 0.32, 1.0);
+            draw_circle(pos.x - 12.0, pos.y + 6.0, 13.0, color);
+            draw_circle(
+                pos.x + 8.0,
+                pos.y - 4.0,
+                16.0,
+                Color::new(0.41, 0.40, 0.37, 1.0),
+            );
+            draw_circle(pos.x + 18.0, pos.y + 9.0, 10.0, color);
+        }
+        HazardKind::FirePatch => {
+            draw_circle(pos.x, pos.y, 18.0, Color::new(0.90, 0.24, 0.08, 0.95));
+            draw_circle(
+                pos.x - 8.0,
+                pos.y + 5.0,
+                11.0,
+                Color::new(1.0, 0.62, 0.14, 0.95),
+            );
+            draw_circle(
+                pos.x + 9.0,
+                pos.y - 4.0,
+                8.0,
+                Color::new(0.96, 0.80, 0.20, 0.95),
+            );
+        }
+    }
+}
+
 fn draw_hazard(hazard: &Hazard) {
     match hazard.kind {
         HazardKind::Mud => {

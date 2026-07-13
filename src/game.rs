@@ -98,6 +98,10 @@ impl Game {
                 self.session.open_codex();
                 self.session.set_codex_tab(crate::state::CodexTab::Guards);
             }
+            "codexhazards" => {
+                self.session.open_codex();
+                self.session.set_codex_tab(crate::state::CodexTab::Hazards);
+            }
             "results" => {
                 // A completed mission with a special meter (most stat rows) so
                 // the results layout is exercised at its fullest.

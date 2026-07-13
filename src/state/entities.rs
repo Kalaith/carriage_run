@@ -619,6 +619,10 @@ pub enum HazardKind {
 }
 
 impl HazardKind {
+    pub fn all() -> [Self; 4] {
+        [Self::Mud, Self::FallenTree, Self::Rocks, Self::FirePatch]
+    }
+
     pub(super) fn from_id(id: &str) -> Option<Self> {
         match id {
             "mud" => Some(Self::Mud),
@@ -626,6 +630,40 @@ impl HazardKind {
             "rocks" => Some(Self::Rocks),
             "fire_patch" => Some(Self::FirePatch),
             _ => None,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Mud => "Mud",
+            Self::FallenTree => "Fallen Tree",
+            Self::Rocks => "Rockfall",
+            Self::FirePatch => "Fire Patch",
+        }
+    }
+
+    /// Short effect tag for the field guide.
+    pub fn effect_tag(self) -> &'static str {
+        match self {
+            Self::Mud => "Slows",
+            Self::FallenTree => "Blocks",
+            Self::Rocks => "Impact",
+            Self::FirePatch => "Burns",
+        }
+    }
+
+    pub fn codex_blurb(self) -> &'static str {
+        match self {
+            Self::Mud => {
+                "Bogs the wheels down for a moment. Brake early — speeding through flings mud and cargo."
+            }
+            Self::FallenTree => {
+                "A heavy trunk across the lane. A direct hit costs health and cargo, so steer around it."
+            }
+            Self::Rocks => "Loose stones that jolt the carriage on contact. Weave past to avoid the strike.",
+            Self::FirePatch => {
+                "Burning ground that scorches the carriage every moment you linger. Cross it fast."
+            }
         }
     }
 }

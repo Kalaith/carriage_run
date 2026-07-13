@@ -310,8 +310,16 @@ mod tests {
                 prev.order,
                 prev.unlock_level,
             );
-            assert!(next.base_reward > 0, "'{}' has non-positive reward", next.id);
-            assert!(next.distance > 0.0, "'{}' has non-positive distance", next.id);
+            assert!(
+                next.base_reward > 0,
+                "'{}' has non-positive reward",
+                next.id
+            );
+            assert!(
+                next.distance > 0.0,
+                "'{}' has non-positive distance",
+                next.id
+            );
         }
     }
 
@@ -319,7 +327,10 @@ mod tests {
     fn every_upgrade_has_a_positive_cost_and_levels() {
         let data = GameData::load().unwrap();
         for (id, upgrade) in data.upgrades.iter() {
-            assert!(upgrade.base_cost > 0, "upgrade '{id}' base_cost not positive");
+            assert!(
+                upgrade.base_cost > 0,
+                "upgrade '{id}' base_cost not positive"
+            );
             assert!(upgrade.max_level >= 1, "upgrade '{id}' has no levels");
         }
     }

@@ -79,7 +79,26 @@ impl Game {
     /// Seed a specific scene for the screenshot harness (see `run_capture`).
     pub fn begin_capture_scene(&mut self, scene: &str) {
         match scene {
-            "map" => self.session.open_map(),
+            "map" => {
+                // Seed a few cleared routes so the header progress reads
+                // non-zero and more of the map is unlocked.
+                for (id, stars) in [
+                    ("muddy_road", 3),
+                    ("bandit_bend", 2),
+                    ("courier_deadline", 3),
+                ] {
+                    self.session.campaign.records.insert(
+                        id.to_owned(),
+                        crate::state::MissionRecord {
+                            best_stars: stars,
+                            best_score: 540,
+                            best_reward: 150,
+                            completions: 1,
+                        },
+                    );
+                }
+                self.session.open_map();
+            }
             "loadout" => self.session.open_loadout(),
             "upgrades" => self.session.open_upgrades(),
             "carriages" => self.session.open_carriages(),

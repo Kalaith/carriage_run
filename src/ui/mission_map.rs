@@ -58,7 +58,34 @@ pub(super) fn draw_mission_map(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut V
 
 fn draw_routes_header(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     draw_crest(Rect::new(34.0, 18.0, 84.0, 78.0));
-    draw_ui_text_ex("Routes", 138.0, 72.0, TextStyle::new(54.0, INK).params());
+    draw_ui_text_ex("Routes", 138.0, 66.0, TextStyle::new(50.0, INK).params());
+
+    // Journey progress at a glance: routes cleared and total stars earned.
+    let campaign = &ctx.session.campaign;
+    let missions = ctx.data.missions_ordered();
+    let total = missions.len();
+    let cleared = missions
+        .iter()
+        .filter(|mission| campaign.is_mission_completed(&mission.id))
+        .count();
+    let stars: u32 = missions
+        .iter()
+        .filter_map(|mission| campaign.records.get(&mission.id))
+        .map(|record| record.best_stars as u32)
+        .sum();
+    draw_ui_text_ex(
+        &format!("Cleared {cleared} / {total}"),
+        140.0,
+        90.0,
+        TextStyle::new(15.0, MUTED).params(),
+    );
+    draw_star(vec2(254.0, 84.0), 7.0, UI_GOLD);
+    draw_ui_text_ex(
+        &stars.to_string(),
+        264.0,
+        90.0,
+        TextStyle::new(15.0, INK).params(),
+    );
 
     let gold = Rect::new(306.0, 24.0, 116.0, 62.0);
     draw_panel_with_fill(gold, Color::new(0.040, 0.050, 0.043, 0.95), false);

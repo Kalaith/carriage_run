@@ -86,6 +86,31 @@ impl Game {
                 self.session.open_guards();
             }
             "title" => self.session.return_title(),
+            "results" => {
+                // A completed mission with a special meter (most stat rows) so
+                // the results layout is exercised at its fullest.
+                self.session.result = Some(crate::state::MissionReport {
+                    mission_id: "medicine_run".to_owned(),
+                    mission_name: "Medicine Run".to_owned(),
+                    route_name: "Dry Ridge".to_owned(),
+                    success: true,
+                    reason: "Delivered before the medicine spoiled".to_owned(),
+                    stars: 2,
+                    score: 742,
+                    reward: 214,
+                    gold_penalty: 0,
+                    elapsed: 63.0,
+                    time_limit: Some(86.0),
+                    carriage_health_ratio: 0.71,
+                    cargo_ratio: 0.88,
+                    special_label: Some("Potency".to_owned()),
+                    special_ratio: Some(0.79),
+                    enemies_defeated: 11,
+                    injured_guard_ids: Vec::new(),
+                    bonus_met: Some(true),
+                });
+                self.session.screen = crate::state::Screen::Results;
+            }
             "confirm" => {
                 // Title screen with the New Campaign overwrite prompt staged.
                 self.session.return_title();

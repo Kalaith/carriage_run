@@ -41,6 +41,9 @@ pub struct MissionReport {
     pub special_ratio: Option<f32>,
     pub enemies_defeated: u32,
     pub injured_guard_ids: Vec<String>,
+    /// Whether the mission's bonus objective was achieved. `None` when the
+    /// mission defines no structured bonus criteria.
+    pub bonus_met: Option<bool>,
 }
 
 /// Drives enemy spawning as telegraphed bursts with breathing room between

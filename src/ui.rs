@@ -317,7 +317,7 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         return;
     };
 
-    let panel = Rect::new(330.0, 120.0, 620.0, 430.0);
+    let panel = Rect::new(320.0, 112.0, 640.0, 476.0);
     draw_panel(panel, true);
 
     draw_text_centered_in_box(
@@ -327,33 +327,103 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
             "Route Failed"
         },
         panel.x + 30.0,
-        panel.y + 30.0,
+        panel.y + 24.0,
         panel.w - 60.0,
         46.0,
-        38.0,
+        36.0,
         INK,
     );
     draw_text_centered_in_box(
         &result.mission_name,
         panel.x + 30.0,
-        panel.y + 76.0,
+        panel.y + 72.0,
         panel.w - 60.0,
-        30.0,
+        28.0,
         22.0,
         MUTED,
     );
     draw_text_centered_in_box(
         &star_label(result.stars),
         panel.x + 30.0,
-        panel.y + 118.0,
+        panel.y + 106.0,
         panel.w - 60.0,
-        36.0,
-        28.0,
+        32.0,
+        26.0,
         UI_GOLD,
     );
 
+    // Bonus objective outcome: closes the loop on the goal shown at loadout.
+    if let Some(met) = result.bonus_met {
+        let bonus_text = ctx
+            .data
+            .missions
+            .get(&result.mission_id)
+            .map(|mission| mission.bonus_objective.as_str())
+            .unwrap_or("");
+        let row_y = panel.y + 158.0;
+        draw_ui_text_ex(
+            "Bonus",
+            panel.x + 64.0,
+            row_y,
+            TextStyle::new(16.0, UI_GOLD).params(),
+        );
+        draw_ui_text_ex(
+            bonus_text,
+            panel.x + 132.0,
+            row_y,
+            TextStyle::new(14.0, MUTED).params(),
+        );
+        let (badge_text, badge_bg, badge_fg) = if met {
+            (
+                "Met",
+                Color::new(0.08, 0.22, 0.12, 1.0),
+                Color::new(0.64, 0.92, 0.68, 1.0),
+            )
+        } else {
+            (
+                "Missed",
+                Color::new(0.24, 0.09, 0.08, 1.0),
+                Color::new(0.96, 0.66, 0.60, 1.0),
+            )
+        };
+        draw_badge(
+            Rect::new(panel.right() - 150.0, row_y - 16.0, 88.0, 24.0),
+            badge_text,
+            badge_bg,
+            badge_fg,
+        );
+        draw_line(
+            panel.x + 64.0,
+            row_y + 18.0,
+            panel.right() - 64.0,
+            row_y + 18.0,
+            1.0,
+            GOLD_SOFT,
+        );
+    }
+
+    // Full-width outcome line (its value is a full sentence, too wide to column).
+    let grid_top = panel.y
+        + if result.bonus_met.is_some() {
+            202.0
+        } else {
+            172.0
+        };
+    draw_ui_text_ex(
+        "Outcome",
+        panel.x + 64.0,
+        grid_top,
+        TextStyle::new(17.0, MUTED).params(),
+    );
+    draw_text_right(
+        &result.reason,
+        panel.right() - 64.0,
+        grid_top,
+        TextStyle::new(17.0, INK),
+    );
+
+    // Remaining stats in a two-column grid so nothing collides with the footer.
     let mut stats = vec![
-        ("Outcome".to_owned(), result.reason.clone()),
         ("Route".to_owned(), result.route_name.clone()),
         ("Score".to_owned(), result.score.to_string()),
         ("Reward".to_owned(), format!("{} gold", result.reward)),
@@ -383,20 +453,28 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         .map(|limit| format!("{:.0}s / {:.0}s", result.elapsed, limit))
         .unwrap_or_else(|| format!("{:.0}s", result.elapsed));
     stats.push(("Time".to_owned(), time_value));
-    let mut y = panel.y + 178.0;
-    for (label, value) in stats {
-        draw_ui_text_ex(
-            &label,
-            panel.x + 82.0,
-            y,
-            TextStyle::new(18.0, MUTED).params(),
-        );
-        draw_text_right(&value, panel.right() - 82.0, y, TextStyle::new(18.0, INK));
-        y += 30.0;
+
+    let column_split = stats.len().div_ceil(2);
+    let row_h = 30.0;
+    for (index, (label, value)) in stats.iter().enumerate() {
+        let (column, row) = if index < column_split {
+            (0, index)
+        } else {
+            (1, index - column_split)
+        };
+        let y = grid_top + 34.0 + row as f32 * row_h;
+        let (label_x, value_x) = if column == 0 {
+            (panel.x + 64.0, panel.x + 300.0)
+        } else {
+            (panel.x + 348.0, panel.right() - 64.0)
+        };
+        draw_ui_text_ex(label, label_x, y, TextStyle::new(17.0, MUTED).params());
+        draw_text_right(value, value_x, y, TextStyle::new(17.0, INK));
     }
 
+    let button_y = panel.bottom() - 62.0;
     if virtual_button(
-        Rect::new(panel.x + 72.0, panel.bottom() - 68.0, 136.0, 40.0),
+        Rect::new(panel.x + 82.0, button_y, 136.0, 40.0),
         "Map",
         true,
         ButtonTone::Primary,
@@ -405,7 +483,7 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         actions.push(UiAction::OpenMap);
     }
     if virtual_button(
-        Rect::new(panel.x + 242.0, panel.bottom() - 68.0, 136.0, 40.0),
+        Rect::new(panel.x + 252.0, button_y, 136.0, 40.0),
         "Retry",
         true,
         ButtonTone::Secondary,
@@ -414,7 +492,7 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         actions.push(UiAction::RetryMission);
     }
     if virtual_button(
-        Rect::new(panel.x + 412.0, panel.bottom() - 68.0, 136.0, 40.0),
+        Rect::new(panel.x + 422.0, button_y, 136.0, 40.0),
         "Upgrades",
         true,
         ButtonTone::Positive,

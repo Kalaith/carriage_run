@@ -35,6 +35,10 @@ pub struct MissionDef {
     /// connects the missions into a single journey (light flavor, not plot).
     #[serde(default)]
     pub intro_text: String,
+    /// Machine-evaluable target behind `bonus_objective`, so the results screen
+    /// can report met/missed instead of the objective being flavor only.
+    #[serde(default)]
+    pub bonus: Option<BonusCriteria>,
     pub unlock_level: u32,
     pub distance: f32,
     pub difficulty: f32,
@@ -49,6 +53,52 @@ pub struct MissionDef {
     pub unlock_any_missions: Vec<String>,
     #[serde(default)]
     pub time_limit: Option<f32>,
+}
+
+/// The measurable quantity a bonus objective is graded on, evaluated at
+/// mission end in `MissionRun::make_report`.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum BonusMetric {
+    /// Cargo remaining, as a 0..1 ratio.
+    Cargo,
+    /// Carriage health, as a 0..1 ratio.
+    Health,
+    /// Mission-specific meter (security / potency / comfort / …), 0..1 ratio.
+    Special,
+    /// Count of threats defeated.
+    Threats,
+    /// Seconds still on the clock at arrival (timed missions only).
+    TimeRemaining,
+}
+
+/// A bonus objective's pass condition: `metric` must be at least `threshold`.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct BonusCriteria {
+    pub metric: BonusMetric,
+    pub threshold: f32,
+}
+
+impl BonusCriteria {
+    /// Evaluate against a run's end-state metrics. `Special`/`TimeRemaining`
+    /// return `false` when their value is absent (no meter / untimed mission).
+    pub fn is_met(
+        &self,
+        cargo_ratio: f32,
+        health_ratio: f32,
+        special_ratio: Option<f32>,
+        enemies_defeated: u32,
+        seconds_remaining: Option<f32>,
+    ) -> bool {
+        let value = match self.metric {
+            BonusMetric::Cargo => Some(cargo_ratio),
+            BonusMetric::Health => Some(health_ratio),
+            BonusMetric::Special => special_ratio,
+            BonusMetric::Threats => Some(enemies_defeated as f32),
+            BonusMetric::TimeRemaining => seconds_remaining,
+        };
+        value.is_some_and(|value| value >= self.threshold)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -197,6 +247,48 @@ mod tests {
             .texture_manifest
             .iter()
             .any(|texture| texture.key == "title_screen"));
+    }
+
+    #[test]
+    fn every_mission_has_structured_bonus_criteria() {
+        let data = GameData::load().unwrap();
+        assert!(data
+            .missions_ordered()
+            .iter()
+            .all(|mission| mission.bonus.is_some()));
+    }
+
+    #[test]
+    fn bonus_criteria_evaluates_each_metric() {
+        let cargo = BonusCriteria {
+            metric: BonusMetric::Cargo,
+            threshold: 0.85,
+        };
+        assert!(cargo.is_met(0.90, 0.0, None, 0, None));
+        assert!(!cargo.is_met(0.80, 1.0, None, 99, None));
+
+        let threats = BonusCriteria {
+            metric: BonusMetric::Threats,
+            threshold: 8.0,
+        };
+        assert!(threats.is_met(0.0, 0.0, None, 8, None));
+        assert!(!threats.is_met(1.0, 1.0, None, 7, None));
+
+        // Special/time metrics miss when their value is absent.
+        let special = BonusCriteria {
+            metric: BonusMetric::Special,
+            threshold: 0.70,
+        };
+        assert!(special.is_met(0.0, 0.0, Some(0.71), 0, None));
+        assert!(!special.is_met(1.0, 1.0, None, 0, None));
+
+        let time = BonusCriteria {
+            metric: BonusMetric::TimeRemaining,
+            threshold: 12.0,
+        };
+        assert!(time.is_met(0.0, 0.0, None, 0, Some(13.0)));
+        assert!(!time.is_met(1.0, 1.0, None, 0, Some(4.0)));
+        assert!(!time.is_met(1.0, 1.0, None, 0, None));
     }
 
     #[test]

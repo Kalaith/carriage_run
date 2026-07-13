@@ -407,6 +407,7 @@ fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
         special_ratio: None,
         enemies_defeated: 0,
         injured_guard_ids,
+        bonus_met: None,
     }
 }
 
@@ -435,6 +436,7 @@ fn test_mission(
         objective: "Test objective.".to_owned(),
         bonus_objective: "Test bonus.".to_owned(),
         intro_text: String::new(),
+        bonus: None,
         unlock_level,
         distance: 100.0,
         difficulty: 1.0,

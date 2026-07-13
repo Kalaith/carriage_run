@@ -671,6 +671,7 @@ mod tests {
             objective: "Reach the village.".to_owned(),
             bonus_objective: "Keep cargo safe.".to_owned(),
             intro_text: String::new(),
+            bonus: None,
             unlock_level: 1,
             distance: 500.0,
             difficulty: 1.0,

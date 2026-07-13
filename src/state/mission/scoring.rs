@@ -61,6 +61,19 @@ impl MissionRun {
             (repairs + lost_cargo).round() as i64
         };
 
+        // The bonus objective only counts on a successful run; a failed
+        // delivery misses it regardless of intermediate numbers.
+        let bonus_met = mission.bonus.map(|bonus| {
+            success
+                && bonus.is_met(
+                    cargo_ratio,
+                    health_ratio,
+                    special_ratio,
+                    self.enemies_defeated,
+                    self.time_limit.map(|limit| limit - self.elapsed),
+                )
+        });
+
         MissionReport {
             mission_id: mission.id.clone(),
             mission_name: mission.name.clone(),
@@ -79,9 +92,12 @@ impl MissionRun {
             special_ratio,
             enemies_defeated: self.enemies_defeated,
             injured_guard_ids: injured_guard_ids(&self.guards),
+            bonus_met,
         }
     }
 }
+
+// (bonus evaluation lives on `BonusCriteria::is_met` in `data.rs`.)
 
 fn injured_guard_ids(guards: &[Guard]) -> Vec<String> {
     let mut ids = Vec::new();

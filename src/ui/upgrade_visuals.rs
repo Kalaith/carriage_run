@@ -59,41 +59,45 @@ pub(super) fn draw_upgrade_backdrop() {
     );
 }
 
+/// The game crest: a wagon wheel on the dark shield panel. Scales to the rect
+/// so it reads the same on the routes header, the top-nav, and the title.
 pub(super) fn draw_crest(rect: Rect) {
     draw_panel(rect, true);
-    draw_triangle(
-        vec2(rect.x + rect.w * 0.5, rect.bottom() - 6.0),
-        vec2(rect.x + 16.0, rect.y + 18.0),
-        vec2(rect.right() - 16.0, rect.y + 18.0),
-        Color::new(0.07, 0.20, 0.16, 0.96),
-    );
-    draw_rectangle(
-        rect.x + 24.0,
-        rect.y + 26.0,
-        rect.w - 48.0,
-        34.0,
-        Color::new(0.46, 0.27, 0.12, 1.0),
+    let center = rect.center();
+    let radius = rect.w.min(rect.h) * 0.34;
+
+    // Tyre, wooden felloe, hollow centre, gold spokes and hub.
+    draw_circle(
+        center.x,
+        center.y,
+        radius + 3.0,
+        Color::new(0.20, 0.13, 0.07, 1.0),
     );
     draw_circle(
-        rect.x + 29.0,
-        rect.y + 64.0,
-        7.0,
-        Color::new(0.09, 0.05, 0.025, 1.0),
+        center.x,
+        center.y,
+        radius,
+        Color::new(0.48, 0.32, 0.16, 1.0),
     );
     draw_circle(
-        rect.right() - 29.0,
-        rect.y + 64.0,
-        7.0,
-        Color::new(0.09, 0.05, 0.025, 1.0),
+        center.x,
+        center.y,
+        radius - 4.0,
+        Color::new(0.08, 0.12, 0.10, 1.0),
     );
-    draw_line(
-        rect.x + 34.0,
-        rect.y + 35.0,
-        rect.right() - 34.0,
-        rect.y + 35.0,
-        3.0,
-        GOLD,
-    );
+    for i in 0..6 {
+        let angle = i as f32 * std::f32::consts::TAU / 6.0;
+        draw_line(
+            center.x,
+            center.y,
+            center.x + angle.cos() * (radius - 2.0),
+            center.y + angle.sin() * (radius - 2.0),
+            2.0,
+            GOLD_SOFT,
+        );
+    }
+    draw_circle(center.x, center.y, radius * 0.26, GOLD);
+    draw_circle_lines(center.x, center.y, radius + 3.0, 1.5, GOLD_SOFT);
 }
 
 pub(super) fn draw_stat_icon(icon: &str, pos: Vec2) {

@@ -407,54 +407,83 @@ fn draw_tree_shadow(pos: Vec2, scale: f32) {
     );
 }
 
+/// A dark, side-profile covered wagon drawn by a draft horse, sitting in the
+/// menu backdrop's roadside strip. Kept low-key (silhouette tones) so it reads
+/// as background scenery, not a foreground sprite.
 fn draw_wagon_silhouette(pos: Vec2) {
-    draw_rectangle(
-        pos.x - 62.0,
-        pos.y - 48.0,
-        124.0,
-        76.0,
-        Color::new(0.10, 0.065, 0.036, 0.90),
+    let wagon = Color::new(0.11, 0.075, 0.042, 0.90);
+    let canopy = Color::new(0.16, 0.115, 0.062, 0.90);
+    let horse = Color::new(0.09, 0.06, 0.035, 0.92);
+    let plank = Color::new(0.06, 0.04, 0.02, 0.6);
+    let hoop = Color::new(0.30, 0.22, 0.11, 0.55);
+
+    // Draft horse, facing left (pulling toward screen centre).
+    let hx = pos.x - 108.0;
+    let hy = pos.y + 6.0;
+    draw_rectangle(hx - 24.0, hy - 12.0, 52.0, 26.0, horse);
+    draw_circle(hx - 24.0, hy + 1.0, 13.0, horse);
+    draw_circle(hx + 28.0, hy + 1.0, 13.0, horse);
+    draw_triangle(
+        vec2(hx - 34.0, hy - 8.0),
+        vec2(hx - 18.0, hy - 12.0),
+        vec2(hx - 42.0, hy - 34.0),
+        horse,
     );
-    draw_rectangle(
-        pos.x - 48.0,
-        pos.y - 82.0,
-        96.0,
-        42.0,
-        Color::new(0.13, 0.088, 0.046, 0.90),
+    draw_circle(hx - 42.0, hy - 34.0, 8.0, horse);
+    draw_rectangle(hx - 54.0, hy - 38.0, 14.0, 8.0, horse);
+    for lx in [hx - 30.0, hx - 16.0, hx + 14.0, hx + 24.0] {
+        draw_rectangle(lx, hy + 8.0, 5.0, 26.0, horse);
+    }
+    draw_triangle(
+        vec2(hx + 40.0, hy - 10.0),
+        vec2(hx + 46.0, hy - 8.0),
+        vec2(hx + 50.0, hy + 18.0),
+        horse,
     );
-    draw_circle(
-        pos.x - 50.0,
-        pos.y + 34.0,
-        18.0,
-        Color::new(0.035, 0.025, 0.018, 0.96),
-    );
-    draw_circle(
-        pos.x + 50.0,
-        pos.y + 34.0,
-        18.0,
-        Color::new(0.035, 0.025, 0.018, 0.96),
-    );
-    draw_circle_lines(
-        pos.x - 50.0,
-        pos.y + 34.0,
-        20.0,
-        2.0,
-        Color::new(0.64, 0.43, 0.18, 0.42),
-    );
-    draw_circle_lines(
-        pos.x + 50.0,
-        pos.y + 34.0,
-        20.0,
-        2.0,
-        Color::new(0.64, 0.43, 0.18, 0.42),
-    );
-    draw_rectangle(
-        pos.x - 15.0,
-        pos.y - 4.0,
-        30.0,
-        42.0,
-        Color::new(0.55, 0.34, 0.13, 0.80),
-    );
+
+    // Harness shaft to the wagon.
+    draw_line(hx + 30.0, hy + 8.0, pos.x - 58.0, pos.y + 12.0, 4.0, wagon);
+
+    // Wagon body with a couple of plank lines.
+    draw_rectangle(pos.x - 60.0, pos.y - 16.0, 108.0, 46.0, wagon);
+    for i in 1..3 {
+        let ly = pos.y - 16.0 + i as f32 * 15.0;
+        draw_line(pos.x - 58.0, ly, pos.x + 46.0, ly, 1.5, plank);
+    }
+
+    // Sagging canvas canopy (prairie-schooner curve: higher at the ends).
+    let bl = vec2(pos.x - 58.0, pos.y - 16.0);
+    let br = vec2(pos.x + 46.0, pos.y - 16.0);
+    let tl = vec2(pos.x - 50.0, pos.y - 60.0);
+    let tr = vec2(pos.x + 38.0, pos.y - 60.0);
+    let tm = vec2(pos.x - 6.0, pos.y - 50.0);
+    draw_triangle(bl, tl, tm, canopy);
+    draw_triangle(bl, tm, br, canopy);
+    draw_triangle(br, tm, tr, canopy);
+    for t in [0.22f32, 0.5, 0.78] {
+        let x = bl.x + (br.x - bl.x) * t;
+        draw_line(x, pos.y - 16.0, x, pos.y - 52.0, 1.5, hoop);
+    }
+
+    // Spoked wheels.
+    for wx in [pos.x - 40.0, pos.x + 30.0] {
+        let wy = pos.y + 32.0;
+        draw_circle(wx, wy, 17.0, Color::new(0.045, 0.03, 0.02, 0.94));
+        draw_circle_lines(wx, wy, 18.0, 2.5, Color::new(0.5, 0.36, 0.16, 0.5));
+        for i in 0..6 {
+            let angle = i as f32 * std::f32::consts::TAU / 6.0;
+            let (sin, cos) = angle.sin_cos();
+            draw_line(
+                wx,
+                wy,
+                wx + cos * 15.0,
+                wy + sin * 15.0,
+                1.5,
+                Color::new(0.4, 0.28, 0.13, 0.5),
+            );
+        }
+        draw_circle(wx, wy, 4.0, Color::new(0.5, 0.36, 0.16, 0.6));
+    }
 }
 
 fn draw_nav_icon(id: &str, pos: Vec2) {

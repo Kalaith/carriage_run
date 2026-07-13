@@ -439,6 +439,16 @@ pub enum EnemyKind {
 }
 
 impl EnemyKind {
+    pub fn all() -> [Self; 5] {
+        [
+            Self::Wolf,
+            Self::Bandit,
+            Self::BanditArcher,
+            Self::Skeleton,
+            Self::Necromancer,
+        ]
+    }
+
     pub(super) fn from_id(id: &str) -> Option<Self> {
         match id {
             "wolf" => Some(Self::Wolf),
@@ -447,6 +457,49 @@ impl EnemyKind {
             "skeleton" => Some(Self::Skeleton),
             "necromancer" => Some(Self::Necromancer),
             _ => None,
+        }
+    }
+
+    /// Display name for the field guide and readouts.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Wolf => "Wolf",
+            Self::Bandit => "Bandit",
+            Self::BanditArcher => "Bandit Archer",
+            Self::Skeleton => "Skeleton",
+            Self::Necromancer => "Necromancer",
+        }
+    }
+
+    /// Short role tag for the field guide.
+    pub fn threat_tag(self) -> &'static str {
+        match self {
+            Self::Wolf => "Melee charger",
+            Self::Bandit => "Cargo thief",
+            Self::BanditArcher => "Ranged skirmisher",
+            Self::Skeleton => "Undead melee",
+            Self::Necromancer => "Summoner",
+        }
+    }
+
+    /// One- to two-sentence behaviour note and counter-play for the field guide.
+    pub fn codex_blurb(self) -> &'static str {
+        match self {
+            Self::Wolf => {
+                "Sprints at the carriage in a burst. Post a melee guard to intercept it before it lands a bite."
+            }
+            Self::Bandit => {
+                "Grabs cargo and bolts for the map edge. Cut down the fleeing thief to recover what it stole."
+            }
+            Self::BanditArcher => {
+                "Hangs back and looses arrows from range. Send a guard to run it down or a mounted archer to trade."
+            }
+            Self::Skeleton => {
+                "Slow but durable undead that hits hard, and a necromancer can raise it again. Focus it down."
+            }
+            Self::Necromancer => {
+                "Keeps its distance, kites, and raises fresh skeletons. Kill it first to stem the tide."
+            }
         }
     }
 

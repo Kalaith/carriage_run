@@ -31,6 +31,7 @@ pub enum Screen {
     Paused,
     Results,
     Journey,
+    Codex,
 }
 
 /// A destructive action awaiting explicit player confirmation. Session-only
@@ -578,6 +579,10 @@ impl GameSession {
 
     pub fn open_settings(&mut self) {
         self.screen = Screen::Settings;
+    }
+
+    pub fn open_codex(&mut self) {
+        self.screen = Screen::Codex;
     }
 
     pub fn pause_play(&mut self) {

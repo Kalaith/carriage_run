@@ -40,6 +40,7 @@ pub enum UiAction {
     OpenGuards,
     OpenUpgrades,
     OpenSettings,
+    OpenCodex,
     ReturnTitle,
     PauseGame,
     ResumeGame,
@@ -102,6 +103,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Paused => management::draw_pause(&ctx, mouse, &mut actions),
         Screen::Results => draw_results(&ctx, mouse, &mut actions),
         Screen::Journey => journey::draw_journey(&ctx, mouse, &mut actions),
+        Screen::Codex => draw_codex(&ctx, mouse, &mut actions),
     }
 
     // A pending confirmation is a true modal: it draws over whatever screen is
@@ -136,9 +138,9 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     }
 
     let panel = if using_title_art {
-        Rect::new(72.0, 310.0, 366.0, 340.0)
+        Rect::new(72.0, 300.0, 366.0, 404.0)
     } else {
-        Rect::new(86.0, 244.0, 390.0, 358.0)
+        Rect::new(86.0, 236.0, 390.0, 420.0)
     };
     draw_panel(panel, true);
     draw_section_label("Main Menu", panel.x + 26.0, panel.y + 24.0, panel.w - 52.0);
@@ -186,6 +188,16 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     y += 54.0;
     if virtual_button(
         Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
+        "Field Guide",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenCodex);
+    }
+    y += 54.0;
+    if virtual_button(
+        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
         "Exit Game",
         true,
         ButtonTone::Muted,
@@ -194,6 +206,69 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         actions.push(UiAction::ExitGame);
     }
     let _ = ctx.loaded_assets;
+}
+
+/// Field guide / bestiary: static reference of road threats and how to counter
+/// them. Reachable from the title menu; reuses the in-game enemy sprites.
+fn draw_codex(_ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    draw_menu_backdrop(96.0);
+
+    let panel = Rect::new(150.0, 54.0, 980.0, 612.0);
+    draw_panel(panel, true);
+    draw_section_label(
+        "Field Guide",
+        panel.x + 34.0,
+        panel.y + 34.0,
+        panel.w - 68.0,
+    );
+    draw_text_centered(
+        "Threats on the Road",
+        panel.x + panel.w * 0.5,
+        panel.y + 74.0,
+        TextStyle::new(16.0, MUTED),
+    );
+
+    let mut y = panel.y + 100.0;
+    let row_h = 92.0;
+    for kind in crate::state::EnemyKind::all() {
+        let row = Rect::new(panel.x + 34.0, y, panel.w - 68.0, row_h - 12.0);
+        upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
+        gameplay::draw_enemy_icon(kind, vec2(row.x + 52.0, row.y + row.h * 0.5 + 4.0));
+        draw_ui_text_ex(
+            kind.label(),
+            row.x + 110.0,
+            row.y + 30.0,
+            TextStyle::new(22.0, INK).params(),
+        );
+        draw_badge(
+            Rect::new(row.x + 110.0, row.y + 42.0, 168.0, 24.0),
+            kind.threat_tag(),
+            Color::new(0.16, 0.13, 0.08, 1.0),
+            UI_GOLD,
+        );
+        draw_ui_text_ex(
+            kind.codex_blurb(),
+            row.x + 300.0,
+            row.y + 46.0,
+            TextStyle::new(15.0, MUTED).params(),
+        );
+        y += row_h;
+    }
+
+    if virtual_button(
+        Rect::new(
+            panel.x + panel.w * 0.5 - 90.0,
+            panel.bottom() - 60.0,
+            180.0,
+            42.0,
+        ),
+        "Back",
+        true,
+        ButtonTone::Primary,
+        mouse,
+    ) {
+        actions.push(UiAction::ReturnTitle);
+    }
 }
 
 /// Modal confirmation overlay for a staged destructive action.

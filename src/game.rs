@@ -87,6 +87,7 @@ impl Game {
             }
             "title" => self.session.return_title(),
             "settings" => self.session.open_settings(),
+            "codex" => self.session.open_codex(),
             "results" => {
                 // A completed mission with a special meter (most stat rows) so
                 // the results layout is exercised at its fullest.
@@ -222,6 +223,7 @@ impl Game {
                 | Screen::Upgrades
                 | Screen::Settings => self.events.push(UiAction::OpenMap),
                 Screen::MissionMap => self.events.push(UiAction::ReturnTitle),
+                Screen::Codex => self.events.push(UiAction::ReturnTitle),
                 // Expedition decisions must be made with the on-screen buttons
                 // so a run is never abandoned by an accidental keypress.
                 Screen::Journey => {}
@@ -264,6 +266,7 @@ impl Game {
             UiAction::OpenGuards => self.session.open_guards(),
             UiAction::OpenUpgrades => self.session.open_upgrades(),
             UiAction::OpenSettings => self.session.open_settings(),
+            UiAction::OpenCodex => self.session.open_codex(),
             UiAction::ReturnTitle => self.session.return_title(),
             UiAction::PauseGame => self.session.pause_play(),
             UiAction::ResumeGame => self.session.resume_play(),

@@ -421,6 +421,24 @@ fn draw_enemy(enemy: &Enemy) {
     );
 }
 
+/// Draw an enemy's procedural sprite as a static icon (no health bar / flash),
+/// reused by the field guide so players learn to recognise threats.
+pub(super) fn draw_enemy_icon(kind: EnemyKind, pos: Vec2) {
+    draw_circle(
+        pos.x + 3.0,
+        pos.y + 8.0,
+        20.0,
+        Color::new(0.0, 0.0, 0.0, 0.22),
+    );
+    match kind {
+        EnemyKind::Wolf => draw_wolf(pos, false),
+        EnemyKind::Bandit => draw_bandit(pos, false),
+        EnemyKind::BanditArcher => draw_bandit_archer(pos, false),
+        EnemyKind::Skeleton => draw_skeleton(pos, false),
+        EnemyKind::Necromancer => draw_necromancer(pos, false),
+    }
+}
+
 fn draw_wolf(pos: Vec2, flash: bool) {
     let body = if flash {
         WHITE

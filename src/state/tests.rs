@@ -66,6 +66,46 @@ fn upgrading_guard_star_spends_gold() {
 }
 
 #[test]
+fn shipped_mission_content_ids_all_resolve() {
+    let data = GameData::load().unwrap();
+    validate_mission_content(&data.missions_ordered()).unwrap();
+}
+
+#[test]
+fn unknown_enemy_or_hazard_ids_are_rejected() {
+    let mut mission = test_mission("bad_mission", &[], &[], 1);
+    mission.enemy_mix = vec!["wolf".to_owned(), "dragon".to_owned()];
+    mission.hazard_mix = vec!["lava".to_owned()];
+
+    let err = validate_mission_content(&[&mission]).unwrap_err();
+    assert!(err.contains("dragon"), "missing enemy id in error: {err}");
+    assert!(err.contains("lava"), "missing hazard id in error: {err}");
+}
+
+#[test]
+fn route_choice_content_ids_are_validated() {
+    let mut mission = test_mission("choice_mission", &[], &[], 1);
+    mission.route_choices = vec![crate::data::RouteChoiceDef {
+        id: "risky_cut".to_owned(),
+        name: "Risky Cut".to_owned(),
+        description: "test".to_owned(),
+        distance_delta: 0.0,
+        difficulty_delta: 0.0,
+        reward_delta: 0,
+        time_limit_delta: 0.0,
+        enemy_add: vec!["griffon".to_owned()],
+        hazard_add: Vec::new(),
+    }];
+
+    let err = validate_mission_content(&[&mission]).unwrap_err();
+    assert!(
+        err.contains("choice_mission/risky_cut"),
+        "route choice not located in error: {err}"
+    );
+    assert!(err.contains("griffon"), "missing enemy id in error: {err}");
+}
+
+#[test]
 fn new_campaign_prompts_before_overwriting_an_existing_save() {
     let config = test_config();
     let mut session = GameSession::new(&config, Some("muddy_road"));

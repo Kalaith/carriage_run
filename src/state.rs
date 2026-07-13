@@ -12,7 +12,7 @@ pub use equipment::*;
 pub use journey::Journey;
 pub use mission::{MissionInput, MissionReport, MissionRun};
 
-use crate::data::{GameConfig, GameData, UpgradeDef};
+use crate::data::{GameConfig, GameData, MissionDef, UpgradeDef};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -39,6 +39,48 @@ pub enum Screen {
 pub enum ConfirmPrompt {
     /// Starting a new campaign would overwrite the current autosave.
     NewCampaign,
+}
+
+/// Fail fast on content typos: every enemy/hazard id referenced by mission
+/// data must resolve to a known kind. Unknown ids otherwise degrade silently
+/// to Wolf/Mud at spawn time (`mission/flow.rs`), shipping the wrong encounter
+/// with no error. Guarded by a unit test (CI) and a debug-build assert.
+pub fn validate_mission_content(missions: &[&MissionDef]) -> Result<(), String> {
+    let mut unknown = Vec::new();
+    let check_enemy = |unknown: &mut Vec<String>, where_: &str, id: &str| {
+        if EnemyKind::from_id(id).is_none() {
+            unknown.push(format!("{where_}: enemy '{id}'"));
+        }
+    };
+    let check_hazard = |unknown: &mut Vec<String>, where_: &str, id: &str| {
+        if HazardKind::from_id(id).is_none() {
+            unknown.push(format!("{where_}: hazard '{id}'"));
+        }
+    };
+
+    for mission in missions {
+        for id in &mission.enemy_mix {
+            check_enemy(&mut unknown, &mission.id, id);
+        }
+        for id in &mission.hazard_mix {
+            check_hazard(&mut unknown, &mission.id, id);
+        }
+        for choice in &mission.route_choices {
+            let where_ = format!("{}/{}", mission.id, choice.id);
+            for id in &choice.enemy_add {
+                check_enemy(&mut unknown, &where_, id);
+            }
+            for id in &choice.hazard_add {
+                check_hazard(&mut unknown, &where_, id);
+            }
+        }
+    }
+
+    if unknown.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("unknown content ids -> {}", unknown.join(", ")))
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

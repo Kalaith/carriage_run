@@ -36,6 +36,13 @@ impl Game {
             panic!("Carriage Run embedded data failed to load: {}", err);
         });
 
+        // Surface mission-data typos immediately in dev/CI builds; release keeps
+        // the tolerant spawn-time fallback rather than crashing a player.
+        #[cfg(debug_assertions)]
+        if let Err(err) = crate::state::validate_mission_content(&data.missions_ordered()) {
+            panic!("Carriage Run mission data invalid: {}", err);
+        }
+
         let mut assets = AssetManager::new();
         let placeholder = Image::gen_image_color(16, 16, Color::new(0.8, 0.2, 0.5, 1.0));
         assets.set_placeholder_texture_direct(Texture2D::from_image(&placeholder));

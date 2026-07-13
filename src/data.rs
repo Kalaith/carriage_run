@@ -296,6 +296,53 @@ mod tests {
     }
 
     #[test]
+    fn mission_unlock_levels_are_non_decreasing_by_order() {
+        let data = GameData::load().unwrap();
+        for pair in data.missions_ordered().windows(2) {
+            let (prev, next) = (pair[0], pair[1]);
+            assert!(
+                next.unlock_level >= prev.unlock_level,
+                "unlock level regresses: '{}' (order {}) L{} follows '{}' (order {}) L{}",
+                next.id,
+                next.order,
+                next.unlock_level,
+                prev.id,
+                prev.order,
+                prev.unlock_level,
+            );
+            assert!(next.base_reward > 0, "'{}' has non-positive reward", next.id);
+            assert!(next.distance > 0.0, "'{}' has non-positive distance", next.id);
+        }
+    }
+
+    #[test]
+    fn every_upgrade_has_a_positive_cost_and_levels() {
+        let data = GameData::load().unwrap();
+        for (id, upgrade) in data.upgrades.iter() {
+            assert!(upgrade.base_cost > 0, "upgrade '{id}' base_cost not positive");
+            assert!(upgrade.max_level >= 1, "upgrade '{id}' has no levels");
+        }
+    }
+
+    #[test]
+    fn chassis_cost_and_slots_rise_with_order() {
+        let data = GameData::load().unwrap();
+        for pair in data.chassis_ordered().windows(2) {
+            let (prev, next) = (pair[0], pair[1]);
+            assert!(
+                next.cost >= prev.cost,
+                "chassis cost regresses at '{}'",
+                next.id
+            );
+            assert!(
+                next.slots >= prev.slots,
+                "chassis slots regress at '{}'",
+                next.id
+            );
+        }
+    }
+
+    #[test]
     fn mission_difficulty_is_non_decreasing_by_order() {
         let data = GameData::load().unwrap();
         let ordered = data.missions_ordered();

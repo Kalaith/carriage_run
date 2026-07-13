@@ -39,8 +39,14 @@ impl Game {
         // Surface mission-data typos immediately in dev/CI builds; release keeps
         // the tolerant spawn-time fallback rather than crashing a player.
         #[cfg(debug_assertions)]
-        if let Err(err) = crate::state::validate_mission_content(&data.missions_ordered()) {
-            panic!("Carriage Run mission data invalid: {}", err);
+        {
+            let missions = data.missions_ordered();
+            if let Err(err) = crate::state::validate_mission_content(&missions) {
+                panic!("Carriage Run mission data invalid: {}", err);
+            }
+            if let Err(err) = crate::state::validate_mission_reachability(&missions) {
+                panic!("Carriage Run mission graph invalid: {}", err);
+            }
         }
 
         let mut assets = AssetManager::new();

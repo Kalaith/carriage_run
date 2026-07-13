@@ -143,6 +143,76 @@ pub fn validate_mission_content(missions: &[&MissionDef]) -> Result<(), String> 
     }
 }
 
+/// Verify the mission unlock graph is sound: every prerequisite/branch id
+/// refers to a real mission, and every mission can eventually be unlocked from
+/// a fresh campaign. A typo'd prerequisite otherwise silently strands a mission
+/// as permanently locked. (Carriage-level gates are always satisfiable via
+/// upgrades, so only completion prerequisites constrain reachability.)
+pub fn validate_mission_reachability(missions: &[&MissionDef]) -> Result<(), String> {
+    use std::collections::HashSet;
+
+    let ids: HashSet<&str> = missions.iter().map(|mission| mission.id.as_str()).collect();
+    let mut errors = Vec::new();
+
+    for mission in missions {
+        for id in mission
+            .prerequisite_missions
+            .iter()
+            .chain(mission.unlock_any_missions.iter())
+        {
+            if !ids.contains(id.as_str()) {
+                errors.push(format!(
+                    "{}: references unknown mission '{}'",
+                    mission.id, id
+                ));
+            }
+        }
+    }
+
+    // Fixpoint: a mission unlocks once all its prerequisites are reachable and
+    // (if it has a branch requirement) at least one branch is reachable.
+    let mut reachable: HashSet<&str> = HashSet::new();
+    loop {
+        let mut changed = false;
+        for mission in missions {
+            if reachable.contains(mission.id.as_str()) {
+                continue;
+            }
+            let prereqs_ok = mission
+                .prerequisite_missions
+                .iter()
+                .all(|id| reachable.contains(id.as_str()));
+            let branch_ok = mission.unlock_any_missions.is_empty()
+                || mission
+                    .unlock_any_missions
+                    .iter()
+                    .any(|id| reachable.contains(id.as_str()));
+            if prereqs_ok && branch_ok {
+                reachable.insert(mission.id.as_str());
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+
+    for mission in missions {
+        if !reachable.contains(mission.id.as_str()) {
+            errors.push(format!(
+                "{}: unreachable (its prerequisites can never all be met)",
+                mission.id
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(format!("mission graph invalid -> {}", errors.join("; ")))
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionRecord {
     pub best_stars: u8,

@@ -113,6 +113,37 @@ fn shipped_mission_content_ids_all_resolve() {
 }
 
 #[test]
+fn shipped_mission_graph_is_fully_reachable() {
+    let data = GameData::load().unwrap();
+    validate_mission_reachability(&data.missions_ordered()).unwrap();
+}
+
+#[test]
+fn mission_with_unknown_prerequisite_is_rejected() {
+    let mission = test_mission("orphan", &["ghost_town"], &[], 1);
+    let err = validate_mission_reachability(&[&mission]).unwrap_err();
+    assert!(err.contains("ghost_town"), "unknown ref not named: {err}");
+    assert!(err.contains("unknown mission"), "wrong category: {err}");
+}
+
+#[test]
+fn cyclic_prerequisites_are_flagged_unreachable() {
+    // a needs b, b needs a: neither can ever unlock from a fresh campaign.
+    let a = test_mission("a", &["b"], &[], 1);
+    let b = test_mission("b", &["a"], &[], 1);
+    let err = validate_mission_reachability(&[&a, &b]).unwrap_err();
+    assert!(err.contains("unreachable"), "cycle not detected: {err}");
+}
+
+#[test]
+fn linear_prerequisite_chain_is_reachable() {
+    let start = test_mission("start", &[], &[], 1);
+    let middle = test_mission("middle", &["start"], &[], 1);
+    let end = test_mission("end", &["middle"], &[], 1);
+    assert!(validate_mission_reachability(&[&start, &middle, &end]).is_ok());
+}
+
+#[test]
 fn unknown_enemy_or_hazard_ids_are_rejected() {
     let mut mission = test_mission("bad_mission", &[], &[], 1);
     mission.enemy_mix = vec!["wolf".to_owned(), "dragon".to_owned()];

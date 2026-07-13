@@ -56,6 +56,7 @@ pub enum UiAction {
     UpgradeGuardStar(String),
     TreatGuard(String),
     ToggleSetting(String),
+    SetDifficulty(String),
     BeginMission,
     StartExpedition,
     JourneyPressOn,

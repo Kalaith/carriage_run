@@ -186,10 +186,12 @@ impl MissionRun {
             .map(|choice| mission.distance + choice.distance_delta)
             .unwrap_or(mission.distance)
             .max(420.0);
-        let difficulty = route_choice
+        let difficulty = (route_choice
             .map(|choice| mission.difficulty + choice.difficulty_delta)
             .unwrap_or(mission.difficulty)
-            .max(0.6);
+            .max(0.6)
+            * campaign.difficulty_preset.difficulty_scale())
+        .max(0.5);
         let base_reward = route_choice
             .map(|choice| mission.base_reward + choice.reward_delta)
             .unwrap_or(mission.base_reward)

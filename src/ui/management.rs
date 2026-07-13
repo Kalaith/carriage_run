@@ -7,7 +7,7 @@ use super::upgrade_visuals::{
 };
 use super::widgets::{draw_menu_backdrop, draw_top_nav, virtual_button};
 use super::{UiAction, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
-use crate::state::GuardKind;
+use crate::state::{DifficultyPreset, GuardKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
@@ -148,7 +148,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(390.0, 112.0, 500.0, 464.0),
+            Rect::new(390.0, 96.0, 500.0, 500.0),
             true,
         );
     } else {
@@ -158,7 +158,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(360.0, 142.0, 560.0, 430.0),
+            Rect::new(360.0, 118.0, 560.0, 500.0),
             false,
         );
     }
@@ -609,6 +609,13 @@ fn draw_settings_panel(
         mouse,
         actions,
     );
+    y += 72.0;
+    draw_difficulty_row(
+        ctx,
+        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        mouse,
+        actions,
+    );
 
     let button_y = panel.bottom() - 72.0;
     if in_mission {
@@ -640,6 +647,40 @@ fn draw_settings_panel(
         ) {
             actions.push(UiAction::ReturnTitle);
         }
+    }
+}
+
+fn draw_difficulty_row(ctx: &UiContext<'_>, rect: Rect, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    draw_panel_with_fill(rect, PANEL_ALT, true);
+    draw_ui_text_ex(
+        "Difficulty",
+        rect.x + 18.0,
+        rect.y + 36.0,
+        TextStyle::new(20.0, INK).params(),
+    );
+
+    let current = ctx.session.campaign.difficulty_preset;
+    let presets = DifficultyPreset::all();
+    let button_w = 96.0;
+    let gap = 8.0;
+    let total = presets.len() as f32 * button_w + (presets.len() as f32 - 1.0) * gap;
+    let mut x = rect.right() - 20.0 - total;
+    for preset in presets {
+        let active = preset == current;
+        if virtual_button(
+            Rect::new(x, rect.y + 12.0, button_w, 34.0),
+            preset.label(),
+            true,
+            if active {
+                ButtonTone::Positive
+            } else {
+                ButtonTone::Secondary
+            },
+            mouse,
+        ) {
+            actions.push(UiAction::SetDifficulty(preset.id().to_owned()));
+        }
+        x += button_w + gap;
     }
 }
 

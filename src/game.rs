@@ -86,6 +86,7 @@ impl Game {
                 self.session.open_guards();
             }
             "title" => self.session.return_title(),
+            "settings" => self.session.open_settings(),
             "results" => {
                 // A completed mission with a special meter (most stat rows) so
                 // the results layout is exercised at its fullest.
@@ -350,6 +351,18 @@ impl Game {
                         "{} {}",
                         setting_label(&id),
                         setting_value(&self.session, &id)
+                    ));
+                    if let Err(err) = self.write_save() {
+                        self.notifications
+                            .warning(format!("Settings save failed: {}", err));
+                    }
+                }
+            }
+            UiAction::SetDifficulty(id) => {
+                if self.session.set_difficulty(&id) {
+                    self.notifications.info(format!(
+                        "Difficulty: {}",
+                        self.session.campaign.difficulty_preset.label()
                     ));
                     if let Err(err) = self.write_save() {
                         self.notifications

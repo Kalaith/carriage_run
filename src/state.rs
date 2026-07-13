@@ -41,6 +41,57 @@ pub enum ConfirmPrompt {
     NewCampaign,
 }
 
+/// Player-chosen challenge level, applied as a multiplier on each mission's
+/// difficulty scalar (which drives spawn rate, burst size, and enemy stats).
+/// Widens the audience and doubles as an accessibility assist.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum DifficultyPreset {
+    Relaxed,
+    #[default]
+    Standard,
+    Hard,
+}
+
+impl DifficultyPreset {
+    pub fn all() -> [Self; 3] {
+        [Self::Relaxed, Self::Standard, Self::Hard]
+    }
+
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Relaxed => "relaxed",
+            Self::Standard => "standard",
+            Self::Hard => "hard",
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Relaxed => "Relaxed",
+            Self::Standard => "Standard",
+            Self::Hard => "Hard",
+        }
+    }
+
+    pub fn from_id(id: &str) -> Self {
+        Self::all()
+            .into_iter()
+            .find(|preset| preset.id() == id)
+            .unwrap_or_default()
+    }
+
+    /// Multiplier applied to mission difficulty. Fewer/weaker foes when relaxed,
+    /// more/stronger when hard.
+    pub fn difficulty_scale(self) -> f32 {
+        match self {
+            Self::Relaxed => 0.8,
+            Self::Standard => 1.0,
+            Self::Hard => 1.25,
+        }
+    }
+}
+
 /// Fail fast on content typos: every enemy/hazard id referenced by mission
 /// data must resolve to a known kind. Unknown ids otherwise degrade silently
 /// to Wolf/Mud at spawn time (`mission/flow.rs`), shipping the wrong encounter
@@ -138,6 +189,8 @@ pub struct CampaignState {
     pub alerts_enabled: bool,
     #[serde(default = "default_true")]
     pub auto_save_enabled: bool,
+    #[serde(default)]
+    pub difficulty_preset: DifficultyPreset,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -171,6 +224,7 @@ impl CampaignState {
             route_motion_enabled: true,
             alerts_enabled: true,
             auto_save_enabled: true,
+            difficulty_preset: DifficultyPreset::Standard,
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -695,6 +749,16 @@ impl GameSession {
             "auto_save" => self.campaign.auto_save_enabled = !self.campaign.auto_save_enabled,
             _ => return false,
         }
+        true
+    }
+
+    /// Set the difficulty preset. Returns `true` when it actually changed.
+    pub fn set_difficulty(&mut self, id: &str) -> bool {
+        let preset = DifficultyPreset::from_id(id);
+        if preset == self.campaign.difficulty_preset {
+            return false;
+        }
+        self.campaign.difficulty_preset = preset;
         true
     }
 

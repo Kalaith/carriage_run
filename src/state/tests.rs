@@ -66,6 +66,47 @@ fn upgrading_guard_star_spends_gold() {
 }
 
 #[test]
+fn set_difficulty_changes_preset_and_reports_change() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+
+    assert_eq!(
+        session.campaign.difficulty_preset,
+        DifficultyPreset::Standard
+    );
+    assert!(session.set_difficulty("hard"));
+    assert_eq!(session.campaign.difficulty_preset, DifficultyPreset::Hard);
+    // Re-selecting the active preset is a no-op.
+    assert!(!session.set_difficulty("hard"));
+    assert!(session.set_difficulty("relaxed"));
+    assert_eq!(
+        session.campaign.difficulty_preset,
+        DifficultyPreset::Relaxed
+    );
+}
+
+#[test]
+fn difficulty_preset_scales_mission_difficulty() {
+    let config = test_config();
+    let mission = test_mission("muddy_road", &[], &[], 1);
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    campaign.difficulty_preset = DifficultyPreset::Standard;
+    let standard = MissionRun::new(&mission, &campaign).difficulty;
+    campaign.difficulty_preset = DifficultyPreset::Relaxed;
+    let relaxed = MissionRun::new(&mission, &campaign).difficulty;
+    campaign.difficulty_preset = DifficultyPreset::Hard;
+    let hard = MissionRun::new(&mission, &campaign).difficulty;
+
+    assert!((standard - 1.0).abs() < 1e-3, "standard was {standard}");
+    assert!(
+        relaxed < standard,
+        "relaxed {relaxed} !< standard {standard}"
+    );
+    assert!(hard > standard, "hard {hard} !> standard {standard}");
+}
+
+#[test]
 fn shipped_mission_content_ids_all_resolve() {
     let data = GameData::load().unwrap();
     validate_mission_content(&data.missions_ordered()).unwrap();

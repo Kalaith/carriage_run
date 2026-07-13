@@ -41,6 +41,7 @@ pub enum UiAction {
     OpenUpgrades,
     OpenSettings,
     OpenCodex,
+    SetCodexTab(crate::state::CodexTab),
     ReturnTitle,
     PauseGame,
     ResumeGame,
@@ -208,57 +209,81 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let _ = ctx.loaded_assets;
 }
 
-/// Field guide / bestiary: static reference of road threats and how to counter
-/// them. Reachable from the title menu; reuses the in-game enemy sprites.
-fn draw_codex(_ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+/// Field guide / bestiary: a static reference of road threats and the player's
+/// own escort classes, reachable from the title menu. Reuses the in-game
+/// procedural sprites so players learn to recognise both.
+fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    use crate::state::{CodexTab, EnemyKind, GuardKind};
     draw_menu_backdrop(96.0);
 
-    let panel = Rect::new(150.0, 54.0, 980.0, 612.0);
+    let panel = Rect::new(150.0, 40.0, 980.0, 656.0);
     draw_panel(panel, true);
     draw_section_label(
         "Field Guide",
         panel.x + 34.0,
-        panel.y + 34.0,
+        panel.y + 30.0,
         panel.w - 68.0,
     );
-    draw_text_centered(
-        "Threats on the Road",
-        panel.x + panel.w * 0.5,
-        panel.y + 74.0,
-        TextStyle::new(16.0, MUTED),
-    );
 
-    let mut y = panel.y + 100.0;
-    let row_h = 92.0;
-    for kind in crate::state::EnemyKind::all() {
-        let row = Rect::new(panel.x + 34.0, y, panel.w - 68.0, row_h - 12.0);
-        upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
-        gameplay::draw_enemy_icon(kind, vec2(row.x + 52.0, row.y + row.h * 0.5 + 4.0));
-        draw_ui_text_ex(
-            kind.label(),
-            row.x + 110.0,
-            row.y + 30.0,
-            TextStyle::new(22.0, INK).params(),
-        );
-        draw_badge(
-            Rect::new(row.x + 110.0, row.y + 42.0, 168.0, 24.0),
-            kind.threat_tag(),
-            Color::new(0.16, 0.13, 0.08, 1.0),
-            UI_GOLD,
-        );
-        draw_ui_text_ex(
-            kind.codex_blurb(),
-            row.x + 300.0,
-            row.y + 46.0,
-            TextStyle::new(15.0, MUTED).params(),
-        );
-        y += row_h;
+    let tab = ctx.session.codex_tab;
+    let tab_w = 160.0;
+    let tab_gap = 16.0;
+    let tab_x = panel.x + (panel.w - (tab_w * 2.0 + tab_gap)) * 0.5;
+    let tab_y = panel.y + 56.0;
+    for (index, (label, which)) in [("Threats", CodexTab::Threats), ("Guards", CodexTab::Guards)]
+        .into_iter()
+        .enumerate()
+    {
+        let tone = if tab == which {
+            ButtonTone::Positive
+        } else {
+            ButtonTone::Secondary
+        };
+        if virtual_button(
+            Rect::new(tab_x + index as f32 * (tab_w + tab_gap), tab_y, tab_w, 36.0),
+            label,
+            true,
+            tone,
+            mouse,
+        ) {
+            actions.push(UiAction::SetCodexTab(which));
+        }
+    }
+
+    let content_top = panel.y + 112.0;
+    let row_h = 80.0;
+    match tab {
+        CodexTab::Threats => {
+            for (index, kind) in EnemyKind::all().into_iter().enumerate() {
+                let row = codex_row_rect(panel, content_top, row_h, index);
+                upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
+                gameplay::draw_enemy_icon(kind, vec2(row.x + 52.0, row.y + row.h * 0.5 + 2.0));
+                draw_codex_row_text(row, kind.label(), kind.threat_tag(), kind.codex_blurb());
+            }
+        }
+        CodexTab::Guards => {
+            for (index, kind) in GuardKind::all().into_iter().enumerate() {
+                let row = codex_row_rect(panel, content_top, row_h, index);
+                upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
+                management::draw_guard_portrait(
+                    vec2(row.x + 52.0, row.y + row.h * 0.5 + 4.0),
+                    kind,
+                    true,
+                );
+                let role = if kind.is_ranged() {
+                    "Ranged escort"
+                } else {
+                    "Melee escort"
+                };
+                draw_codex_row_text(row, kind.label(), role, kind.description());
+            }
+        }
     }
 
     if virtual_button(
         Rect::new(
             panel.x + panel.w * 0.5 - 90.0,
-            panel.bottom() - 60.0,
+            panel.bottom() - 54.0,
             180.0,
             42.0,
         ),
@@ -269,6 +294,36 @@ fn draw_codex(_ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     ) {
         actions.push(UiAction::ReturnTitle);
     }
+}
+
+fn codex_row_rect(panel: Rect, top: f32, row_h: f32, index: usize) -> Rect {
+    Rect::new(
+        panel.x + 34.0,
+        top + index as f32 * row_h,
+        panel.w - 68.0,
+        row_h - 10.0,
+    )
+}
+
+fn draw_codex_row_text(row: Rect, label: &str, tag: &str, description: &str) {
+    draw_ui_text_ex(
+        label,
+        row.x + 110.0,
+        row.y + 28.0,
+        TextStyle::new(21.0, INK).params(),
+    );
+    draw_badge(
+        Rect::new(row.x + 110.0, row.y + 40.0, 168.0, 24.0),
+        tag,
+        Color::new(0.16, 0.13, 0.08, 1.0),
+        UI_GOLD,
+    );
+    draw_ui_text_ex(
+        description,
+        row.x + 300.0,
+        row.y + 44.0,
+        TextStyle::new(15.0, MUTED).params(),
+    );
 }
 
 /// Modal confirmation overlay for a staged destructive action.

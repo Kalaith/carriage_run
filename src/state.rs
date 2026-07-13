@@ -42,6 +42,14 @@ pub enum ConfirmPrompt {
     NewCampaign,
 }
 
+/// Which section of the Field Guide is showing (session-only).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum CodexTab {
+    #[default]
+    Threats,
+    Guards,
+}
+
 /// Player-chosen challenge level, applied as a multiplier on each mission's
 /// difficulty scalar (which drives spawn rate, burst size, and enemy stats).
 /// Widens the audience and doubles as an accessibility assist.
@@ -494,6 +502,8 @@ pub struct GameSession {
     pub journey: Option<Journey>,
     /// A destructive action awaiting player confirmation (session-only).
     pub pending_confirm: Option<ConfirmPrompt>,
+    /// Active Field Guide tab (session-only).
+    pub codex_tab: CodexTab,
 }
 
 impl GameSession {
@@ -505,6 +515,7 @@ impl GameSession {
             result: None,
             journey: None,
             pending_confirm: None,
+            codex_tab: CodexTab::Threats,
         }
     }
 
@@ -519,6 +530,7 @@ impl GameSession {
             result: None,
             journey: None,
             pending_confirm: None,
+            codex_tab: CodexTab::Threats,
         }
     }
 
@@ -583,6 +595,11 @@ impl GameSession {
 
     pub fn open_codex(&mut self) {
         self.screen = Screen::Codex;
+        self.codex_tab = CodexTab::Threats;
+    }
+
+    pub fn set_codex_tab(&mut self, tab: CodexTab) {
+        self.codex_tab = tab;
     }
 
     pub fn pause_play(&mut self) {

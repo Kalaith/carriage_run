@@ -88,6 +88,10 @@ impl Game {
             "title" => self.session.return_title(),
             "settings" => self.session.open_settings(),
             "codex" => self.session.open_codex(),
+            "codexguards" => {
+                self.session.open_codex();
+                self.session.set_codex_tab(crate::state::CodexTab::Guards);
+            }
             "results" => {
                 // A completed mission with a special meter (most stat rows) so
                 // the results layout is exercised at its fullest.
@@ -267,6 +271,7 @@ impl Game {
             UiAction::OpenUpgrades => self.session.open_upgrades(),
             UiAction::OpenSettings => self.session.open_settings(),
             UiAction::OpenCodex => self.session.open_codex(),
+            UiAction::SetCodexTab(tab) => self.session.set_codex_tab(tab),
             UiAction::ReturnTitle => self.session.return_title(),
             UiAction::PauseGame => self.session.pause_play(),
             UiAction::ResumeGame => self.session.resume_play(),

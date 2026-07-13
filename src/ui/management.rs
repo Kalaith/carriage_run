@@ -462,7 +462,7 @@ fn draw_guard_card_shell(rect: Rect, selected: bool, hired: bool, unlocked: bool
     draw_rectangle(rect.x, rect.y + 16.0, 4.0, rect.h - 32.0, accent);
 }
 
-fn draw_guard_portrait(pos: Vec2, kind: GuardKind, enabled: bool) {
+pub(super) fn draw_guard_portrait(pos: Vec2, kind: GuardKind, enabled: bool) {
     let body = match kind {
         GuardKind::Swordsman => Color::new(0.18, 0.42, 0.64, 1.0),
         GuardKind::ShieldGuard => Color::new(0.20, 0.46, 0.36, 1.0),

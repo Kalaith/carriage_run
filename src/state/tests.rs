@@ -86,6 +86,25 @@ fn set_difficulty_changes_preset_and_reports_change() {
 }
 
 #[test]
+fn generous_timers_extends_timed_missions() {
+    let data = crate::data::GameData::load().unwrap();
+    let mission = data.missions.get("courier_deadline").unwrap();
+    let config = test_config();
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    campaign.generous_timers = false;
+    let base = MissionRun::new(mission, &campaign).time_limit.unwrap();
+    campaign.generous_timers = true;
+    let extended = MissionRun::new(mission, &campaign).time_limit.unwrap();
+
+    assert!(extended > base, "timer not extended: {extended} !> {base}");
+    assert!(
+        (extended - base - 15.0).abs() < 0.01,
+        "wrong bonus: {extended} vs {base}"
+    );
+}
+
+#[test]
 fn difficulty_preset_scales_mission_difficulty() {
     let config = test_config();
     let mission = test_mission("muddy_road", &[], &[], 1);

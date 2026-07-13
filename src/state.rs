@@ -271,6 +271,10 @@ pub struct CampaignState {
     pub auto_save_enabled: bool,
     #[serde(default)]
     pub difficulty_preset: DifficultyPreset,
+    /// Accessibility assist: grant extra time on timed missions. Orthogonal to
+    /// `difficulty_preset` (which scales enemies, not the clock).
+    #[serde(default)]
+    pub generous_timers: bool,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -305,6 +309,7 @@ impl CampaignState {
             alerts_enabled: true,
             auto_save_enabled: true,
             difficulty_preset: DifficultyPreset::Standard,
+            generous_timers: false,
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -840,6 +845,7 @@ impl GameSession {
             }
             "alerts" => self.campaign.alerts_enabled = !self.campaign.alerts_enabled,
             "auto_save" => self.campaign.auto_save_enabled = !self.campaign.auto_save_enabled,
+            "generous_timers" => self.campaign.generous_timers = !self.campaign.generous_timers,
             _ => return false,
         }
         true

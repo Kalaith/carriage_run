@@ -578,6 +578,7 @@ fn setting_label(id: &str) -> &'static str {
         "route_motion" => "Route motion",
         "alerts" => "Route alerts",
         "auto_save" => "Autosave",
+        "generous_timers" => "Generous timers",
         _ => "Setting",
     }
 }
@@ -587,6 +588,7 @@ fn setting_value(session: &GameSession, id: &str) -> &'static str {
         "route_motion" => session.campaign.route_motion_enabled,
         "alerts" => session.campaign.alerts_enabled,
         "auto_save" => session.campaign.auto_save_enabled,
+        "generous_timers" => session.campaign.generous_timers,
         _ => false,
     };
     if enabled {

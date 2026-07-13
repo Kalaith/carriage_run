@@ -11,6 +11,10 @@ use crate::data::MissionDef;
 use macroquad::prelude::*;
 use macroquad_toolkit::rng::SeededRng;
 
+/// Extra seconds added to every timed mission when the "Generous Timers"
+/// accessibility assist is on.
+const GENEROUS_TIMER_BONUS: f32 = 15.0;
+
 /// Hard ceiling on simultaneously live enemies. Well above what normal play
 /// produces, so it never affects balance — it only backstops pathological
 /// growth (e.g. necromancers raising skeletons faster than they die) that would
@@ -203,10 +207,17 @@ impl MissionRun {
             .unwrap_or(mission.base_reward)
             .max(0);
         let time_limit = mission.time_limit.map(|limit| {
-            route_choice
+            let base = route_choice
                 .map(|choice| limit + choice.time_limit_delta)
                 .unwrap_or(limit)
-                .max(30.0)
+                .max(30.0);
+            // Accessibility assist: extra seconds on the clock, orthogonal to
+            // the difficulty preset.
+            base + if campaign.generous_timers {
+                GENEROUS_TIMER_BONUS
+            } else {
+                0.0
+            }
         });
         let mut guards = Vec::new();
         for (index, kind) in campaign.selected_melee_kinds().into_iter().enumerate() {

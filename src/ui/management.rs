@@ -148,7 +148,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(390.0, 96.0, 500.0, 500.0),
+            Rect::new(390.0, 74.0, 500.0, 566.0),
             true,
         );
     } else {
@@ -158,7 +158,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(360.0, 118.0, 560.0, 500.0),
+            Rect::new(360.0, 96.0, 560.0, 566.0),
             false,
         );
     }
@@ -612,6 +612,15 @@ fn draw_settings_panel(
     y += 72.0;
     draw_difficulty_row(
         ctx,
+        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        mouse,
+        actions,
+    );
+    y += 72.0;
+    draw_setting_row(
+        "generous_timers",
+        "Generous Timers",
+        ctx.session.campaign.generous_timers,
         Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
         mouse,
         actions,

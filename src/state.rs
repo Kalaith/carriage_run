@@ -33,6 +33,14 @@ pub enum Screen {
     Journey,
 }
 
+/// A destructive action awaiting explicit player confirmation. Session-only
+/// (never serialized) — it gates footguns like overwriting an existing save.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConfirmPrompt {
+    /// Starting a new campaign would overwrite the current autosave.
+    NewCampaign,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MissionRecord {
     pub best_stars: u8,
@@ -387,6 +395,8 @@ pub struct GameSession {
     pub result: Option<MissionReport>,
     /// Active roguelite expedition, if one is in progress (session-only).
     pub journey: Option<Journey>,
+    /// A destructive action awaiting player confirmation (session-only).
+    pub pending_confirm: Option<ConfirmPrompt>,
 }
 
 impl GameSession {
@@ -397,6 +407,7 @@ impl GameSession {
             mission: None,
             result: None,
             journey: None,
+            pending_confirm: None,
         }
     }
 
@@ -410,7 +421,26 @@ impl GameSession {
             mission: None,
             result: None,
             journey: None,
+            pending_confirm: None,
         }
+    }
+
+    /// Begin a New Campaign request. When an existing save would be overwritten
+    /// we stage a confirmation prompt and return `false`; with nothing to lose
+    /// the caller may proceed immediately (returns `true`).
+    pub fn request_new_campaign(&mut self, save_exists: bool) -> bool {
+        if save_exists {
+            self.pending_confirm = Some(ConfirmPrompt::NewCampaign);
+            false
+        } else {
+            self.pending_confirm = None;
+            true
+        }
+    }
+
+    /// Dismiss any pending confirmation without acting on it.
+    pub fn cancel_confirm(&mut self) {
+        self.pending_confirm = None;
     }
 
     pub fn to_save(&self, version: &str) -> SaveData {

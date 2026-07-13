@@ -18,7 +18,7 @@ use crate::state::{Screen, PLAY_BOTTOM, PLAY_TOP};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
-use macroquad_toolkit::ui::draw_ui_text_ex;
+use macroquad_toolkit::ui::{draw_text_centered, draw_ui_text_ex};
 use upgrade_visuals::{
     draw_crest, draw_panel, draw_section_label, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED,
 };
@@ -30,6 +30,8 @@ pub const LOGICAL_HEIGHT: f32 = 720.0;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UiAction {
     NewCampaign,
+    RequestNewCampaign,
+    DismissConfirm,
     ContinueCampaign,
     OpenMap,
     OpenLoadout,
@@ -101,6 +103,14 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Journey => journey::draw_journey(&ctx, mouse, &mut actions),
     }
 
+    // A pending confirmation is a true modal: it draws over whatever screen is
+    // active and swallows the frame's interactions so no click reaches the
+    // screen beneath it.
+    if let Some(prompt) = ctx.session.pending_confirm {
+        actions.clear();
+        draw_confirm_dialog(prompt, mouse, &mut actions);
+    }
+
     actions
 }
 
@@ -140,7 +150,7 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         ButtonTone::Primary,
         mouse,
     ) {
-        actions.push(UiAction::NewCampaign);
+        actions.push(UiAction::RequestNewCampaign);
     }
     y += 58.0;
     if virtual_button(
@@ -183,6 +193,74 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         actions.push(UiAction::ExitGame);
     }
     let _ = ctx.loaded_assets;
+}
+
+/// Modal confirmation overlay for a staged destructive action.
+fn draw_confirm_dialog(
+    prompt: crate::state::ConfirmPrompt,
+    mouse: Vec2,
+    actions: &mut Vec<UiAction>,
+) {
+    use crate::state::ConfirmPrompt;
+
+    // Body is pre-wrapped into fixed-size lines rather than fit-to-box: the
+    // dynamic shrink-to-fit path rasterizes glyphs at a fractional size, which
+    // can thrash the shared font atlas mid-frame.
+    let (title, body, confirm_label, confirm_action) = match prompt {
+        ConfirmPrompt::NewCampaign => (
+            "Start New Campaign?",
+            [
+                "This overwrites your saved campaign.",
+                "Progress on the current charter is lost for good.",
+            ],
+            "Overwrite Save",
+            UiAction::NewCampaign,
+        ),
+    };
+
+    draw_rectangle(
+        0.0,
+        0.0,
+        LOGICAL_WIDTH,
+        LOGICAL_HEIGHT,
+        Color::new(0.0, 0.0, 0.0, 0.62),
+    );
+
+    let dialog = Rect::new(
+        (LOGICAL_WIDTH - 480.0) * 0.5,
+        (LOGICAL_HEIGHT - 250.0) * 0.5,
+        480.0,
+        250.0,
+    );
+    draw_panel(dialog, true);
+    draw_section_label(title, dialog.x + 30.0, dialog.y + 26.0, dialog.w - 60.0);
+    let center_x = dialog.x + dialog.w * 0.5;
+    let mut line_y = dialog.y + 96.0;
+    for line in body {
+        draw_text_centered(line, center_x, line_y, TextStyle::new(16.0, MUTED));
+        line_y += 26.0;
+    }
+
+    let button_y = dialog.bottom() - 66.0;
+    let button_w = (dialog.w - 60.0 - 20.0) * 0.5;
+    if virtual_button(
+        Rect::new(dialog.x + 30.0, button_y, button_w, 44.0),
+        "Keep Save",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::DismissConfirm);
+    }
+    if virtual_button(
+        Rect::new(dialog.x + 30.0 + button_w + 20.0, button_y, button_w, 44.0),
+        confirm_label,
+        true,
+        ButtonTone::Danger,
+        mouse,
+    ) {
+        actions.push(confirm_action);
+    }
 }
 
 fn draw_title_art(ctx: &UiContext<'_>) -> bool {

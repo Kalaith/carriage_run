@@ -176,12 +176,15 @@ pub(super) fn virtual_button(
             ButtonTone::Positive => Color::new(0.08, 0.25, 0.13, 0.98),
             ButtonTone::Primary => Color::new(0.12, 0.16, 0.12, 0.98),
             ButtonTone::Muted => Color::new(0.11, 0.10, 0.09, 0.98),
+            ButtonTone::Danger => Color::new(0.34, 0.10, 0.09, 0.98),
             _ => Color::new(PANEL_ALT.r + 0.03, PANEL_ALT.g + 0.03, PANEL_ALT.b, 0.98),
         }
     } else if matches!(tone, ButtonTone::Positive) {
         Color::new(0.06, 0.18, 0.10, 0.96)
     } else if matches!(tone, ButtonTone::Primary) {
         Color::new(0.08, 0.12, 0.10, 0.96)
+    } else if matches!(tone, ButtonTone::Danger) {
+        Color::new(0.26, 0.08, 0.07, 0.96)
     } else {
         PANEL
     };

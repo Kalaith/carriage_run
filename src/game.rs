@@ -78,6 +78,12 @@ impl Game {
                     .insert("swordsman".to_owned(), 2);
                 self.session.open_guards();
             }
+            "title" => self.session.return_title(),
+            "confirm" => {
+                // Title screen with the New Campaign overwrite prompt staged.
+                self.session.return_title();
+                self.session.pending_confirm = Some(crate::state::ConfirmPrompt::NewCampaign);
+            }
             "journey" => {
                 // Seed a mid-run expedition so the hub screen is visible.
                 self.session.journey = Some(crate::state::Journey {
@@ -163,6 +169,12 @@ impl Game {
             self.events.push(UiAction::Load);
         }
         if is_key_pressed(KeyCode::Escape) {
+            // A confirmation dialog swallows Escape as a cancel, whatever screen
+            // it is layered over.
+            if self.session.pending_confirm.is_some() {
+                self.events.push(UiAction::DismissConfirm);
+                return;
+            }
             match self.session.screen {
                 Screen::Playing => self.events.push(UiAction::PauseGame),
                 Screen::Paused => self.events.push(UiAction::ResumeGame),
@@ -194,13 +206,17 @@ impl Game {
 
     fn apply_action(&mut self, action: UiAction) {
         match action {
-            UiAction::NewCampaign => {
-                self.session = GameSession::new(&self.data.config, self.data.first_mission_id());
-                self.session.sync_chassis(&self.data);
-                self.session.open_map();
-                self.notifications.info("New caravan charter started");
-                self.auto_save();
+            UiAction::RequestNewCampaign => {
+                // Only overwrite an existing save behind a confirmation prompt.
+                if self.session.request_new_campaign(self.save_exists) {
+                    self.start_new_campaign();
+                }
             }
+            UiAction::NewCampaign => {
+                self.session.cancel_confirm();
+                self.start_new_campaign();
+            }
+            UiAction::DismissConfirm => self.session.cancel_confirm(),
             UiAction::ContinueCampaign => {
                 if self.save_exists {
                     self.load_game();
@@ -407,6 +423,14 @@ impl Game {
             UiAction::Load => self.load_game(),
             UiAction::ExitGame => macroquad::miniquad::window::quit(),
         }
+    }
+
+    fn start_new_campaign(&mut self) {
+        self.session = GameSession::new(&self.data.config, self.data.first_mission_id());
+        self.session.sync_chassis(&self.data);
+        self.session.open_map();
+        self.notifications.info("New caravan charter started");
+        self.auto_save();
     }
 
     fn save_game(&mut self) {

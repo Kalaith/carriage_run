@@ -66,6 +66,29 @@ fn upgrading_guard_star_spends_gold() {
 }
 
 #[test]
+fn new_campaign_prompts_before_overwriting_an_existing_save() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+
+    // A save exists: staging must not proceed, and a prompt is raised instead.
+    assert!(!session.request_new_campaign(true));
+    assert_eq!(session.pending_confirm, Some(ConfirmPrompt::NewCampaign));
+
+    // Cancelling clears the prompt without touching campaign state.
+    session.cancel_confirm();
+    assert_eq!(session.pending_confirm, None);
+}
+
+#[test]
+fn new_campaign_proceeds_immediately_when_no_save_exists() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+
+    assert!(session.request_new_campaign(false));
+    assert_eq!(session.pending_confirm, None);
+}
+
+#[test]
 fn injured_guard_is_benched_and_recovers_over_missions() {
     let config = test_config();
     let mut session = GameSession::new(&config, Some("muddy_road"));

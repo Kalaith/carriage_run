@@ -111,6 +111,12 @@ impl Game {
                 self.session.open_guards();
             }
             "title" => self.session.return_title(),
+            "shop" => {
+                // Give some gold so the provisions Buy button is enabled.
+                self.session.campaign.gold = 300;
+                self.session.campaign.reinforced_kits = 2;
+                self.session.open_shop();
+            }
             "settings" => self.session.open_settings(),
             "codex" => self.session.open_codex(),
             "codexguards" => {
@@ -499,6 +505,17 @@ impl Game {
                         .unwrap_or(id);
                     self.notifications.info(format!("Now driving the {}", name));
                     self.auto_save();
+                }
+            }
+            UiAction::BuyReinforcedKit => {
+                if self.session.buy_reinforced_kit() {
+                    self.notifications.success(format!(
+                        "Reinforced Kit bought ({} in stock)",
+                        self.session.campaign.reinforced_kits
+                    ));
+                    self.auto_save();
+                } else {
+                    self.notifications.warning("Not enough gold");
                 }
             }
             UiAction::Save => self.save_game(),

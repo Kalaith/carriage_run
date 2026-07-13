@@ -15,6 +15,9 @@ use macroquad_toolkit::rng::SeededRng;
 /// accessibility assist is on.
 const GENEROUS_TIMER_BONUS: f32 = 15.0;
 
+/// Bonus carriage health granted by spending one Reinforced Kit consumable.
+const REINFORCED_KIT_HEALTH: f32 = 55.0;
+
 /// Hard ceiling on simultaneously live enemies. Well above what normal play
 /// produces, so it never affects balance — it only backstops pathological
 /// growth (e.g. necromancers raising skeletons faster than they die) that would
@@ -405,6 +408,13 @@ impl MissionRun {
                 .map(|limit| ((limit - self.elapsed) / limit.max(1.0)).clamp(0.0, 1.0)),
             _ => Some((self.special_meter / 100.0).clamp(0.0, 1.0)),
         }
+    }
+
+    /// Spend a Reinforced Kit: a one-route boost to maximum health, applied at
+    /// full so the carriage sets out sturdier.
+    pub fn apply_reinforced_kit(&mut self) {
+        self.carriage.max_health += REINFORCED_KIT_HEALTH;
+        self.carriage.health = self.carriage.max_health;
     }
 
     pub fn repair_available(&self) -> bool {

@@ -42,6 +42,10 @@ pub enum ConfirmPrompt {
     NewCampaign,
 }
 
+/// Gold cost of one Reinforced Kit consumable. A repeatable sink for gold that
+/// is otherwise worthless once upgrades are maxed.
+pub const REINFORCED_KIT_COST: i64 = 45;
+
 /// Which section of the Field Guide is showing (session-only).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum CodexTab {
@@ -275,6 +279,10 @@ pub struct CampaignState {
     /// `difficulty_preset` (which scales enemies, not the clock).
     #[serde(default)]
     pub generous_timers: bool,
+    /// Reinforced Kit consumables in stock; one is spent (for +health) at the
+    /// start of each campaign route.
+    #[serde(default)]
+    pub reinforced_kits: u32,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -310,6 +318,7 @@ impl CampaignState {
             auto_save_enabled: true,
             difficulty_preset: DifficultyPreset::Standard,
             generous_timers: false,
+            reinforced_kits: 0,
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -883,9 +892,25 @@ impl GameSession {
             return false;
         }
 
-        self.mission = Some(MissionRun::new(mission, &self.campaign));
+        let mut run = MissionRun::new(mission, &self.campaign);
+        // Spend a Reinforced Kit if one is in stock, for a one-route boost.
+        if self.campaign.reinforced_kits > 0 {
+            self.campaign.reinforced_kits -= 1;
+            run.apply_reinforced_kit();
+        }
+        self.mission = Some(run);
         self.result = None;
         self.screen = Screen::Playing;
+        true
+    }
+
+    /// Purchase one Reinforced Kit if the player can afford it.
+    pub fn buy_reinforced_kit(&mut self) -> bool {
+        if self.campaign.gold < REINFORCED_KIT_COST {
+            return false;
+        }
+        self.campaign.gold -= REINFORCED_KIT_COST;
+        self.campaign.reinforced_kits += 1;
         true
     }
 

@@ -86,6 +86,32 @@ fn set_difficulty_changes_preset_and_reports_change() {
 }
 
 #[test]
+fn buying_and_spending_a_reinforced_kit() {
+    let data = crate::data::GameData::load().unwrap();
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    session.campaign.gold = crate::state::REINFORCED_KIT_COST;
+
+    assert!(session.buy_reinforced_kit());
+    assert_eq!(session.campaign.gold, 0);
+    assert_eq!(session.campaign.reinforced_kits, 1);
+    // Too poor to buy another.
+    assert!(!session.buy_reinforced_kit());
+
+    // Starting a route spends the kit and the carriage sets out with the boost.
+    let plain = MissionRun::new(data.missions.get("muddy_road").unwrap(), &session.campaign)
+        .carriage
+        .max_health;
+    assert!(session.start_selected_mission(&data));
+    assert_eq!(session.campaign.reinforced_kits, 0);
+    let boosted = session.mission.as_ref().unwrap().carriage.max_health;
+    assert!(
+        boosted > plain,
+        "kit boost not applied: {boosted} vs {plain}"
+    );
+}
+
+#[test]
 fn generous_timers_extends_timed_missions() {
     let data = crate::data::GameData::load().unwrap();
     let mission = data.missions.get("courier_deadline").unwrap();

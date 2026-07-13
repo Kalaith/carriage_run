@@ -54,6 +54,8 @@ pub(super) fn draw_shop(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAc
         draw_shop_guard_card(ctx, *kind, rect, mouse, actions);
     }
 
+    draw_provisions_panel(ctx, Rect::new(622.0, 578.0, 576.0, 58.0), mouse, actions);
+
     if virtual_button(
         Rect::new(84.0, 592.0, 160.0, 42.0),
         "Guard Roster",
@@ -236,6 +238,46 @@ pub(super) fn draw_pause(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiA
         mouse,
     ) {
         actions.push(UiAction::OpenMap);
+    }
+}
+
+/// Consumable provisions: a repeatable gold sink. Currently one item, the
+/// Reinforced Kit (a one-route health boost spent on mission start).
+fn draw_provisions_panel(
+    ctx: &UiContext<'_>,
+    rect: Rect,
+    mouse: Vec2,
+    actions: &mut Vec<UiAction>,
+) {
+    use crate::state::REINFORCED_KIT_COST;
+    draw_panel_with_fill(rect, PANEL_ALT, false);
+    draw_ui_text_ex(
+        "Reinforced Kit",
+        rect.x + 18.0,
+        rect.y + 26.0,
+        TextStyle::new(19.0, INK).params(),
+    );
+    draw_ui_text_ex(
+        "+55 carriage health for one route",
+        rect.x + 18.0,
+        rect.y + 46.0,
+        TextStyle::new(13.0, MUTED).params(),
+    );
+    draw_badge(
+        Rect::new(rect.right() - 268.0, rect.y + 17.0, 106.0, 26.0),
+        &format!("Stock {}", ctx.session.campaign.reinforced_kits),
+        Color::new(0.13, 0.17, 0.17, 1.0),
+        INK,
+    );
+    let can_buy = ctx.session.campaign.gold >= REINFORCED_KIT_COST;
+    if virtual_button(
+        Rect::new(rect.right() - 148.0, rect.y + 12.0, 132.0, 34.0),
+        &format!("Buy {REINFORCED_KIT_COST}g"),
+        can_buy,
+        ButtonTone::Positive,
+        mouse,
+    ) {
+        actions.push(UiAction::BuyReinforcedKit);
     }
 }
 

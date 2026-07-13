@@ -675,6 +675,7 @@ mod tests {
             bonus_objective: "Keep cargo safe.".to_owned(),
             intro_text: String::new(),
             bonus: None,
+            outro_text: String::new(),
             unlock_level: 1,
             distance: 500.0,
             difficulty: 1.0,

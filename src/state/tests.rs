@@ -509,6 +509,7 @@ fn test_mission(
         bonus_objective: "Test bonus.".to_owned(),
         intro_text: String::new(),
         bonus: None,
+        outro_text: String::new(),
         unlock_level,
         distance: 100.0,
         difficulty: 1.0,

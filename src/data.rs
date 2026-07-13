@@ -39,6 +39,10 @@ pub struct MissionDef {
     /// can report met/missed instead of the objective being flavor only.
     #[serde(default)]
     pub bonus: Option<BonusCriteria>,
+    /// One-line courier-log payoff shown on the results screen after a
+    /// successful run, bookending `intro_text`.
+    #[serde(default)]
+    pub outro_text: String,
     pub unlock_level: u32,
     pub distance: f32,
     pub difficulty: f32,
@@ -232,7 +236,7 @@ mod tests {
         assert!(data
             .missions_ordered()
             .iter()
-            .all(|mission| !mission.intro_text.is_empty()));
+            .all(|mission| !mission.intro_text.is_empty() && !mission.outro_text.is_empty()));
         assert_eq!(data.default_chassis_id(), "scout_cart");
         assert_eq!(data.chassis_ordered().len(), 3);
         assert_eq!(data.chassis_for_level(4), "heavy_wagon");

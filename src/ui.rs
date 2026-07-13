@@ -603,6 +603,26 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         draw_text_right(value, value_x, y, TextStyle::new(17.0, INK));
     }
 
+    // Courier-log epilogue on a win: bookends the loadout intro. Fixed-size
+    // single line (short by construction) so the capture stays atlas-safe.
+    if result.success {
+        if let Some(outro) = ctx
+            .data
+            .missions
+            .get(&result.mission_id)
+            .map(|mission| mission.outro_text.as_str())
+            .filter(|outro| !outro.is_empty())
+        {
+            const COURIER_LOG: Color = Color::new(0.82, 0.71, 0.49, 0.92);
+            draw_text_centered(
+                outro,
+                panel.x + panel.w * 0.5,
+                panel.bottom() - 84.0,
+                TextStyle::new(15.0, COURIER_LOG),
+            );
+        }
+    }
+
     let button_y = panel.bottom() - 62.0;
     if virtual_button(
         Rect::new(panel.x + 82.0, button_y, 136.0, 40.0),

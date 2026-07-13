@@ -271,7 +271,10 @@ impl MissionRun {
         }
     }
 
-    fn spawn_enemy(&mut self) {
+    pub(super) fn spawn_enemy(&mut self) {
+        if self.enemies.len() >= MAX_LIVE_ENEMIES {
+            return;
+        }
         let index = (self.rng.next_u64() as usize) % self.enemy_mix.len();
         let kind = EnemyKind::from_id(&self.enemy_mix[index]).unwrap_or(EnemyKind::Wolf);
         let side = (self.rng.next_u64() % 3) as u32;

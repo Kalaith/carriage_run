@@ -301,6 +301,9 @@ impl MissionRun {
             self.damage_carriage(damage, cargo_loss, label);
         }
         for pos in pending_summons {
+            if self.enemies.len() >= MAX_LIVE_ENEMIES {
+                break;
+            }
             self.enemies.push(Enemy::new(
                 self.next_enemy_id,
                 EnemyKind::Skeleton,
@@ -684,6 +687,16 @@ mod tests {
             time_limit: None,
         };
         MissionRun::new(&mission, &campaign)
+    }
+
+    #[test]
+    fn live_enemies_are_hard_capped() {
+        let mut run = test_run();
+        // Far more spawn attempts than the cap; count must never exceed it.
+        for _ in 0..(MAX_LIVE_ENEMIES * 4) {
+            run.spawn_enemy();
+        }
+        assert_eq!(run.enemies.len(), MAX_LIVE_ENEMIES);
     }
 
     #[test]

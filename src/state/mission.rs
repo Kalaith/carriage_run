@@ -11,6 +11,12 @@ use crate::data::MissionDef;
 use macroquad::prelude::*;
 use macroquad_toolkit::rng::SeededRng;
 
+/// Hard ceiling on simultaneously live enemies. Well above what normal play
+/// produces, so it never affects balance — it only backstops pathological
+/// growth (e.g. necromancers raising skeletons faster than they die) that would
+/// otherwise degrade performance in a long run.
+pub(super) const MAX_LIVE_ENEMIES: usize = 48;
+
 #[derive(Debug, Clone, Copy)]
 pub struct MissionInput {
     pub mouse: Vec2,

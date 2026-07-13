@@ -40,6 +40,26 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 ---
 
+## Progress log — autonomous loop (updated 2026-07-14)
+
+Shipped and committed to `master` this cycle (checkboxes below updated to match):
+
+- **A2 Endgame economy** — Reinforced Kit consumable (+55 health for one route), a repeatable gold sink bought in the shop. *(done)*
+- **A6 Difficulty presets** — Relaxed / Standard / Hard scaling the mission difficulty scalar. *(done)*
+- **A6 Assist toggles** — "Generous Timers" (+15s on timed missions), orthogonal to the presets. *(partial — one assist so far; slower-waves / extra-gold remain)*
+- **C1 Narrative** — courier-log intro (loadout brief) and outro (results screen) for all 12 missions. *(done)*
+- **F3 Confirmation dialogs** — New Campaign confirms before overwriting the save. *(partial — chassis/expedition confirms remain)*
+- **F4 Post-mission clarity** — structured bonus objectives graded met/missed on a relaid-out results screen. *(partial — "what to buy next" nudge remains)*
+- **F5 Help/codex** — Field Guide screen with Threats / Guards / Hazards tabs, reusing the in-game sprites. *(done)*
+- **F6 Menu polish** — journey-progress readout (routes cleared + total stars) on the Routes header. *(partial — full records screen remains)*
+- **I1 Save hardening** — Continue/Load gated on the save actually loading; a corrupt save is skipped with a warning instead of silently failing. *(partial — rolling `.bak` / restore remains)*
+- **I2 Crash handling** — native panic hook writes a crash log to app-data. *(partial — user-facing crash dialog remains)*
+- **I3 Data validation** — semantic content-id validation, unlock-graph reachability, and cost/unlock invariant tests. *(done)*
+- **I4 Stability** — hard cap of 48 live enemies to bound runaway spawns. *(partial — soak test remains)*
+- **Procedural art** — redrawn menu-backdrop wagon (horse-drawn covered wagon) and the crest (wagon-wheel emblem).
+
+---
+
 ## 2. Workstream A — Game depth & endgame (design-complete the loop)
 
 The core 60-second loop is good. What's missing is what happens after hour one.
@@ -58,7 +78,7 @@ Expedition today is campaign missions on a modulo cycle (`journey.rs:67-74`) wit
 
 ### A2. 🟠 Endgame economy (post-max gold sink)
 `upgrade_cost` returns `None` at max (`state.rs:144-147`) and then gold is worthless. Needed:
-- [ ] Consumables purchasable per-mission (one-run buffs: rations, oil flask, hired scout) — a repeatable sink.
+- [x] Consumables purchasable per-mission (one-run buffs: rations, oil flask, hired scout) — a repeatable sink.
 - [ ] Expedition entry stakes / insurance options (gold-in, multiplier-out).
 - [ ] Cosmetic sink (carriage liveries, guard colors) once the art pass exists.
 - [ ] Optional: prestige/NG+ (reset campaign with a permanent token).
@@ -84,7 +104,7 @@ Roster is 5 kinds, no elites, no bosses (`entities.rs:432-439`). Add:
 
 ### A6. 🟡 Difficulty options & assists
 No difficulty setting exists. For a commercial audience:
-- [ ] 3 difficulty presets (spawn-rate/damage multipliers over the existing `difficulty` scalar in `entities.rs:519-527`).
+- [x] 3 difficulty presets (spawn-rate/damage multipliers over the existing `difficulty` scalar in `entities.rs:519-527`).
 - [ ] Assist toggles (slower waves, extra starting gold) — cheap, widens the audience, and doubles as an accessibility feature.
 
 ---
@@ -106,7 +126,7 @@ First-clear is ~90 minutes. A $10–15 premium title needs 6–10 hours of desig
 
 Per the design review: vignettes yes, plot no.
 
-- [ ] 🟠 **C1. Mission intro/outro text**: 1–2 sentence courier-log per mission (`intro_text` field in `missions.json`, shown on loadout screen `src/ui/loadout.rs` and results screen). ~30 short texts total. Cheapest possible "the game has a world" signal — currently the only text is one-line objectives.
+- [x] 🟠 **C1. Mission intro/outro text**: 1–2 sentence courier-log per mission (`intro_text` field in `missions.json`, shown on loadout screen `src/ui/loadout.rs` and results screen). ~30 short texts total. Cheapest possible "the game has a world" signal — currently the only text is one-line objectives.
 - [ ] 🟡 **C2. World framing**: name the region, name the acts, a stylized map background on the mission-map screen tying the 12→30 missions into one journey.
 - [ ] 🟡 **C3. Expedition event vignettes** (shared with A1 run events).
 - [ ] ⚪ **C4. Guard barks/flavor**: one-line hire quotes and per-class flavor text in the roster (cheap character).
@@ -164,7 +184,7 @@ Verified: onboarding is two static HUD strings (`gameplay_hud.rs:350-373`); ther
 - [ ] 🔴 **F2. Tooltip system** (toolkit candidate): hover/long-press tooltips on every shop item, upgrade, equipment, guard card, meter, and HUD element. Stats like "threat", star abilities, and meter rules are currently unexplained.
 - [ ] 🟠 **F3. Confirmation dialogs**: New Campaign currently **overwrites the autosave with no prompt** (`game.rs:197-203`) — data-loss footgun; also confirm chassis purchase, expedition abandon.
 - [ ] 🟠 **F4. Post-mission clarity**: score breakdown showing *why* (bonus objective met/missed, meter performance), and a "what to buy next" nudge for the first two shop visits.
-- [ ] 🟠 **F5. Help/codex screen**: enemy bestiary (unlock-on-encounter), guard class reference, mechanics glossary. Doubles as content-discovery motivation.
+- [x] 🟠 **F5. Help/codex screen**: enemy bestiary (unlock-on-encounter), guard class reference, mechanics glossary. Doubles as content-discovery motivation.
 - [ ] 🟡 **F6. Menu polish**: animated transitions, hover states audit, controller-focus-visible states (pairs with G3), stats/records screen, credits screen (legally needed once commissioned assets exist).
 - [ ] 🟡 **F7. In-mission readability audit**: threat indicator (who targets the carriage), off-screen enemy pips, stance rings legibility at a glance — playtest-driven.
 
@@ -211,8 +231,8 @@ Foundations are genuinely good (atomic saves, versioned migration, CI, low panic
 - [ ] 🟡 Opt-in anonymous telemetry (mission win rates, retry counts, expedition depth) — this is how balance gets tuned post-launch.
 
 ### I3. Data pipeline validation
-- [ ] 🟠 Semantic validation at load: unknown enemy/hazard IDs currently degrade silently to Wolf/Mud (`flow.rs:276,306` `.unwrap_or(...)`) — should hard-fail in CI/dev builds.
-- [ ] 🟡 Cross-record invariant tests beyond the single difficulty-monotonic test (reward curves, unlock-graph reachability, cost curves).
+- [x] 🟠 Semantic validation at load: unknown enemy/hazard IDs currently degrade silently to Wolf/Mud (`flow.rs:276,306` `.unwrap_or(...)`) — should hard-fail in CI/dev builds.
+- [x] 🟡 Cross-record invariant tests beyond the single difficulty-monotonic test (reward curves, unlock-graph reachability, cost curves).
 
 ### I4. Performance & stability
 - [ ] 🟠 Entity hard-caps + soak test (no ceiling exists on live enemies; necromancers compound).

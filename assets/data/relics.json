@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ghost_wheels",
+    "name": "Ghost Wheels",
+    "description": "+18% speed, thinner hide.",
+    "order": 1,
+    "speed_mult": 1.18,
+    "armor_add": -0.06
+  },
+  {
+    "id": "iron_barding",
+    "name": "Iron Barding",
+    "description": "+armor, a touch slower.",
+    "order": 2,
+    "speed_mult": 0.92,
+    "armor_add": 0.12
+  },
+  {
+    "id": "merchants_ledger",
+    "name": "Merchant's Ledger",
+    "description": "+35% gold from leg rewards.",
+    "order": 3,
+    "reward_mult": 1.35
+  },
+  {
+    "id": "greased_axles",
+    "name": "Greased Axles",
+    "description": "Faster; shrugs off hazards.",
+    "order": 4,
+    "wheel_bonus_add": 2.0
+  },
+  {
+    "id": "spiked_ram",
+    "name": "Spiked Ram",
+    "description": "Hurts foes that hug the cart.",
+    "order": 5,
+    "hub_damage_add": 6.0
+  },
+  {
+    "id": "war_banner",
+    "name": "War Banner",
+    "description": "+armor and a little speed.",
+    "order": 6,
+    "speed_mult": 1.06,
+    "armor_add": 0.05
+  }
+]

@@ -374,6 +374,15 @@ impl MissionRun {
         self.carriage.health = (self.carriage.max_health * health_ratio).max(1.0);
     }
 
+    /// Folds a collected expedition relic's modifiers into this run. Applied per
+    /// leg on top of chassis/equipment stats (see `GameSession::begin_journey_leg`).
+    pub fn apply_relic(&mut self, relic: &crate::data::RelicDef) {
+        self.chassis_speed_mult *= relic.speed_mult;
+        self.armor_reduction = (self.armor_reduction + relic.armor_add).clamp(0.0, 0.9);
+        self.wheel_bonus += relic.wheel_bonus_add;
+        self.hub_damage += relic.hub_damage_add;
+    }
+
     pub fn progress_ratio(&self) -> f32 {
         (self.progress / self.distance.max(1.0)).clamp(0.0, 1.0)
     }

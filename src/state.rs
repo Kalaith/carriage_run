@@ -948,7 +948,7 @@ impl GameSession {
 
         if let Some(report) = report {
             if self.journey.is_some() {
-                self.resolve_journey_leg(&report);
+                self.resolve_journey_leg(&report, data);
             } else {
                 self.apply_report(report.clone());
                 self.result = Some(report.clone());

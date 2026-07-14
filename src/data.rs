@@ -11,6 +11,11 @@ const MISSIONS_JSON: &str = include_str!("../assets/data/missions.json");
 const UPGRADES_JSON: &str = include_str!("../assets/data/upgrades.json");
 const CARRIAGES_JSON: &str = include_str!("../assets/data/carriages.json");
 const TEXTURE_MANIFEST_JSON: &str = include_str!("../assets/data/texture_manifest.json");
+const RELICS_JSON: &str = include_str!("../assets/data/relics.json");
+
+fn one() -> f32 {
+    1.0
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameConfig {
@@ -147,12 +152,40 @@ pub struct ChassisDef {
     pub cost: i64,
 }
 
+/// A run-scoped expedition relic: a modifier collected during an expedition
+/// that reshapes how that run plays (speed/armor/economy trades). Relics are
+/// session-only and never touch the campaign. All effect fields are optional so
+/// a relic tweaks only the axes it names.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RelicDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub order: u32,
+    /// Multiplies carriage speed (1.0 = no change).
+    #[serde(default = "one")]
+    pub speed_mult: f32,
+    /// Added to the carriage's damage-reduction fraction (can be negative).
+    #[serde(default)]
+    pub armor_add: f32,
+    /// Added to the wheel bonus (faster cruise + hazard slow resistance).
+    #[serde(default)]
+    pub wheel_bonus_add: f32,
+    /// Added contact damage per second to enemies hugging the carriage.
+    #[serde(default)]
+    pub hub_damage_add: f32,
+    /// Multiplies gold from leg rewards (1.0 = no change).
+    #[serde(default = "one")]
+    pub reward_mult: f32,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
     pub missions: DataRegistry<MissionDef>,
     pub upgrades: DataRegistry<UpgradeDef>,
     pub chassis: DataRegistry<ChassisDef>,
+    pub relics: DataRegistry<RelicDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -162,6 +195,7 @@ impl GameData {
         let missions = DataRegistry::from_embedded_json(MISSIONS_JSON, "id")?;
         let upgrades = DataRegistry::from_embedded_json(UPGRADES_JSON, "id")?;
         let chassis = DataRegistry::from_embedded_json(CARRIAGES_JSON, "id")?;
+        let relics = DataRegistry::from_embedded_json(RELICS_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -169,8 +203,15 @@ impl GameData {
             missions,
             upgrades,
             chassis,
+            relics,
             texture_manifest,
         })
+    }
+
+    pub fn relics_ordered(&self) -> Vec<&RelicDef> {
+        let mut relics: Vec<_> = self.relics.iter().map(|(_, relic)| relic).collect();
+        relics.sort_by_key(|relic| relic.order);
+        relics
     }
 
     pub fn first_mission_id(&self) -> Option<&str> {

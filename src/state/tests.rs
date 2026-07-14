@@ -500,7 +500,7 @@ fn expedition_banks_rewards_and_advances_legs() {
     // Clear leg 1: offers reward choices, holding at the same leg until picked.
     let mut report = test_report(true, Vec::new());
     report.carriage_health_ratio = 0.6;
-    session.resolve_journey_leg(&report);
+    session.resolve_journey_leg(&report, &data);
     let journey = session.journey.as_ref().unwrap();
     assert_eq!(journey.leg, 1);
     assert!(journey.pending_rewards.is_some());
@@ -509,14 +509,50 @@ fn expedition_banks_rewards_and_advances_legs() {
     // Pressing on is blocked until a reward is chosen.
     assert!(!session.journey_press_on(&data));
 
-    // Take the Bounty (index 0): banks +50% of base, advances, carries damage.
+    // Take War Provisions (index 1): banks base gold + a partial heal, advances.
     let base = super::Journey::leg_reward(1);
-    assert!(session.journey_choose_reward(0));
+    assert!(session.journey_choose_reward(1));
     let journey = session.journey.as_ref().unwrap();
     assert_eq!(journey.leg, 2);
     assert!(journey.pending_rewards.is_none());
-    assert_eq!(journey.banked_gold, base + base / 2);
-    assert!((journey.carriage_health_ratio - 0.6).abs() < 0.001);
+    assert_eq!(journey.banked_gold, base);
+    assert!((journey.carriage_health_ratio - 0.85).abs() < 0.001);
+}
+
+#[test]
+fn expedition_relic_offer_is_collected_and_applied() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    assert!(session.start_journey(&data));
+
+    // Leg 1's first reward slot is a relic offer (no relics owned yet).
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    let offered = match &session
+        .journey
+        .as_ref()
+        .unwrap()
+        .pending_rewards
+        .as_ref()
+        .unwrap()[0]
+    {
+        super::LegReward::Relic(id) => id.clone(),
+        other => panic!("expected a relic offer, got {:?}", other),
+    };
+
+    // Taking it collects the relic (session-scoped) and banks no gold.
+    assert!(session.journey_choose_reward(0));
+    let journey = session.journey.as_ref().unwrap();
+    assert_eq!(journey.relics, vec![offered.clone()]);
+    assert_eq!(journey.banked_gold, 0);
+
+    // The relic is a real def (loads from relics.json) and pressing on begins
+    // the next leg with the relic folded into the mission run.
+    assert!(data.relics.get(&offered).is_some());
+    assert!(session.journey_press_on(&data));
+    assert!(session.mission.is_some());
+    assert!(session.journey.as_ref().unwrap().relics.contains(&offered));
 }
 
 #[test]
@@ -527,9 +563,10 @@ fn expedition_bank_and_return_pays_out_full() {
     let start_gold = session.campaign.gold;
 
     session.start_journey(&data);
-    session.resolve_journey_leg(&test_report(true, Vec::new()));
-    session.journey_choose_reward(0);
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    session.journey_choose_reward(1); // War Provisions banks real gold
     let banked = session.journey.as_ref().unwrap().banked_gold;
+    assert!(banked > 0);
 
     session.journey_bank_and_return();
     assert!(session.journey.is_none());
@@ -544,11 +581,11 @@ fn expedition_failure_pays_half_and_ends_run() {
     let start_gold = session.campaign.gold;
 
     session.start_journey(&data);
-    session.resolve_journey_leg(&test_report(true, Vec::new())); // leg 1 cleared
-    session.journey_choose_reward(0); // bank its reward, advance to leg 2
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data); // leg 1 cleared
+    session.journey_choose_reward(1); // bank its reward, advance to leg 2
     let banked = session.journey.as_ref().unwrap().banked_gold;
 
-    session.resolve_journey_leg(&test_report(false, Vec::new())); // leg 2 lost
+    session.resolve_journey_leg(&test_report(false, Vec::new()), &data); // leg 2 lost
     let journey = session.journey.as_ref().unwrap();
     assert!(!journey.alive);
     assert_eq!(journey.payout, banked / 2);

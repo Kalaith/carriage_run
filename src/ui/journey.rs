@@ -3,6 +3,7 @@
 use super::upgrade_visuals::{draw_panel, draw_section_label, GOLD as UI_GOLD, INK, MUTED};
 use super::widgets::{draw_menu_backdrop, virtual_button};
 use super::{UiAction, UiContext};
+use crate::data::GameData;
 use crate::state::{Journey, LegReward};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -29,9 +30,9 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
     if !journey.alive {
         draw_summary(journey, mouse, actions);
     } else if let Some(rewards) = &journey.pending_rewards {
-        draw_reward_choice(journey, rewards, mouse, actions);
+        draw_reward_choice(journey, rewards, ctx.data, mouse, actions);
     } else {
-        draw_hub(journey, mouse, actions);
+        draw_hub(journey, ctx.data, mouse, actions);
     }
 }
 
@@ -39,6 +40,7 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
 fn draw_reward_choice(
     journey: &Journey,
     rewards: &[LegReward; 3],
+    data: &GameData,
     mouse: Vec2,
     actions: &mut Vec<UiAction>,
 ) {
@@ -78,14 +80,15 @@ fn draw_reward_choice(
     for (i, reward) in rewards.iter().enumerate() {
         let card = Rect::new(panel.x + 50.0, y, panel.w - 100.0, 96.0);
         draw_panel(card, false);
+        let is_relic = matches!(reward, LegReward::Relic(_));
         draw_ui_text_ex(
-            reward.title(),
+            &reward.title(data),
             card.x + 24.0,
             card.y + 34.0,
-            TextStyle::new(24.0, INK).params(),
+            TextStyle::new(24.0, if is_relic { UI_GOLD } else { INK }).params(),
         );
         draw_ui_text_ex(
-            &reward.detail(),
+            &reward.detail(data),
             card.x + 24.0,
             card.y + 64.0,
             TextStyle::new(18.0, MUTED).params(),
@@ -103,7 +106,7 @@ fn draw_reward_choice(
     }
 }
 
-fn draw_hub(journey: &Journey, mouse: Vec2, actions: &mut Vec<UiAction>) {
+fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let panel = Rect::new(360.0, 96.0, 560.0, 520.0);
     draw_panel(panel, true);
     draw_text_centered_in_box(
@@ -172,6 +175,14 @@ fn draw_hub(journey: &Journey, mouse: Vec2, actions: &mut Vec<UiAction>) {
         "Threat Level",
         &format!("+{}%", next_scale),
     );
+    if !journey.relics.is_empty() {
+        let names: Vec<&str> = journey
+            .relics
+            .iter()
+            .filter_map(|id| data.relics.get(id).map(|relic| relic.name.as_str()))
+            .collect();
+        draw_stat_line(panel, panel.y + 296.0, "Relics", &names.join(", "));
+    }
 
     let mut y = panel.y + 322.0;
     if virtual_button(

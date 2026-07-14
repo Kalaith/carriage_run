@@ -8,7 +8,7 @@
 //! (not saved) and never touch campaign mission records.
 
 use super::{GameSession, MissionReport, MissionRun, Screen};
-use crate::data::{GameData, MissionDef};
+use crate::data::{GameData, MissionDef, RelicDef};
 
 #[derive(Debug, Clone)]
 pub struct Journey {
@@ -29,12 +29,15 @@ pub struct Journey {
     /// Reward options offered after clearing a leg, awaiting the player's pick.
     /// `Some` blocks pressing on until one is chosen.
     pub pending_rewards: Option<[LegReward; 3]>,
+    /// Ids of relics collected this run; folded into every leg's mission stats
+    /// (see `GameSession::begin_journey_leg`). Session-only — never persisted.
+    pub relics: Vec<String>,
 }
 
-/// One of the three rewards offered after clearing an expedition leg. Each is a
-/// different trade between raw gold and carriage upkeep, so the pick depends on
-/// how battered the convoy is — not a flat payout.
-#[derive(Debug, Clone, Copy)]
+/// One of the three rewards offered after clearing an expedition leg. A relic is
+/// a run-defining build pick; the others are trades between raw gold and carriage
+/// upkeep. Which is best depends on how battered the convoy is — not a flat payout.
+#[derive(Debug, Clone)]
 pub enum LegReward {
     /// Pure gold, generous — the greedy pick with no upkeep.
     Bounty(i64),
@@ -42,22 +45,11 @@ pub enum LegReward {
     Provisions { gold: i64, heal: f32 },
     /// A full carriage repair plus a little gold — best when badly damaged.
     Repair { gold: i64 },
+    /// A run-scoped relic (id) that reshapes how the rest of the run plays.
+    Relic(String),
 }
 
 impl LegReward {
-    /// The three choices offered for clearing `leg`, scaled off its base reward.
-    pub fn choices(leg: u32) -> [LegReward; 3] {
-        let base = Journey::leg_reward(leg);
-        [
-            LegReward::Bounty(base + base / 2),
-            LegReward::Provisions {
-                gold: base,
-                heal: 0.25,
-            },
-            LegReward::Repair { gold: base / 3 },
-        ]
-    }
-
     /// Applies this reward to the run and records it as the last leg reward.
     fn apply(self, journey: &mut Journey) {
         match self {
@@ -75,18 +67,28 @@ impl LegReward {
                 journey.carriage_health_ratio = 1.0;
                 journey.last_reward = gold;
             }
+            LegReward::Relic(id) => {
+                journey.relics.push(id);
+                journey.last_reward = 0;
+            }
         }
     }
 
-    pub fn title(self) -> &'static str {
+    /// Display title. Relics need the data registry to resolve their name.
+    pub fn title(&self, data: &GameData) -> String {
         match self {
-            LegReward::Bounty(_) => "Bounty Purse",
-            LegReward::Provisions { .. } => "War Provisions",
-            LegReward::Repair { .. } => "Field Repairs",
+            LegReward::Bounty(_) => "Bounty Purse".to_owned(),
+            LegReward::Provisions { .. } => "War Provisions".to_owned(),
+            LegReward::Repair { .. } => "Field Repairs".to_owned(),
+            LegReward::Relic(id) => data
+                .relics
+                .get(id)
+                .map(|relic| format!("Relic — {}", relic.name))
+                .unwrap_or_else(|| "Relic".to_owned()),
         }
     }
 
-    pub fn detail(self) -> String {
+    pub fn detail(&self, data: &GameData) -> String {
         match self {
             LegReward::Bounty(gold) => format!("+{} gold banked", gold),
             LegReward::Provisions { gold, heal } => {
@@ -97,6 +99,11 @@ impl LegReward {
                 )
             }
             LegReward::Repair { gold } => format!("Full repair, +{} gold", gold),
+            LegReward::Relic(id) => data
+                .relics
+                .get(id)
+                .map(|relic| relic.description.clone())
+                .unwrap_or_else(|| "A mysterious boon.".to_owned()),
         }
     }
 }
@@ -121,6 +128,55 @@ impl Journey {
     pub fn can_repair(&self) -> bool {
         self.alive && self.carriage_health_ratio < 0.995 && self.banked_gold >= self.repair_cost()
     }
+
+    /// Product of reward multipliers from every collected relic (1.0 with none).
+    fn reward_mult(&self, data: &GameData) -> f32 {
+        self.relics
+            .iter()
+            .filter_map(|id| data.relics.get(id))
+            .map(|relic| relic.reward_mult)
+            .product::<f32>()
+            .max(0.1)
+    }
+
+    /// A relic not yet collected this run, picked deterministically by leg so the
+    /// offer rotates. `None` once every relic has been collected.
+    fn next_relic_offer(&self, data: &GameData) -> Option<String> {
+        let available: Vec<&RelicDef> = data
+            .relics_ordered()
+            .into_iter()
+            .filter(|relic| !self.relics.iter().any(|owned| owned == &relic.id))
+            .collect();
+        if available.is_empty() {
+            return None;
+        }
+        let idx = (self.leg.saturating_sub(1) as usize) % available.len();
+        Some(available[idx].id.clone())
+    }
+
+    /// The three reward choices offered after clearing the current leg. When an
+    /// un-collected relic is available it takes the first slot (the build pick);
+    /// otherwise that slot is a pure-gold Bounty. Relic reward multipliers are
+    /// baked into the gold amounts shown.
+    pub fn leg_reward_choices(&self, data: &GameData) -> [LegReward; 3] {
+        let base = Journey::leg_reward(self.leg);
+        let mult = self.reward_mult(data);
+        let gold = |raw: i64| ((raw as f32) * mult).round() as i64;
+        let first = match self.next_relic_offer(data) {
+            Some(id) => LegReward::Relic(id),
+            None => LegReward::Bounty(gold(base + base / 2)),
+        };
+        [
+            first,
+            LegReward::Provisions {
+                gold: gold(base),
+                heal: 0.25,
+            },
+            LegReward::Repair {
+                gold: gold(base / 3),
+            },
+        ]
+    }
 }
 
 impl GameSession {
@@ -134,6 +190,7 @@ impl GameSession {
             last_mission_name: String::new(),
             payout: 0,
             pending_rewards: None,
+            relics: Vec::new(),
         });
         self.begin_journey_leg(data)
     }
@@ -156,6 +213,11 @@ impl GameSession {
         };
         let mut run = MissionRun::new(mission, &self.campaign);
         run.scale_for_journey(journey.difficulty_scale(), journey.carriage_health_ratio);
+        for id in &journey.relics {
+            if let Some(relic) = data.relics.get(id) {
+                run.apply_relic(relic);
+            }
+        }
         self.mission = Some(run);
         self.result = None;
         self.screen = Screen::Playing;
@@ -164,17 +226,21 @@ impl GameSession {
 
     /// Applies a completed leg's report to the active expedition. Success banks
     /// the reward and advances; failure ends the run with a half payout.
-    pub(super) fn resolve_journey_leg(&mut self, report: &MissionReport) {
-        let Some(journey) = self.journey.as_mut() else {
+    pub(super) fn resolve_journey_leg(&mut self, report: &MissionReport, data: &GameData) {
+        if self.journey.is_none() {
             return;
-        };
-        journey.last_mission_name = report.mission_name.clone();
+        }
         if report.success {
-            journey.carriage_health_ratio = report.carriage_health_ratio.max(0.05);
             // Offer a choice of rewards for the leg just cleared; advancing to
             // the next leg is gated on picking one (`journey_choose_reward`).
-            journey.pending_rewards = Some(LegReward::choices(journey.leg));
+            let choices = self.journey.as_ref().unwrap().leg_reward_choices(data);
+            let journey = self.journey.as_mut().unwrap();
+            journey.last_mission_name = report.mission_name.clone();
+            journey.carriage_health_ratio = report.carriage_health_ratio.max(0.05);
+            journey.pending_rewards = Some(choices);
         } else {
+            let journey = self.journey.as_mut().unwrap();
+            journey.last_mission_name = report.mission_name.clone();
             journey.alive = false;
             journey.payout = journey.banked_gold / 2;
             let payout = journey.payout;
@@ -192,7 +258,9 @@ impl GameSession {
         };
         let Some(reward) = journey
             .pending_rewards
-            .and_then(|rewards| rewards.get(index).copied())
+            .as_ref()
+            .and_then(|rewards| rewards.get(index))
+            .cloned()
         else {
             return false;
         };

@@ -175,12 +175,13 @@ impl Game {
                     last_mission_name: "Bandit Bend".to_owned(),
                     payout: 0,
                     pending_rewards: None,
+                    relics: vec!["ghost_wheels".to_owned(), "merchants_ledger".to_owned()],
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
             "journey_reward" => {
-                // Seed the post-leg reward-choice screen for capture.
-                self.session.journey = Some(crate::state::Journey {
+                // Seed the post-leg reward-choice screen (with a relic on offer).
+                let journey = crate::state::Journey {
                     leg: 3,
                     banked_gold: 148,
                     carriage_health_ratio: 0.52,
@@ -188,7 +189,13 @@ impl Game {
                     last_reward: 0,
                     last_mission_name: "Bandit Bend".to_owned(),
                     payout: 0,
-                    pending_rewards: Some(crate::state::LegReward::choices(3)),
+                    pending_rewards: None,
+                    relics: Vec::new(),
+                };
+                let choices = journey.leg_reward_choices(&self.data);
+                self.session.journey = Some(crate::state::Journey {
+                    pending_rewards: Some(choices),
+                    ..journey
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -468,12 +475,13 @@ impl Game {
                     .session
                     .journey
                     .as_ref()
-                    .and_then(|j| j.pending_rewards)
-                    .and_then(|r| r.get(index).copied());
+                    .and_then(|j| j.pending_rewards.as_ref())
+                    .and_then(|r| r.get(index))
+                    .cloned();
                 if self.session.journey_choose_reward(index) {
                     if let Some(reward) = reward {
                         self.notifications
-                            .success(format!("{} taken", reward.title()));
+                            .success(format!("{} taken", reward.title(&self.data)));
                     }
                 }
             }

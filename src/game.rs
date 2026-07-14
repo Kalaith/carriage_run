@@ -174,6 +174,21 @@ impl Game {
                     last_reward: 66,
                     last_mission_name: "Bandit Bend".to_owned(),
                     payout: 0,
+                    pending_rewards: None,
+                });
+                self.session.screen = crate::state::Screen::Journey;
+            }
+            "journey_reward" => {
+                // Seed the post-leg reward-choice screen for capture.
+                self.session.journey = Some(crate::state::Journey {
+                    leg: 3,
+                    banked_gold: 148,
+                    carriage_health_ratio: 0.52,
+                    alive: true,
+                    last_reward: 0,
+                    last_mission_name: "Bandit Bend".to_owned(),
+                    payout: 0,
+                    pending_rewards: Some(crate::state::LegReward::choices(3)),
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -445,6 +460,20 @@ impl Game {
                 if let Some(leg) = self.session.journey.as_ref().map(|j| j.leg) {
                     if self.session.journey_press_on(&self.data) {
                         self.notifications.info(format!("Leg {} — set out", leg));
+                    }
+                }
+            }
+            UiAction::JourneyChooseReward(index) => {
+                let reward = self
+                    .session
+                    .journey
+                    .as_ref()
+                    .and_then(|j| j.pending_rewards)
+                    .and_then(|r| r.get(index).copied());
+                if self.session.journey_choose_reward(index) {
+                    if let Some(reward) = reward {
+                        self.notifications
+                            .success(format!("{} taken", reward.title()));
                     }
                 }
             }

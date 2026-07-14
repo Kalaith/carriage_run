@@ -44,6 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
+- **A1 Reward variety per leg** — expeditions now present a choice-of-3 spoils screen after each cleared leg (Bounty Purse: pure gold; War Provisions: gold + partial heal; Field Repairs: full repair + gold), replacing the flat auto-payout. Pressing on is gated on picking one; the pick is a gold-vs-upkeep trade that depends on convoy damage. *(first A1 bullet done — relics/boons, bespoke legs, run events, finale, meta-progression, seeded/daily, run records remain)*
 - **D3 VFX / juice** — floating damage numbers, plus a minimal particle system driving enemy death bursts (slain foes scatter tinted particles instead of vanishing). *(partial — damage numbers + death animations done; shake/hit-stop, more emitters remain)*
 - **B2 New hazards** — River Ford (a wide forced-slow crossing) added to Medicine Run and the Field Guide. *(partial — 1 of 2–3 new hazards)*
 - **A5 Elite enemies** — Alpha Wolf (fast charging pack leader) and Armored Bandit (tanky non-fleeing raider, countered by crossbow armor-pierce), added to Refugee Escort / Gold Shipment and the Field Guide. *(elite variants done — 2 of 2–3; bosses remain)*
@@ -70,7 +71,7 @@ The core 60-second loop is good. What's missing is what happens after hour one.
 ### A1. 🔴 Expedition mode → real roguelite (the retention engine)
 Expedition today is campaign missions on a modulo cycle (`journey.rs:67-74`) with a flat `30 + 22·leg` payout (`journey.rs:38-40`) and a linear `1 + 0.12·(leg-1)` difficulty multiplier. It is a skeleton, not a mode. To be the retention pillar the design review calls for:
 
-- [ ] **Reward variety per leg**: choice-of-3 rewards on leg completion (gold / temporary relic / guard XP / repair), replacing the flat payout.
+- [x] **Reward variety per leg**: choice-of-3 rewards on leg completion (Bounty Purse / War Provisions / Field Repairs — gold vs. carriage-upkeep trades), replacing the flat payout. *(done — `LegReward` in `journey.rs`, post-leg choice screen in `ui/journey.rs`)*
 - [ ] **Relic/boon system**: run-scoped modifiers (e.g. "Ghost Wheels: +speed, −armor", "War Banner: guards roam wider") that create build identity within a run. This is the roguelite hook; without it every run plays identically.
 - [ ] **Bespoke leg generation** instead of recycling campaign missions verbatim: procedural enemy-mix/hazard-mix/route-modifier composition from the existing data pools, plus **branching leg choice** (pick 1 of 2–3 next legs, FTL-style — the route-choice system in `mission.rs:161-199` already models exactly this shape).
 - [ ] **Run events**: 6–10 non-combat vignette decisions between legs (toll bridge, stranded merchant, shortcut rumor) — cheap content, big variety perception.

@@ -62,6 +62,7 @@ pub enum UiAction {
     BeginMission,
     StartExpedition,
     JourneyPressOn,
+    JourneyChooseReward(usize),
     JourneyRepair,
     JourneyBank,
     RetryMission,

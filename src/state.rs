@@ -9,7 +9,7 @@ mod mission;
 
 pub use entities::*;
 pub use equipment::*;
-pub use journey::Journey;
+pub use journey::{Journey, LegReward};
 pub use mission::{MissionInput, MissionReport, MissionRun};
 
 use crate::data::{GameConfig, GameData, MissionDef, UpgradeDef};

@@ -497,15 +497,26 @@ fn expedition_banks_rewards_and_advances_legs() {
     assert_eq!(session.journey.as_ref().unwrap().leg, 1);
     assert!(session.mission.is_some());
 
-    // Clear leg 1: banks its reward, advances, and carries damage forward.
+    // Clear leg 1: offers reward choices, holding at the same leg until picked.
     let mut report = test_report(true, Vec::new());
     report.carriage_health_ratio = 0.6;
     session.resolve_journey_leg(&report);
     let journey = session.journey.as_ref().unwrap();
-    assert_eq!(journey.leg, 2);
-    assert_eq!(journey.banked_gold, super::Journey::leg_reward(1));
-    assert!((journey.carriage_health_ratio - 0.6).abs() < 0.001);
+    assert_eq!(journey.leg, 1);
+    assert!(journey.pending_rewards.is_some());
     assert!(session.mission.is_none());
+
+    // Pressing on is blocked until a reward is chosen.
+    assert!(!session.journey_press_on(&data));
+
+    // Take the Bounty (index 0): banks +50% of base, advances, carries damage.
+    let base = super::Journey::leg_reward(1);
+    assert!(session.journey_choose_reward(0));
+    let journey = session.journey.as_ref().unwrap();
+    assert_eq!(journey.leg, 2);
+    assert!(journey.pending_rewards.is_none());
+    assert_eq!(journey.banked_gold, base + base / 2);
+    assert!((journey.carriage_health_ratio - 0.6).abs() < 0.001);
 }
 
 #[test]
@@ -517,6 +528,7 @@ fn expedition_bank_and_return_pays_out_full() {
 
     session.start_journey(&data);
     session.resolve_journey_leg(&test_report(true, Vec::new()));
+    session.journey_choose_reward(0);
     let banked = session.journey.as_ref().unwrap().banked_gold;
 
     session.journey_bank_and_return();
@@ -532,7 +544,8 @@ fn expedition_failure_pays_half_and_ends_run() {
     let start_gold = session.campaign.gold;
 
     session.start_journey(&data);
-    session.resolve_journey_leg(&test_report(true, Vec::new())); // leg 1 banked
+    session.resolve_journey_leg(&test_report(true, Vec::new())); // leg 1 cleared
+    session.journey_choose_reward(0); // bank its reward, advance to leg 2
     let banked = session.journey.as_ref().unwrap().banked_gold;
 
     session.resolve_journey_leg(&test_report(false, Vec::new())); // leg 2 lost

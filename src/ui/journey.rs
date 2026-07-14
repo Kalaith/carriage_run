@@ -3,7 +3,7 @@
 use super::upgrade_visuals::{draw_panel, draw_section_label, GOLD as UI_GOLD, INK, MUTED};
 use super::widgets::{draw_menu_backdrop, virtual_button};
 use super::{UiAction, UiContext};
-use crate::state::Journey;
+use crate::state::{Journey, LegReward};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
@@ -26,10 +26,80 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
         return;
     };
 
-    if journey.alive {
-        draw_hub(journey, mouse, actions);
-    } else {
+    if !journey.alive {
         draw_summary(journey, mouse, actions);
+    } else if let Some(rewards) = &journey.pending_rewards {
+        draw_reward_choice(journey, rewards, mouse, actions);
+    } else {
+        draw_hub(journey, mouse, actions);
+    }
+}
+
+/// Post-leg reward screen: pick one of three trades before pressing on.
+fn draw_reward_choice(
+    journey: &Journey,
+    rewards: &[LegReward; 3],
+    mouse: Vec2,
+    actions: &mut Vec<UiAction>,
+) {
+    let panel = Rect::new(360.0, 96.0, 560.0, 520.0);
+    draw_panel(panel, true);
+    draw_text_centered_in_box(
+        &format!("Leg {} Cleared", journey.leg),
+        panel.x + 30.0,
+        panel.y + 28.0,
+        panel.w - 60.0,
+        44.0,
+        34.0,
+        INK,
+    );
+    draw_text_centered_in_box(
+        &format!("{} — choose your spoils", journey.last_mission_name),
+        panel.x + 30.0,
+        panel.y + 74.0,
+        panel.w - 60.0,
+        26.0,
+        18.0,
+        MUTED,
+    );
+
+    let health_pct = (journey.carriage_health_ratio * 100.0).round() as i32;
+    draw_text_centered_in_box(
+        &format!("Carriage Health {}%", health_pct),
+        panel.x + 30.0,
+        panel.y + 110.0,
+        panel.w - 60.0,
+        24.0,
+        17.0,
+        Color::new(0.42, 0.86, 0.46, 1.0),
+    );
+
+    let mut y = panel.y + 156.0;
+    for (i, reward) in rewards.iter().enumerate() {
+        let card = Rect::new(panel.x + 50.0, y, panel.w - 100.0, 96.0);
+        draw_panel(card, false);
+        draw_ui_text_ex(
+            reward.title(),
+            card.x + 24.0,
+            card.y + 34.0,
+            TextStyle::new(24.0, INK).params(),
+        );
+        draw_ui_text_ex(
+            &reward.detail(),
+            card.x + 24.0,
+            card.y + 64.0,
+            TextStyle::new(18.0, MUTED).params(),
+        );
+        if virtual_button(
+            Rect::new(card.right() - 150.0, card.y + 26.0, 126.0, 44.0),
+            "Take",
+            true,
+            ButtonTone::Positive,
+            mouse,
+        ) {
+            actions.push(UiAction::JourneyChooseReward(i));
+        }
+        y += 110.0;
     }
 }
 

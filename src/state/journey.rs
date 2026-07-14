@@ -26,6 +26,79 @@ pub struct Journey {
     pub last_mission_name: String,
     /// Gold actually paid out when the run ended (failure summary).
     pub payout: i64,
+    /// Reward options offered after clearing a leg, awaiting the player's pick.
+    /// `Some` blocks pressing on until one is chosen.
+    pub pending_rewards: Option<[LegReward; 3]>,
+}
+
+/// One of the three rewards offered after clearing an expedition leg. Each is a
+/// different trade between raw gold and carriage upkeep, so the pick depends on
+/// how battered the convoy is — not a flat payout.
+#[derive(Debug, Clone, Copy)]
+pub enum LegReward {
+    /// Pure gold, generous — the greedy pick with no upkeep.
+    Bounty(i64),
+    /// Modest gold plus a partial patch-up.
+    Provisions { gold: i64, heal: f32 },
+    /// A full carriage repair plus a little gold — best when badly damaged.
+    Repair { gold: i64 },
+}
+
+impl LegReward {
+    /// The three choices offered for clearing `leg`, scaled off its base reward.
+    pub fn choices(leg: u32) -> [LegReward; 3] {
+        let base = Journey::leg_reward(leg);
+        [
+            LegReward::Bounty(base + base / 2),
+            LegReward::Provisions {
+                gold: base,
+                heal: 0.25,
+            },
+            LegReward::Repair { gold: base / 3 },
+        ]
+    }
+
+    /// Applies this reward to the run and records it as the last leg reward.
+    fn apply(self, journey: &mut Journey) {
+        match self {
+            LegReward::Bounty(gold) => {
+                journey.banked_gold += gold;
+                journey.last_reward = gold;
+            }
+            LegReward::Provisions { gold, heal } => {
+                journey.banked_gold += gold;
+                journey.carriage_health_ratio = (journey.carriage_health_ratio + heal).min(1.0);
+                journey.last_reward = gold;
+            }
+            LegReward::Repair { gold } => {
+                journey.banked_gold += gold;
+                journey.carriage_health_ratio = 1.0;
+                journey.last_reward = gold;
+            }
+        }
+    }
+
+    pub fn title(self) -> &'static str {
+        match self {
+            LegReward::Bounty(_) => "Bounty Purse",
+            LegReward::Provisions { .. } => "War Provisions",
+            LegReward::Repair { .. } => "Field Repairs",
+        }
+    }
+
+    pub fn detail(self) -> String {
+        match self {
+            LegReward::Bounty(gold) => format!("+{} gold banked", gold),
+            LegReward::Provisions { gold, heal } => {
+                format!(
+                    "+{} gold, +{}% carriage health",
+                    gold,
+                    (heal * 100.0) as i32
+                )
+            }
+            LegReward::Repair { gold } => format!("Full repair, +{} gold", gold),
+        }
+    }
 }
 
 impl Journey {
@@ -60,6 +133,7 @@ impl GameSession {
             last_reward: 0,
             last_mission_name: String::new(),
             payout: 0,
+            pending_rewards: None,
         });
         self.begin_journey_leg(data)
     }
@@ -96,11 +170,10 @@ impl GameSession {
         };
         journey.last_mission_name = report.mission_name.clone();
         if report.success {
-            let reward = Journey::leg_reward(journey.leg);
-            journey.banked_gold += reward;
-            journey.last_reward = reward;
             journey.carriage_health_ratio = report.carriage_health_ratio.max(0.05);
-            journey.leg += 1;
+            // Offer a choice of rewards for the leg just cleared; advancing to
+            // the next leg is gated on picking one (`journey_choose_reward`).
+            journey.pending_rewards = Some(LegReward::choices(journey.leg));
         } else {
             journey.alive = false;
             journey.payout = journey.banked_gold / 2;
@@ -111,8 +184,31 @@ impl GameSession {
         self.screen = Screen::Journey;
     }
 
+    /// Applies the chosen post-leg reward and advances to the next leg. No-op if
+    /// no rewards are pending or the index is out of range.
+    pub fn journey_choose_reward(&mut self, index: usize) -> bool {
+        let Some(journey) = self.journey.as_mut() else {
+            return false;
+        };
+        let Some(reward) = journey
+            .pending_rewards
+            .and_then(|rewards| rewards.get(index).copied())
+        else {
+            return false;
+        };
+        reward.apply(journey);
+        journey.pending_rewards = None;
+        journey.leg += 1;
+        true
+    }
+
     pub fn journey_press_on(&mut self, data: &GameData) -> bool {
-        if self.journey.as_ref().is_some_and(|journey| journey.alive) {
+        // A pending reward must be resolved before the next leg can begin.
+        if self
+            .journey
+            .as_ref()
+            .is_some_and(|journey| journey.alive && journey.pending_rewards.is_none())
+        {
             self.begin_journey_leg(data)
         } else {
             false

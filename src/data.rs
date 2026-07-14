@@ -13,6 +13,7 @@ const CARRIAGES_JSON: &str = include_str!("../assets/data/carriages.json");
 const TEXTURE_MANIFEST_JSON: &str = include_str!("../assets/data/texture_manifest.json");
 const RELICS_JSON: &str = include_str!("../assets/data/relics.json");
 const LEG_MODIFIERS_JSON: &str = include_str!("../assets/data/leg_modifiers.json");
+const RUN_EVENTS_JSON: &str = include_str!("../assets/data/run_events.json");
 
 fn one() -> f32 {
     1.0
@@ -202,6 +203,34 @@ pub struct LegModifierDef {
     pub reward_mult: f32,
 }
 
+/// A between-legs expedition vignette: a short non-combat decision with a few
+/// outcomes, each a small resource trade. Cheap content that makes an
+/// expedition feel like a journey rather than a mission list. Session-only.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunEventDef {
+    pub id: String,
+    pub order: u32,
+    pub prompt: String,
+    pub options: Vec<RunEventOptionDef>,
+}
+
+/// One choice within a [`RunEventDef`], with its flavor payoff and effects.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunEventOptionDef {
+    pub label: String,
+    /// One-line outcome shown after the choice is made.
+    pub result: String,
+    /// Banked-gold delta (can be negative; the run never goes below zero gold).
+    #[serde(default)]
+    pub gold: i64,
+    /// Carriage-health-ratio delta (clamped into a survivable range).
+    #[serde(default)]
+    pub health: f32,
+    /// Relic id granted by this choice, or empty for none.
+    #[serde(default)]
+    pub relic: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -210,6 +239,7 @@ pub struct GameData {
     pub chassis: DataRegistry<ChassisDef>,
     pub relics: DataRegistry<RelicDef>,
     pub leg_modifiers: DataRegistry<LegModifierDef>,
+    pub run_events: DataRegistry<RunEventDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -221,6 +251,7 @@ impl GameData {
         let chassis = DataRegistry::from_embedded_json(CARRIAGES_JSON, "id")?;
         let relics = DataRegistry::from_embedded_json(RELICS_JSON, "id")?;
         let leg_modifiers = DataRegistry::from_embedded_json(LEG_MODIFIERS_JSON, "id")?;
+        let run_events = DataRegistry::from_embedded_json(RUN_EVENTS_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -230,8 +261,15 @@ impl GameData {
             chassis,
             relics,
             leg_modifiers,
+            run_events,
             texture_manifest,
         })
+    }
+
+    pub fn run_events_ordered(&self) -> Vec<&RunEventDef> {
+        let mut events: Vec<_> = self.run_events.iter().map(|(_, e)| e).collect();
+        events.sort_by_key(|e| e.order);
+        events
     }
 
     pub fn relics_ordered(&self) -> Vec<&RelicDef> {

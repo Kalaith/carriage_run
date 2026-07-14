@@ -547,9 +547,12 @@ fn expedition_relic_offer_is_collected_and_applied() {
     assert_eq!(journey.relics, vec![offered.clone()]);
     assert_eq!(journey.banked_gold, 0);
 
-    // The relic is a real def (loads from relics.json) and pressing on begins
-    // the next leg with the relic folded into the mission run.
+    // The relic is a real def (loads from relics.json). A between-legs vignette
+    // must be resolved before the next leg can begin.
     assert!(data.relics.get(&offered).is_some());
+    assert!(session.journey.as_ref().unwrap().pending_event.is_some());
+    assert!(!session.journey_press_on(&data)); // blocked until the event resolves
+    assert!(session.journey_resolve_event(1, &data));
     assert!(session.journey_press_on(&data));
     assert!(session.mission.is_some());
     assert!(session.journey.as_ref().unwrap().relics.contains(&offered));
@@ -601,6 +604,10 @@ fn expedition_offers_bespoke_leg_branch_and_applies_modifier() {
         .get(&legs[idx].modifier_id)
         .unwrap()
         .clone();
+    // Clear the between-legs vignette before setting out.
+    if session.journey.as_ref().unwrap().pending_event.is_some() {
+        assert!(session.journey_resolve_event(1, &data));
+    }
     assert!(session.journey_begin_leg(idx, &data));
     let run = session.mission.as_ref().unwrap();
     for enemy in &modifier.enemy_add {
@@ -620,6 +627,44 @@ fn expedition_offers_bespoke_leg_branch_and_applies_modifier() {
             .modifier_id,
         legs[idx].modifier_id
     );
+}
+
+#[test]
+fn expedition_run_event_applies_option_effects() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    assert!(session.start_journey(&data));
+    let mut report = test_report(true, Vec::new());
+    report.carriage_health_ratio = 0.7;
+    session.resolve_journey_leg(&report, &data);
+    assert!(session.journey_choose_reward(1, &data)); // banks War Provisions gold
+
+    // A vignette is now pending; capture the state before resolving it.
+    let event_id = session
+        .journey
+        .as_ref()
+        .unwrap()
+        .pending_event
+        .clone()
+        .expect("a run event is offered between legs");
+    let event = data.run_events.get(&event_id).expect("event id resolves");
+    assert!(event.options.len() >= 2, "event should offer real choices");
+    let before = session.journey.as_ref().unwrap().clone();
+    let option = &event.options[0];
+
+    assert!(session.journey_resolve_event(0, &data));
+    let after = session.journey.as_ref().unwrap();
+    assert!(after.pending_event.is_none(), "event cleared after choice");
+    assert_eq!(after.banked_gold, (before.banked_gold + option.gold).max(0));
+    if option.health.abs() > f32::EPSILON {
+        let expected = (before.carriage_health_ratio + option.health).clamp(0.05, 1.0);
+        assert!((after.carriage_health_ratio - expected).abs() < 1e-3);
+    }
+    assert!(after.last_event_result.is_some());
+    // Resolving twice is a no-op (nothing pending).
+    assert!(!session.journey_resolve_event(0, &data));
 }
 
 #[test]

@@ -31,8 +31,88 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
         draw_summary(journey, mouse, actions);
     } else if let Some(rewards) = &journey.pending_rewards {
         draw_reward_choice(journey, rewards, ctx.data, mouse, actions);
+    } else if let Some(event_id) = &journey.pending_event {
+        draw_run_event(event_id, ctx.data, mouse, actions);
     } else {
         draw_hub(journey, ctx.data, mouse, actions);
+    }
+}
+
+/// Between-legs vignette: a short prompt and a couple of resource-trade choices.
+fn draw_run_event(event_id: &str, data: &GameData, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    let Some(event) = data.run_events.get(event_id) else {
+        return;
+    };
+    let panel = Rect::new(340.0, 110.0, 600.0, 480.0);
+    draw_panel(panel, true);
+    draw_text_centered_in_box(
+        "A Fork in the Road",
+        panel.x + 30.0,
+        panel.y + 30.0,
+        panel.w - 60.0,
+        44.0,
+        32.0,
+        UI_GOLD,
+    );
+    draw_text_block(
+        &event.prompt,
+        panel.x + 40.0,
+        panel.y + 82.0,
+        panel.w - 80.0,
+        96.0,
+        20.0,
+        6.0,
+        INK,
+    );
+
+    let mut y = panel.y + 210.0;
+    for (i, option) in event.options.iter().enumerate() {
+        let card = Rect::new(panel.x + 40.0, y, panel.w - 80.0, 84.0);
+        draw_panel(card, false);
+        draw_ui_text_ex(
+            &option.label,
+            card.x + 24.0,
+            card.y + 32.0,
+            TextStyle::new(23.0, INK).params(),
+        );
+        draw_ui_text_ex(
+            &event_effect_summary(option),
+            card.x + 24.0,
+            card.y + 60.0,
+            TextStyle::new(17.0, MUTED).params(),
+        );
+        if virtual_button(
+            Rect::new(card.right() - 148.0, card.y + 22.0, 124.0, 42.0),
+            "Choose",
+            true,
+            ButtonTone::Positive,
+            mouse,
+        ) {
+            actions.push(UiAction::JourneyResolveEvent(i));
+        }
+        y += 96.0;
+    }
+}
+
+/// Compact effect readout for a run-event choice ("−45 gold · +16% health").
+fn event_effect_summary(option: &crate::data::RunEventOptionDef) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if option.gold != 0 {
+        parts.push(format!("{:+} gold", option.gold));
+    }
+    if option.health.abs() > f32::EPSILON {
+        parts.push(format!(
+            "{:+}% health",
+            (option.health * 100.0).round() as i32
+        ));
+    }
+    if !option.relic.is_empty() {
+        parts.push("gain a relic".to_owned());
+    }
+    if parts.is_empty() {
+        "No cost".to_owned()
+    } else {
+        parts.join(" · ")
     }
 }
 

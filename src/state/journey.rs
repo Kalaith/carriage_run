@@ -38,6 +38,11 @@ pub struct Journey {
     /// The bespoke composition of the leg currently in progress (base route +
     /// modifier). `None` on the auto-started first leg.
     pub current_leg: Option<LegOption>,
+    /// A between-legs vignette (run-event id) awaiting a decision at the hub.
+    /// `Some` blocks the next-leg branch until resolved.
+    pub pending_event: Option<String>,
+    /// Flavor outcome of the most recently resolved run event (hub readout).
+    pub last_event_result: Option<String>,
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -214,6 +219,16 @@ impl Journey {
             .collect()
     }
 
+    /// The between-legs vignette to present before the next-leg branch, rotating
+    /// through the pool by leg. `None` if no events are defined.
+    pub fn next_run_event(&self, data: &GameData) -> Option<String> {
+        let events = data.run_events_ordered();
+        if events.is_empty() {
+            return None;
+        }
+        Some(events[(self.leg as usize) % events.len()].id.clone())
+    }
+
     pub fn leg_reward_choices(&self, data: &GameData) -> [LegReward; 3] {
         let base = Journey::leg_reward(self.leg);
         let mult = self.reward_mult(data) * self.leg_reward_mult(data);
@@ -249,6 +264,8 @@ impl GameSession {
             relics: Vec::new(),
             pending_legs: None,
             current_leg: None,
+            pending_event: None,
+            last_event_result: None,
         });
         self.begin_journey_leg(data)
     }
@@ -339,16 +356,48 @@ impl GameSession {
         journey.leg += 1;
         let options = journey.generate_leg_options(data);
         journey.pending_legs = Some(options);
+        // A between-legs vignette is presented before the branch (if any exist).
+        journey.pending_event = journey.next_run_event(data);
+        true
+    }
+
+    /// Applies the chosen option of the pending run event and clears it. No-op if
+    /// no event is pending or the indices don't resolve.
+    pub fn journey_resolve_event(&mut self, index: usize, data: &GameData) -> bool {
+        let Some(event_id) = self.journey.as_ref().and_then(|j| j.pending_event.clone()) else {
+            return false;
+        };
+        let Some(event) = data.run_events.get(&event_id) else {
+            return false;
+        };
+        let Some(option) = event.options.get(index) else {
+            return false;
+        };
+        let Some(journey) = self.journey.as_mut() else {
+            return false;
+        };
+        journey.banked_gold = (journey.banked_gold + option.gold).max(0);
+        if option.health.abs() > f32::EPSILON {
+            journey.carriage_health_ratio =
+                (journey.carriage_health_ratio + option.health).clamp(0.05, 1.0);
+        }
+        if !option.relic.is_empty()
+            && data.relics.contains(&option.relic)
+            && !journey.relics.iter().any(|owned| owned == &option.relic)
+        {
+            journey.relics.push(option.relic.clone());
+        }
+        journey.last_event_result = Some(option.result.clone());
+        journey.pending_event = None;
         true
     }
 
     /// Begins the chosen branch of the pending leg options. No-op while a reward
     /// is still pending or the index is out of range.
     pub fn journey_begin_leg(&mut self, index: usize, data: &GameData) -> bool {
-        let ready = self
-            .journey
-            .as_ref()
-            .is_some_and(|journey| journey.alive && journey.pending_rewards.is_none());
+        let ready = self.journey.as_ref().is_some_and(|journey| {
+            journey.alive && journey.pending_rewards.is_none() && journey.pending_event.is_none()
+        });
         if !ready {
             return false;
         }

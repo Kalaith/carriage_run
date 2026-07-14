@@ -1,0 +1,56 @@
+[
+  {
+    "id": "toll_bridge",
+    "order": 1,
+    "prompt": "A toll-keeper bars the only bridge. He wants coin to raise the gate — or you can chance the ford downstream.",
+    "options": [
+      { "label": "Pay the toll", "result": "The gate creaks up and you roll across dry.", "gold": -45 },
+      { "label": "Ford the river", "result": "The current hammers the wheels, but you make it.", "health": -0.18 }
+    ]
+  },
+  {
+    "id": "stranded_merchant",
+    "order": 2,
+    "prompt": "A merchant's cart lies broken by the roadside. He begs for an escort to the next waystation — and promises to pay well.",
+    "options": [
+      { "label": "Escort them", "result": "Raiders test the detour, but his purse is heavy.", "gold": 55, "health": -0.1 },
+      { "label": "Leave them", "result": "You press on. His fate is his own.", "gold": 0 }
+    ]
+  },
+  {
+    "id": "shortcut_rumor",
+    "order": 3,
+    "prompt": "A hunter swears a game-trail shaves an hour off the road ahead. It looks rough, and unwatched.",
+    "options": [
+      { "label": "Take the shortcut", "result": "The ruts jar the carriage, but you gain ground.", "gold": 30, "health": -0.12 },
+      { "label": "Keep to the road", "result": "Slow and sure. No surprises.", "gold": 0 }
+    ]
+  },
+  {
+    "id": "abandoned_shrine",
+    "order": 4,
+    "prompt": "A wayside shrine stands half-swallowed by ivy. An offering bowl waits at its foot.",
+    "options": [
+      { "label": "Make an offering", "result": "A warm resolve settles over the convoy.", "gold": -35, "relic": "war_banner" },
+      { "label": "Pass it by", "result": "You tip your hat and roll on.", "gold": 0 }
+    ]
+  },
+  {
+    "id": "wounded_scout",
+    "order": 5,
+    "prompt": "A wounded outrider hails you. Patch him up and he'll ride ahead to clear the worst of the road.",
+    "options": [
+      { "label": "Tend the scout", "result": "Mended, he scouts a smoother line for you.", "gold": -20, "health": 0.16 },
+      { "label": "Wave him off", "result": "No time. You leave him to the roadside.", "gold": 0 }
+    ]
+  },
+  {
+    "id": "supply_caravan",
+    "order": 6,
+    "prompt": "A supply caravan is selling spare timber and iron braces at a steep markup — enough to shore the carriage up.",
+    "options": [
+      { "label": "Buy supplies", "result": "Fresh braces creak into place. Sturdier now.", "gold": -40, "health": 0.24 },
+      { "label": "Move along", "result": "Too dear. You keep your coin.", "gold": 0 }
+    ]
+  }
+]

@@ -178,6 +178,8 @@ impl Game {
                     relics: vec!["ghost_wheels".to_owned(), "merchants_ledger".to_owned()],
                     pending_legs: None,
                     current_leg: None,
+                    pending_event: None,
+                    last_event_result: None,
                 };
                 let legs = journey.generate_leg_options(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -200,10 +202,36 @@ impl Game {
                     relics: Vec::new(),
                     pending_legs: None,
                     current_leg: None,
+                    pending_event: None,
+                    last_event_result: None,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
                     pending_rewards: Some(choices),
+                    ..journey
+                });
+                self.session.screen = crate::state::Screen::Journey;
+            }
+            "journey_event" => {
+                // Seed the between-legs vignette (run-event) decision screen.
+                let journey = crate::state::Journey {
+                    leg: 3,
+                    banked_gold: 148,
+                    carriage_health_ratio: 0.52,
+                    alive: true,
+                    last_reward: 0,
+                    last_mission_name: "Bandit Bend".to_owned(),
+                    payout: 0,
+                    pending_rewards: None,
+                    relics: Vec::new(),
+                    pending_legs: None,
+                    current_leg: None,
+                    pending_event: None,
+                    last_event_result: None,
+                };
+                let event = journey.next_run_event(&self.data);
+                self.session.journey = Some(crate::state::Journey {
+                    pending_event: event,
                     ..journey
                 });
                 self.session.screen = crate::state::Screen::Journey;
@@ -476,6 +504,21 @@ impl Game {
                 if self.session.journey_press_on(&self.data) {
                     if let Some(leg) = self.session.journey.as_ref().map(|j| j.leg) {
                         self.notifications.info(format!("Leg {} — set out", leg));
+                    }
+                }
+            }
+            UiAction::JourneyResolveEvent(index) => {
+                let result = self
+                    .session
+                    .journey
+                    .as_ref()
+                    .and_then(|j| j.pending_event.as_ref())
+                    .and_then(|id| self.data.run_events.get(id))
+                    .and_then(|event| event.options.get(index))
+                    .map(|option| option.result.clone());
+                if self.session.journey_resolve_event(index, &self.data) {
+                    if let Some(result) = result {
+                        self.notifications.info(result);
                     }
                 }
             }

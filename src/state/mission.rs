@@ -146,6 +146,8 @@ pub struct MissionRun {
     pub shots: Vec<Shot>,
     /// Floating combat numbers (juice); short-lived, purely visual.
     pub float_texts: Vec<FloatText>,
+    /// Burst particles (juice); short-lived, purely visual.
+    pub particles: Vec<Particle>,
     pub drag: DragState,
     pub alert: Alert,
     pub progress: f32,
@@ -298,6 +300,7 @@ impl MissionRun {
             hazards: Vec::new(),
             shots: Vec::new(),
             float_texts: Vec::new(),
+            particles: Vec::new(),
             drag: DragState::None,
             alert: Alert::default(),
             progress: 0.0,

@@ -399,6 +399,17 @@ impl MissionRun {
             self.alert.set("Cargo recovered");
         }
 
+        // Death bursts (juice): so a slain enemy scatters instead of vanishing.
+        let deaths: Vec<(Vec2, Color)> = self
+            .enemies
+            .iter()
+            .filter(|enemy| enemy.health <= 0.0)
+            .map(|enemy| (enemy.pos, death_color(enemy.kind)))
+            .collect();
+        for (pos, color) in deaths {
+            self.spawn_burst(pos, color);
+        }
+
         self.enemies.retain(|enemy| {
             enemy.health > 0.0
                 && enemy.pos.y > PLAY_TOP - 150.0
@@ -408,6 +419,20 @@ impl MissionRun {
         });
         self.hazards
             .retain(|hazard| hazard.pos.y < PLAY_BOTTOM + 95.0);
+    }
+
+    fn spawn_burst(&mut self, pos: Vec2, color: Color) {
+        for i in 0..6 {
+            let angle = i as f32 * std::f32::consts::TAU / 6.0 + pos.x * 0.03;
+            let (sin, cos) = angle.sin_cos();
+            let speed = 55.0 + i as f32 * 9.0;
+            self.particles.push(Particle::new(
+                pos,
+                vec2(cos * speed, sin * speed),
+                color,
+                4.5,
+            ));
+        }
     }
 
     fn apply_guard_hit(&mut self, hit: PendingGuardHit) {
@@ -673,6 +698,17 @@ fn guard_hit_damage(guard: &Guard, enemy_kind: EnemyKind) -> f32 {
         1.0
     };
     guard.attack * bonus
+}
+
+/// Tint of an enemy's death burst, roughly matching its sprite.
+fn death_color(kind: EnemyKind) -> Color {
+    match kind {
+        EnemyKind::Wolf | EnemyKind::AlphaWolf => Color::new(0.55, 0.55, 0.58, 1.0),
+        EnemyKind::Bandit | EnemyKind::ArmoredBandit => Color::new(0.72, 0.30, 0.22, 1.0),
+        EnemyKind::BanditArcher => Color::new(0.66, 0.42, 0.24, 1.0),
+        EnemyKind::Skeleton => Color::new(0.86, 0.87, 0.83, 1.0),
+        EnemyKind::Necromancer => Color::new(0.56, 0.30, 0.68, 1.0),
+    }
 }
 
 #[cfg(test)]

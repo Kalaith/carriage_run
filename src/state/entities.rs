@@ -786,6 +786,51 @@ impl FloatText {
     }
 }
 
+/// Lifetime (seconds) of a burst particle.
+const PARTICLE_LIFE: f32 = 0.42;
+
+/// A tiny drifting, shrinking, fading particle — used for death bursts and
+/// other combat sparks. Purely visual.
+#[derive(Debug, Clone)]
+pub struct Particle {
+    pub pos: Vec2,
+    vel: Vec2,
+    pub color: Color,
+    radius: f32,
+    age: f32,
+}
+
+impl Particle {
+    pub(super) fn new(pos: Vec2, vel: Vec2, color: Color, radius: f32) -> Self {
+        Self {
+            pos,
+            vel,
+            color,
+            radius,
+            age: 0.0,
+        }
+    }
+
+    pub(super) fn advance(&mut self, dt: f32) {
+        self.age += dt;
+        self.pos += self.vel * dt;
+        self.vel *= 0.90;
+    }
+
+    pub(super) fn expired(&self) -> bool {
+        self.age >= PARTICLE_LIFE
+    }
+
+    pub fn alpha(&self) -> f32 {
+        (1.0 - self.age / PARTICLE_LIFE).clamp(0.0, 1.0)
+    }
+
+    /// Shrinks over its life.
+    pub fn draw_radius(&self) -> f32 {
+        self.radius * (1.0 - 0.55 * self.age / PARTICLE_LIFE)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Shot {
     pub from: Vec2,

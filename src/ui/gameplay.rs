@@ -44,9 +44,24 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
     {
         draw_guard(guard);
     }
+    draw_particles(run);
     draw_float_texts(run);
     draw_drag_feedback(run, mouse);
     draw_gameplay_hud(ctx, run, mouse, actions);
+}
+
+/// Burst particles: death scatter and combat sparks, fading and shrinking.
+fn draw_particles(run: &MissionRun) {
+    for particle in &run.particles {
+        let mut color = particle.color;
+        color.a = particle.alpha();
+        draw_circle(
+            particle.pos.x,
+            particle.pos.y,
+            particle.draw_radius(),
+            color,
+        );
+    }
 }
 
 /// Floating combat numbers: damage dealt (gold) and taken (red), drifting up

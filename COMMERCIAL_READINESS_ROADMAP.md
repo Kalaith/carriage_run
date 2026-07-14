@@ -44,7 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
-- **D3 VFX / juice** — floating damage numbers (gold for damage dealt, red for damage taken) that drift up and fade, improving combat readability. *(partial — first of several D3 juice items)*
+- **D3 VFX / juice** — floating damage numbers, plus a minimal particle system driving enemy death bursts (slain foes scatter tinted particles instead of vanishing). *(partial — damage numbers + death animations done; shake/hit-stop, more emitters remain)*
 - **B2 New hazards** — River Ford (a wide forced-slow crossing) added to Medicine Run and the Field Guide. *(partial — 1 of 2–3 new hazards)*
 - **A5 Elite enemies** — Alpha Wolf (fast charging pack leader) and Armored Bandit (tanky non-fleeing raider, countered by crossbow armor-pierce), added to Refugee Escort / Gold Shipment and the Field Guide. *(elite variants done — 2 of 2–3; bosses remain)*
 - **A2 Endgame economy** — Reinforced Kit consumable (+55 health for one route), a repeatable gold sink bought in the shop. *(done)*
@@ -158,10 +158,10 @@ Choose one, budget accordingly:
 
 ### D3. 🟠 VFX & game-feel ("juice") pass
 Nothing exists beyond color-swap hit-flash (`entities.rs:48,346-347`) and 8 fake dust circles (`gameplay.rs:763-789`). Needed, roughly in impact order:
-- [ ] Particle system (toolkit candidate — build once, share across RustGames): blood/spark hits, death bursts, mud splash, fire embers, arrow trails, necromancer summon FX.
+- [ ] Particle system (toolkit candidate — build once, share across RustGames): blood/spark hits, death bursts, mud splash, fire embers, arrow trails, necromancer summon FX. *(partial — a minimal per-mission Particle buffer exists, used for death bursts; other emitters + toolkit extraction remain)*
 - [ ] Screen shake (carriage hits, boss slams) + hit-stop on kills. No `shake` exists anywhere in game or toolkit today.
 - [x] Damage numbers / floating text (also fixes combat readability). *(done — gold for damage dealt, red for damage taken, drifting up and fading)*
-- [ ] Death animations — enemies currently vanish on death.
+- [x] Death animations — enemies currently vanish on death. *(done — a scatter burst of tinted particles on each kill)*
 - [ ] Tween/easing helpers for UI transitions (panel slide/fade — menus are currently instant-swap).
 - [ ] Telegraph VFX on wave spawns (currently text-banner only, `gameplay_hud.rs:28`).
 - [ ] Carriage bob, wheel rotation, horse animation (the "motion feel" feedback item, partially addressed by props).

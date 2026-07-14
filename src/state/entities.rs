@@ -438,10 +438,13 @@ pub enum EnemyKind {
     Necromancer,
     /// Elite pack leader: a bigger, tougher, faster charging wolf.
     AlphaWolf,
+    /// Elite raider: a heavily armored bruiser that soaks hits and does not
+    /// flee. Countered by the crossbow's armor-piercing bolts.
+    ArmoredBandit,
 }
 
 impl EnemyKind {
-    pub fn all() -> [Self; 6] {
+    pub fn all() -> [Self; 7] {
         [
             Self::Wolf,
             Self::Bandit,
@@ -449,6 +452,7 @@ impl EnemyKind {
             Self::Skeleton,
             Self::Necromancer,
             Self::AlphaWolf,
+            Self::ArmoredBandit,
         ]
     }
 
@@ -460,6 +464,7 @@ impl EnemyKind {
             "skeleton" => Some(Self::Skeleton),
             "necromancer" => Some(Self::Necromancer),
             "alpha_wolf" => Some(Self::AlphaWolf),
+            "armored_bandit" => Some(Self::ArmoredBandit),
             _ => None,
         }
     }
@@ -473,6 +478,7 @@ impl EnemyKind {
             Self::Skeleton => "Skeleton",
             Self::Necromancer => "Necromancer",
             Self::AlphaWolf => "Alpha Wolf",
+            Self::ArmoredBandit => "Armored Bandit",
         }
     }
 
@@ -485,6 +491,7 @@ impl EnemyKind {
             Self::Skeleton => "Undead melee",
             Self::Necromancer => "Summoner",
             Self::AlphaWolf => "Elite charger",
+            Self::ArmoredBandit => "Armored bruiser",
         }
     }
 
@@ -509,6 +516,9 @@ impl EnemyKind {
             Self::AlphaWolf => {
                 "A pack leader — bigger, faster, and far tougher than a lone wolf. Gang up on it before it reaches the carriage."
             }
+            Self::ArmoredBandit => {
+                "A heavily armored raider that soaks damage and grinds toward the carriage without fleeing. Focus it down, or let a crossbow guard punch through the plate."
+            }
         }
     }
 
@@ -520,6 +530,7 @@ impl EnemyKind {
             Self::Skeleton => "Skeleton strike",
             Self::Necromancer => "Dark bolt",
             Self::AlphaWolf => "Alpha wolf maul",
+            Self::ArmoredBandit => "Armored bandit strike",
         }
     }
 
@@ -580,6 +591,7 @@ impl Enemy {
             EnemyKind::Skeleton => (54.0, 76.0, 8.0, 21.0, 1.15),
             EnemyKind::Necromancer => (74.0, 48.0, 9.0, 22.0, 1.75),
             EnemyKind::AlphaWolf => (78.0, 138.0, 12.0, 24.0, 0.8),
+            EnemyKind::ArmoredBandit => (96.0, 78.0, 8.0, 22.0, 1.2),
         };
         let scale = 0.9 + difficulty * 0.16;
 
@@ -619,6 +631,7 @@ impl Enemy {
             EnemyKind::Skeleton => 96.0,
             EnemyKind::Necromancer => 150.0,
             EnemyKind::AlphaWolf => 122.0,
+            EnemyKind::ArmoredBandit => 72.0,
         }
     }
 }

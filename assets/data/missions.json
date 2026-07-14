@@ -264,7 +264,7 @@
     "distance": 1220.0,
     "difficulty": 1.42,
     "base_reward": 230,
-    "enemy_mix": ["bandit", "bandit", "bandit_archer", "wolf"],
+    "enemy_mix": ["bandit", "bandit", "armored_bandit", "bandit_archer", "wolf"],
     "hazard_mix": ["rocks", "fallen_tree"],
     "prerequisite_missions": ["bandit_bend"],
     "route_choices": [

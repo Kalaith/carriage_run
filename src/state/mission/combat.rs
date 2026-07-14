@@ -414,7 +414,10 @@ impl MissionRun {
         let mut damage = hit.damage;
         if hit.kind == GuardKind::CrossbowGuard
             && hit.stars >= 2
-            && matches!(hit.enemy_kind, EnemyKind::Skeleton | EnemyKind::Necromancer)
+            && matches!(
+                hit.enemy_kind,
+                EnemyKind::Skeleton | EnemyKind::Necromancer | EnemyKind::ArmoredBandit
+            )
         {
             damage *= 1.35;
         }

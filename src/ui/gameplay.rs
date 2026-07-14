@@ -522,6 +522,7 @@ fn draw_enemy(enemy: &Enemy) {
         EnemyKind::Skeleton => draw_skeleton(enemy.pos, flash),
         EnemyKind::Necromancer => draw_necromancer(enemy.pos, flash),
         EnemyKind::AlphaWolf => draw_alpha_wolf(enemy.pos, flash),
+        EnemyKind::ArmoredBandit => draw_armored_bandit(enemy.pos, flash),
     }
     draw_health_bar(
         vec2(enemy.pos.x - 26.0, enemy.pos.y - enemy.radius - 18.0),
@@ -548,7 +549,39 @@ pub(super) fn draw_enemy_icon(kind: EnemyKind, pos: Vec2) {
         EnemyKind::Skeleton => draw_skeleton(pos, false),
         EnemyKind::Necromancer => draw_necromancer(pos, false),
         EnemyKind::AlphaWolf => draw_alpha_wolf(pos, false),
+        EnemyKind::ArmoredBandit => draw_armored_bandit(pos, false),
     }
+}
+
+/// Elite raider: a bandit clad in steel plate over the red coat, so it reads as
+/// an armored bruiser.
+fn draw_armored_bandit(pos: Vec2, flash: bool) {
+    let coat = if flash {
+        WHITE
+    } else {
+        Color::new(0.40, 0.10, 0.10, 1.0)
+    };
+    let steel = if flash {
+        WHITE
+    } else {
+        Color::new(0.55, 0.58, 0.62, 1.0)
+    };
+    draw_circle(pos.x, pos.y - 11.0, 15.0, Color::new(0.74, 0.52, 0.36, 1.0));
+    // Helmet.
+    draw_rectangle(pos.x - 16.0, pos.y - 22.0, 32.0, 11.0, steel);
+    // Coat with a steel breastplate over it.
+    draw_rectangle(pos.x - 19.0, pos.y - 2.0, 38.0, 36.0, coat);
+    draw_rectangle(pos.x - 14.0, pos.y + 2.0, 28.0, 26.0, steel);
+    draw_rectangle(
+        pos.x - 14.0,
+        pos.y + 12.0,
+        28.0,
+        3.0,
+        Color::new(0.30, 0.32, 0.34, 1.0),
+    );
+    // Pauldrons.
+    draw_circle(pos.x - 20.0, pos.y + 2.0, 6.0, steel);
+    draw_circle(pos.x + 20.0, pos.y + 2.0, 6.0, steel);
 }
 
 /// Elite wolf: a larger, darker wolf with red eyes, so it reads as a step up

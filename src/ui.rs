@@ -254,8 +254,10 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         }
     }
 
-    let content_top = panel.y + 112.0;
-    let row_h = 80.0;
+    let content_top = panel.y + 108.0;
+    // Row height accommodates the longest tab (7 threats) without overflowing
+    // the panel footer.
+    let row_h = 68.0;
     match tab {
         CodexTab::Threats => {
             for (index, kind) in EnemyKind::all().into_iter().enumerate() {

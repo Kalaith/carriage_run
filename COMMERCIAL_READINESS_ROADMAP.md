@@ -45,7 +45,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
 - **B2 New hazards** — River Ford (a wide forced-slow crossing) added to Medicine Run and the Field Guide. *(partial — 1 of 2–3 new hazards)*
-- **A5 Elite enemies** — Alpha Wolf (elite charging wolf: tougher/faster, red-eyed sprite) added to Refugee Escort and the Field Guide. *(partial — 1 of 2–3 elites; bosses remain)*
+- **A5 Elite enemies** — Alpha Wolf (fast charging pack leader) and Armored Bandit (tanky non-fleeing raider, countered by crossbow armor-pierce), added to Refugee Escort / Gold Shipment and the Field Guide. *(elite variants done — 2 of 2–3; bosses remain)*
 - **A2 Endgame economy** — Reinforced Kit consumable (+55 health for one route), a repeatable gold sink bought in the shop. *(done)*
 - **A6 Difficulty presets** — Relaxed / Standard / Hard scaling the mission difficulty scalar. *(done)*
 - **A6 Assist toggles** — "Generous Timers" (+15s on timed missions), orthogonal to the presets. *(partial — one assist so far; slower-waves / extra-gold remain)*
@@ -100,7 +100,7 @@ All 8 upgrade tracks are flat linear stat bumps (`upgrades.json`, cost = `base_c
 
 ### A5. 🟡 Elite/boss enemies
 Roster is 5 kinds, no elites, no bosses (`entities.rs:432-439`). Add:
-- [ ] 2–3 **elite variants** (armored bandit, alpha wolf, revenant) using existing behavior verbs with a twist. *(partial — Alpha Wolf shipped)*
+- [x] 2–3 **elite variants** (armored bandit, alpha wolf, revenant) using existing behavior verbs with a twist. *(Alpha Wolf + Armored Bandit shipped)*
 - [ ] 2–3 **bosses** for campaign finale + expedition finale (multi-phase, telegraph-heavy — the wave state machine in `flow.rs` extends naturally).
 - [ ] 3–4 additional standard enemies to support biome variety (A6/B1).
 

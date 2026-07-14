@@ -668,6 +668,43 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn expedition_final_leg_wins_the_run_with_a_bonus() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    let start_gold = session.campaign.gold;
+
+    assert!(session.start_journey(&data));
+    // Jump to the final leg and bank some earnings along the way.
+    {
+        let journey = session.journey.as_mut().unwrap();
+        journey.leg = super::Journey::EXPEDITION_LENGTH;
+        journey.banked_gold = 300;
+    }
+
+    // Clear the final leg and take its reward: the run is won, not continued.
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    assert!(session.journey_choose_reward(1, &data));
+    let journey = session.journey.as_ref().unwrap();
+    assert!(journey.won, "final leg should win the run");
+    assert!(journey.alive, "a won run stays alive so it banks in full");
+    assert!(journey.pending_legs.is_none(), "no branch after the finale");
+    assert!(
+        journey.pending_event.is_none(),
+        "no vignette after the finale"
+    );
+    assert_eq!(journey.payout, super::Journey::completion_bonus());
+    // Banked = 300 + the final leg's chosen reward + the completion bonus.
+    assert!(journey.banked_gold >= 300 + super::Journey::completion_bonus());
+
+    // Banking a won run pays out the full stash to the campaign.
+    let banked = journey.banked_gold;
+    session.journey_bank_and_return();
+    assert!(session.journey.is_none());
+    assert_eq!(session.campaign.gold, start_gold + banked);
+}
+
+#[test]
 fn expedition_bank_and_return_pays_out_full() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

@@ -43,6 +43,9 @@ pub struct Journey {
     pub pending_event: Option<String>,
     /// Flavor outcome of the most recently resolved run event (hub readout).
     pub last_event_result: Option<String>,
+    /// True once the final leg has been cleared: the run is won and awaiting the
+    /// victory summary. A won run still `alive`, so banking pays out in full.
+    pub won: bool,
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -142,6 +145,20 @@ impl Journey {
     /// Enemy/hazard difficulty multiplier for the current leg.
     pub fn difficulty_scale(&self) -> f32 {
         1.0 + (self.leg.saturating_sub(1)) as f32 * 0.12
+    }
+
+    /// Number of legs in a full expedition. Clearing the final leg wins the run
+    /// (a defined arc + win condition, not an endless "leave or die" treadmill).
+    pub const EXPEDITION_LENGTH: u32 = 8;
+
+    /// Whether `leg` is the final leg of the expedition.
+    pub fn is_final_leg(leg: u32) -> bool {
+        leg >= Self::EXPEDITION_LENGTH
+    }
+
+    /// The victory bonus banked for completing the whole expedition.
+    pub fn completion_bonus() -> i64 {
+        Journey::leg_reward(Self::EXPEDITION_LENGTH) * 2
     }
 
     /// Gold banked for completing a given leg (escalates with depth).
@@ -266,6 +283,7 @@ impl GameSession {
             current_leg: None,
             pending_event: None,
             last_event_result: None,
+            won: false,
         });
         self.begin_journey_leg(data)
     }
@@ -353,11 +371,19 @@ impl GameSession {
         };
         reward.apply(journey);
         journey.pending_rewards = None;
-        journey.leg += 1;
-        let options = journey.generate_leg_options(data);
-        journey.pending_legs = Some(options);
-        // A between-legs vignette is presented before the branch (if any exist).
-        journey.pending_event = journey.next_run_event(data);
+        if Journey::is_final_leg(journey.leg) {
+            // The final leg's reward was just taken — the expedition is won.
+            let bonus = Journey::completion_bonus();
+            journey.banked_gold += bonus;
+            journey.payout = bonus;
+            journey.won = true;
+        } else {
+            journey.leg += 1;
+            let options = journey.generate_leg_options(data);
+            journey.pending_legs = Some(options);
+            // A between-legs vignette precedes the branch (if any exist).
+            journey.pending_event = journey.next_run_event(data);
+        }
         true
     }
 

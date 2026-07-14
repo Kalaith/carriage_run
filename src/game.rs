@@ -180,6 +180,7 @@ impl Game {
                     current_leg: None,
                     pending_event: None,
                     last_event_result: None,
+                    won: false,
                 };
                 let legs = journey.generate_leg_options(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -204,6 +205,7 @@ impl Game {
                     current_leg: None,
                     pending_event: None,
                     last_event_result: None,
+                    won: false,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -228,11 +230,32 @@ impl Game {
                     current_leg: None,
                     pending_event: None,
                     last_event_result: None,
+                    won: false,
                 };
                 let event = journey.next_run_event(&self.data);
                 self.session.journey = Some(crate::state::Journey {
                     pending_event: event,
                     ..journey
+                });
+                self.session.screen = crate::state::Screen::Journey;
+            }
+            "journey_win" => {
+                // Seed the expedition-victory summary screen.
+                self.session.journey = Some(crate::state::Journey {
+                    leg: crate::state::Journey::EXPEDITION_LENGTH,
+                    banked_gold: 640,
+                    carriage_health_ratio: 0.44,
+                    alive: true,
+                    last_reward: 0,
+                    last_mission_name: "Ashford Gate".to_owned(),
+                    payout: crate::state::Journey::completion_bonus(),
+                    pending_rewards: None,
+                    relics: vec!["ghost_wheels".to_owned(), "spiked_ram".to_owned()],
+                    pending_legs: None,
+                    current_leg: None,
+                    pending_event: None,
+                    last_event_result: None,
+                    won: true,
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }

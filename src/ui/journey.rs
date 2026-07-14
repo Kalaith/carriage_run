@@ -27,7 +27,9 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
         return;
     };
 
-    if !journey.alive {
+    if journey.won {
+        draw_victory(journey, mouse, actions);
+    } else if !journey.alive {
         draw_summary(journey, mouse, actions);
     } else if let Some(rewards) = &journey.pending_rewards {
         draw_reward_choice(journey, rewards, ctx.data, mouse, actions);
@@ -190,7 +192,11 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
     let panel = Rect::new(360.0, 70.0, 560.0, 600.0);
     draw_panel(panel, true);
     draw_text_centered_in_box(
-        &format!("Expedition — Leg {}", journey.leg),
+        &format!(
+            "Expedition — Leg {} of {}",
+            journey.leg,
+            Journey::EXPEDITION_LENGTH
+        ),
         panel.x + 30.0,
         panel.y + 28.0,
         panel.w - 60.0,
@@ -264,12 +270,12 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
         draw_stat_line(panel, panel.y + 296.0, "Relics", &names.join(", "));
     }
 
-    draw_section_label(
-        "Choose the Next Road",
-        panel.x + 40.0,
-        panel.y + 322.0,
-        panel.w - 80.0,
-    );
+    let road_label = if Journey::is_final_leg(journey.leg) {
+        "Final Leg — Choose the Road Home"
+    } else {
+        "Choose the Next Road"
+    };
+    draw_section_label(road_label, panel.x + 40.0, panel.y + 322.0, panel.w - 80.0);
     let mut y = panel.y + 350.0;
     match &journey.pending_legs {
         Some(legs) if !legs.is_empty() => {
@@ -325,6 +331,61 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
         &format!("Bank {} Gold & Return", journey.banked_gold),
         true,
         ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::JourneyBank);
+    }
+}
+
+fn draw_victory(journey: &Journey, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    let panel = Rect::new(400.0, 140.0, 480.0, 380.0);
+    draw_panel(panel, true);
+    draw_text_centered_in_box(
+        "Expedition Complete!",
+        panel.x + 30.0,
+        panel.y + 34.0,
+        panel.w - 60.0,
+        46.0,
+        34.0,
+        Color::new(0.42, 0.86, 0.46, 1.0),
+    );
+    draw_text_centered_in_box(
+        &format!(
+            "The convoy ran all {} legs and rolled home.",
+            Journey::EXPEDITION_LENGTH
+        ),
+        panel.x + 30.0,
+        panel.y + 88.0,
+        panel.w - 60.0,
+        28.0,
+        19.0,
+        MUTED,
+    );
+
+    draw_stat_line(
+        panel,
+        panel.y + 150.0,
+        "Legs Cleared",
+        &format!("{}", Journey::EXPEDITION_LENGTH),
+    );
+    draw_stat_line(
+        panel,
+        panel.y + 186.0,
+        "Completion Bonus",
+        &format!("+{} gold", journey.payout),
+    );
+    draw_stat_line(
+        panel,
+        panel.y + 222.0,
+        "Total Banked",
+        &format!("{}", journey.banked_gold),
+    );
+
+    if virtual_button(
+        Rect::new(panel.x + 150.0, panel.bottom() - 70.0, 180.0, 46.0),
+        &format!("Claim {} Gold", journey.banked_gold),
+        true,
+        ButtonTone::Positive,
         mouse,
     ) {
         actions.push(UiAction::JourneyBank);

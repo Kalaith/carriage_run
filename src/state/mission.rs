@@ -192,6 +192,11 @@ pub struct MissionRun {
     /// Multiplier on the lulls between enemy waves (>1 = gentler pacing). Driven
     /// by the Slower Waves accessibility assist.
     pub(super) wave_pace: f32,
+    /// Monster-egg missions only: the shell has visibly cracked (telegraph).
+    pub(super) egg_cracked: bool,
+    /// Monster-egg missions only: the egg has hatched — the brood erupted and the
+    /// stability meter is spent. Set once.
+    pub(super) egg_hatched: bool,
 }
 
 impl MissionRun {
@@ -372,6 +377,8 @@ impl MissionRun {
                 0.0
             },
             wave_pace,
+            egg_cracked: false,
+            egg_hatched: false,
         }
     }
 

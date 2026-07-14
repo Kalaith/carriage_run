@@ -153,6 +153,36 @@ fn buying_and_spending_a_reinforced_kit() {
 }
 
 #[test]
+fn monster_egg_hatches_into_a_brood_instead_of_instant_fail() {
+    let data = crate::data::GameData::load().unwrap();
+    let mission = data.missions.get("monster_egg").unwrap();
+    let config = test_config();
+    let campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    let mut run = MissionRun::new(mission, &campaign);
+    // Spend the egg's stability: the next tick should hatch, not fail.
+    run.special_meter = 0.0;
+    let enemies_before = run.enemies.len();
+
+    let report = run.update(mission, 1.0 / 60.0);
+    assert!(
+        report.is_none(),
+        "a hatching egg must not instantly end the mission"
+    );
+    assert!(
+        run.enemies.len() > enemies_before,
+        "the brood did not erupt"
+    );
+    // Ticking again does not re-hatch (fires once).
+    let brood = run.enemies.len();
+    run.update(mission, 1.0 / 60.0);
+    assert!(
+        run.enemies.len() <= brood + 1,
+        "the egg hatched more than once"
+    );
+}
+
+#[test]
 fn assist_toggles_soften_the_run() {
     let data = crate::data::GameData::load().unwrap();
     let mission = data.missions.get("muddy_road").unwrap();

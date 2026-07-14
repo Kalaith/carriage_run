@@ -82,9 +82,6 @@ impl MissionRun {
             Some(self.make_report(mission, false, "Passenger safety failed"))
         } else if self.mission_kind == MissionKind::MedicineRun && self.special_meter <= 0.0 {
             Some(self.make_report(mission, false, "Medicine spoiled"))
-        } else if self.mission_kind == MissionKind::MonsterEggTransport && self.special_meter <= 0.0
-        {
-            Some(self.make_report(mission, false, "Egg destabilized"))
         } else if self.mission_kind == MissionKind::RefugeeEscort && self.special_meter <= 0.0 {
             Some(self.make_report(mission, false, "Refugees scattered"))
         } else if self.mission_kind == MissionKind::RoyalBanquetSupplies

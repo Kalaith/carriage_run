@@ -479,6 +479,7 @@ fn draw_enemy(enemy: &Enemy) {
         EnemyKind::BanditArcher => draw_bandit_archer(enemy.pos, flash),
         EnemyKind::Skeleton => draw_skeleton(enemy.pos, flash),
         EnemyKind::Necromancer => draw_necromancer(enemy.pos, flash),
+        EnemyKind::AlphaWolf => draw_alpha_wolf(enemy.pos, flash),
     }
     draw_health_bar(
         vec2(enemy.pos.x - 26.0, enemy.pos.y - enemy.radius - 18.0),
@@ -504,7 +505,34 @@ pub(super) fn draw_enemy_icon(kind: EnemyKind, pos: Vec2) {
         EnemyKind::BanditArcher => draw_bandit_archer(pos, false),
         EnemyKind::Skeleton => draw_skeleton(pos, false),
         EnemyKind::Necromancer => draw_necromancer(pos, false),
+        EnemyKind::AlphaWolf => draw_alpha_wolf(pos, false),
     }
+}
+
+/// Elite wolf: a larger, darker wolf with red eyes, so it reads as a step up
+/// from the common wolf at a glance.
+fn draw_alpha_wolf(pos: Vec2, flash: bool) {
+    let body = if flash {
+        WHITE
+    } else {
+        Color::new(0.20, 0.20, 0.23, 1.0)
+    };
+    draw_circle(pos.x, pos.y, 24.0, body);
+    draw_triangle(
+        vec2(pos.x - 19.0, pos.y - 13.0),
+        vec2(pos.x - 6.0, pos.y - 40.0),
+        vec2(pos.x + 3.0, pos.y - 12.0),
+        body,
+    );
+    draw_triangle(
+        vec2(pos.x + 19.0, pos.y - 13.0),
+        vec2(pos.x + 6.0, pos.y - 40.0),
+        vec2(pos.x - 3.0, pos.y - 12.0),
+        body,
+    );
+    let eye = Color::new(0.90, 0.16, 0.12, 1.0);
+    draw_circle(pos.x - 8.0, pos.y - 3.0, 2.6, eye);
+    draw_circle(pos.x + 8.0, pos.y - 3.0, 2.6, eye);
 }
 
 fn draw_wolf(pos: Vec2, flash: bool) {

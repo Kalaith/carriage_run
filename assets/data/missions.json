@@ -345,7 +345,7 @@
     "distance": 1340.0,
     "difficulty": 1.52,
     "base_reward": 220,
-    "enemy_mix": ["wolf", "bandit", "bandit_archer", "skeleton"],
+    "enemy_mix": ["wolf", "alpha_wolf", "bandit", "bandit_archer", "skeleton"],
     "hazard_mix": ["mud", "fallen_tree", "fire_patch"],
     "unlock_any_missions": ["medicine_run", "prisoner_wagon"],
     "route_choices": [

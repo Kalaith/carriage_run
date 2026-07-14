@@ -436,16 +436,19 @@ pub enum EnemyKind {
     BanditArcher,
     Skeleton,
     Necromancer,
+    /// Elite pack leader: a bigger, tougher, faster charging wolf.
+    AlphaWolf,
 }
 
 impl EnemyKind {
-    pub fn all() -> [Self; 5] {
+    pub fn all() -> [Self; 6] {
         [
             Self::Wolf,
             Self::Bandit,
             Self::BanditArcher,
             Self::Skeleton,
             Self::Necromancer,
+            Self::AlphaWolf,
         ]
     }
 
@@ -456,6 +459,7 @@ impl EnemyKind {
             "bandit_archer" => Some(Self::BanditArcher),
             "skeleton" => Some(Self::Skeleton),
             "necromancer" => Some(Self::Necromancer),
+            "alpha_wolf" => Some(Self::AlphaWolf),
             _ => None,
         }
     }
@@ -468,6 +472,7 @@ impl EnemyKind {
             Self::BanditArcher => "Bandit Archer",
             Self::Skeleton => "Skeleton",
             Self::Necromancer => "Necromancer",
+            Self::AlphaWolf => "Alpha Wolf",
         }
     }
 
@@ -479,6 +484,7 @@ impl EnemyKind {
             Self::BanditArcher => "Ranged skirmisher",
             Self::Skeleton => "Undead melee",
             Self::Necromancer => "Summoner",
+            Self::AlphaWolf => "Elite charger",
         }
     }
 
@@ -500,6 +506,9 @@ impl EnemyKind {
             Self::Necromancer => {
                 "Keeps its distance, kites, and raises fresh skeletons. Kill it first to stem the tide."
             }
+            Self::AlphaWolf => {
+                "A pack leader — bigger, faster, and far tougher than a lone wolf. Gang up on it before it reaches the carriage."
+            }
         }
     }
 
@@ -510,6 +519,7 @@ impl EnemyKind {
             Self::BanditArcher => "Bandit arrow",
             Self::Skeleton => "Skeleton strike",
             Self::Necromancer => "Dark bolt",
+            Self::AlphaWolf => "Alpha wolf maul",
         }
     }
 
@@ -527,6 +537,7 @@ impl EnemyKind {
     pub(super) fn charge_multiplier(self) -> f32 {
         match self {
             Self::Wolf => 1.85,
+            Self::AlphaWolf => 2.05,
             _ => 1.0,
         }
     }
@@ -568,6 +579,7 @@ impl Enemy {
             EnemyKind::BanditArcher => (34.0, 62.0, 6.0, 18.0, 1.45),
             EnemyKind::Skeleton => (54.0, 76.0, 8.0, 21.0, 1.15),
             EnemyKind::Necromancer => (74.0, 48.0, 9.0, 22.0, 1.75),
+            EnemyKind::AlphaWolf => (78.0, 138.0, 12.0, 24.0, 0.8),
         };
         let scale = 0.9 + difficulty * 0.16;
 
@@ -606,6 +618,7 @@ impl Enemy {
             EnemyKind::Wolf => 104.0,
             EnemyKind::Skeleton => 96.0,
             EnemyKind::Necromancer => 150.0,
+            EnemyKind::AlphaWolf => 122.0,
         }
     }
 }

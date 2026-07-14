@@ -691,6 +691,15 @@ mod tests {
     }
 
     #[test]
+    fn alpha_wolf_outclasses_a_common_wolf() {
+        let wolf = Enemy::new(1, EnemyKind::Wolf, vec2(0.0, 0.0), 1.0);
+        let alpha = Enemy::new(2, EnemyKind::AlphaWolf, vec2(0.0, 0.0), 1.0);
+        assert!(alpha.max_health > wolf.max_health);
+        assert!(alpha.damage > wolf.damage);
+        assert!(alpha.speed > wolf.speed);
+    }
+
+    #[test]
     fn live_enemies_are_hard_capped() {
         let mut run = test_run();
         // Far more spawn attempts than the cap; count must never exceed it.

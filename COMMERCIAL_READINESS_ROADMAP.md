@@ -44,6 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
+- **A3 Princess drive-clean — meets the 3–4 verb target** — the princess-comfort meter is now smoothness-driven. Each frame the carriage's swerve (lateral drift off the road centre, road curve subtracted) feeds a smoothed **ride-smoothness multiplier (×1.00–×2.00)** shown live on the HUD; gliding a clean line restores comfort while jerky steering erodes it. With monster-egg and siege, that's 3 meters reworked into genuine verbs — the design review's 3–4 target is met.
 - **A3 Siege-run rhythm inversion** — the siege supply run no longer spawns a steady trickle. It now alternates **long tense calms and heavily-telegraphed mega-waves** (~2.4× enemies flooding in fast, 2× longer lulls, "Siege assault N incoming!"). The Momentum meter drains during an assault but recovers in the calm, so the mission plays as weather-the-surge-then-breathe rather than constant pressure. *(A3: 2 of 3–4 meters reworked)*
 - **A3 Monster-egg verb** — the first of the mission-type meters promoted from a passive formula to a real mechanic. The egg's Stability meter is now a bomb timer: it cracks (telegraph) as stability falls and, when spent, the egg **hatches mid-route** — a brood erupts around the carriage and swarms it (`hatch_egg` in `pressure.rs`), replacing the old instant "Egg destabilized" fail. The mission continues under the swarm; the bonus becomes "deliver without it ever hatching". *(A3: 1 of 3–4 meters reworked)*
 - **A2 Expedition entry stakes** — a push-your-luck gold sink layered onto the Outfitter. 3 data-driven stake tiers (`assets/data/stakes.json`: No Stake / Caravan Bond +30% / High Wager +70%). The chosen ante is paid up front from campaign gold when a run begins and its multiplier applies to every leg reward and the completion bonus; a run that ends badly forfeits the ante. Bigger wagers demand deeper runs to pay off. *(done)*
@@ -97,12 +98,12 @@ The core 60-second loop is good. What's missing is what happens after hour one.
 - [ ] Cosmetic sink (carriage liveries, guard colors) once the art pass exists.
 - [ ] Optional: prestige/NG+ (reset campaign with a permanent token).
 
-### A3. 🟠 Mission-type mechanics — promote 3–4 meters to verbs
-All 8 special meters are one formula with different coefficients (`pressure.rs:8-104`) — the lose-screen differs, the play doesn't. Per the design review, rework only 3–4 (avoid gold-plating all 10):
+### A3. ✅ Mission-type mechanics — promote 3–4 meters to verbs — **TARGET MET (3 of 3–4)**
+Three meters are now genuine verbs (monster-egg hatch, siege mega-waves, princess drive-clean); the design review's 3–4 target is met. Prisoner-escort breakout remains as an optional 4th.
 - [ ] **Prisoner escort**: prisoner periodically attempts a breakout (spawns an escaping unit you must intercept) instead of a passive security meter.
 - [x] **Monster egg**: the Stability meter is now a bomb timer, not a fail meter. Losing stability cracks the shell (telegraph alert) and, when spent, the egg **hatches mid-route** — a brood of wolves/skeletons erupts around the carriage and swarms it (`hatch_egg`), replacing the old instant "Egg destabilized" loss. You now survive the hatch and press on rather than auto-failing; the bonus is "deliver without it ever hatching". *(done)*
 - [x] **Siege supply run**: rhythm inversion shipped. Instead of steady lull→small-burst spawns, the siege now runs **long tense calms punctuated by heavily-telegraphed mega-waves** (~2.4× the enemies, flooding in fast; 2× longer lulls; "Siege assault N incoming!"). The Momentum meter drains under an assault but *recovers* in the calm, so the loop is weather-the-surge-then-breathe. *(done — `is_siege`/`wave_size` in `flow.rs`, recovery in `pressure.rs`)*
-- [ ] **Princess comfort**: scoring becomes line-quality-driven (smoothness bonus multiplier visible in real time) so it plays as a "drive clean" challenge.
+- [x] **Princess comfort**: now a "drive clean" challenge. Comfort is driven by how smoothly you hold your line — the swerve (rate of lateral drift off the road centre, with the road's own curve subtracted out) is measured each frame into a smoothed **ride-smoothness multiplier (×1.00–×2.00)** shown live on the HUD. Glide clean and comfort recovers; yank the wheel and it erodes. *(done — `ride_smoothness` in `pressure.rs`, HUD readout in `gameplay_hud.rs`)*
 
 ### A4. 🟠 Choice-based progression (build identity)
 All 8 upgrade tracks are flat linear stat bumps (`upgrades.json`, cost = `base_cost·(level+1)`). Add opportunity cost:

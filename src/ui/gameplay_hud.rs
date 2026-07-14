@@ -67,11 +67,24 @@ fn draw_top_hud(run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
     draw_route_progress(Rect::new(rect.x + 562.0, rect.y + 14.0, 330.0, 58.0), run);
 
     if let (Some(label), Some(ratio)) = (run.mission_kind.label(), run.special_ratio()) {
-        draw_small_special(
-            Rect::new(rect.x + 904.0, rect.y + 18.0, 82.0, 50.0),
-            label,
-            ratio,
-        );
+        let meter = Rect::new(rect.x + 904.0, rect.y + 18.0, 82.0, 50.0);
+        draw_small_special(meter, label, ratio);
+        // Princess "drive clean" challenge: the live smoothness multiplier.
+        if let Some(mult) = run.ride_smoothness_multiplier() {
+            let color = if mult >= 1.7 {
+                Color::new(0.42, 0.86, 0.46, 1.0)
+            } else if mult >= 1.35 {
+                Color::new(0.95, 0.82, 0.36, 1.0)
+            } else {
+                Color::new(0.95, 0.55, 0.42, 1.0)
+            };
+            draw_text_centered(
+                &format!("Smooth x{:.2}", mult),
+                meter.x + meter.w / 2.0,
+                meter.bottom() + 16.0,
+                TextStyle::new(15.0, color),
+            );
+        }
     }
 
     let (time_label, time_color) = timer_label(run);

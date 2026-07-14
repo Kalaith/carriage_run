@@ -197,6 +197,12 @@ pub struct MissionRun {
     /// Monster-egg missions only: the egg has hatched — the brood erupted and the
     /// stability meter is spent. Set once.
     pub(super) egg_hatched: bool,
+    /// Princess-comfort missions only: the carriage's lateral offset from the
+    /// road centre last frame, used to measure steering smoothness.
+    pub(super) last_lateral: f32,
+    /// Princess-comfort missions only: the smoothed "ride smoothness" multiplier
+    /// (0..1). 1.0 = gliding clean; drops as you swerve. Drives comfort + score.
+    pub(super) ride_smoothness: f32,
 }
 
 impl MissionRun {
@@ -387,6 +393,8 @@ impl MissionRun {
             wave_pace,
             egg_cracked: false,
             egg_hatched: false,
+            last_lateral: 0.0,
+            ride_smoothness: 1.0,
         }
     }
 
@@ -464,6 +472,13 @@ impl MissionRun {
     /// The wave number being telegraphed, if a warning is currently showing.
     pub fn wave_telegraph(&self) -> Option<u32> {
         matches!(self.wave, WavePhase::Telegraph(_)).then_some(self.wave_index)
+    }
+
+    /// The live ride-smoothness multiplier (1.0–2.0) for princess-comfort runs,
+    /// where scoring rewards driving clean. `None` on other mission types.
+    pub fn ride_smoothness_multiplier(&self) -> Option<f32> {
+        (self.mission_kind == MissionKind::PrincessEscort)
+            .then_some(1.0 + self.ride_smoothness.clamp(0.0, 1.0))
     }
 
     pub fn special_ratio(&self) -> Option<f32> {

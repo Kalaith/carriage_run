@@ -153,6 +153,56 @@ fn buying_and_spending_a_reinforced_kit() {
 }
 
 #[test]
+fn princess_comfort_rewards_smooth_driving_over_swerving() {
+    use macroquad::math::{vec2, Rect};
+    let data = crate::data::GameData::load().unwrap();
+    let mission = data.missions.get("princess_road").unwrap();
+    let config = test_config();
+    let campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    let input = |left: bool, right: bool| MissionInput {
+        mouse: vec2(640.0, 300.0),
+        pressed: false,
+        down: false,
+        released: false,
+        repair_pressed: false,
+        play_rect: Rect::new(0.0, 0.0, 1280.0, 720.0),
+        steer_left: left,
+        steer_right: right,
+        boost: false,
+        brake: false,
+    };
+
+    // Glide a steady line: no steering input, hold centre for a couple of seconds.
+    let mut smooth = MissionRun::new(mission, &campaign);
+    smooth.special_meter = 50.0;
+    for _ in 0..120 {
+        smooth.handle_input(input(false, false));
+        smooth.update(mission, 1.0 / 60.0);
+    }
+
+    // Yank the wheel side to side: a jerky, uncomfortable ride.
+    let mut jerky = MissionRun::new(mission, &campaign);
+    jerky.special_meter = 50.0;
+    for i in 0..120 {
+        let right = (i / 6) % 2 == 0;
+        jerky.handle_input(input(!right, right));
+        jerky.update(mission, 1.0 / 60.0);
+    }
+
+    assert!(
+        smooth.special_meter > jerky.special_meter,
+        "smooth ride ({}) should be comfier than a jerky one ({})",
+        smooth.special_meter,
+        jerky.special_meter
+    );
+    assert!(
+        smooth.ride_smoothness_multiplier().unwrap() > jerky.ride_smoothness_multiplier().unwrap(),
+        "smoothness multiplier should favour the clean line"
+    );
+}
+
+#[test]
 fn siege_run_fields_larger_waves_than_a_normal_route() {
     let data = crate::data::GameData::load().unwrap();
     let config = test_config();

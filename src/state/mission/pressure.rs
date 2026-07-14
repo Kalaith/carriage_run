@@ -26,12 +26,24 @@ impl MissionRun {
                 self.special_meter = self.special_meter.clamp(0.0, 100.0);
             }
             MissionKind::PrincessEscort => {
-                let road_discomfort = if self.carriage.slow_timer > 0.0 {
+                // A "drive clean" challenge: comfort is driven by how smoothly you
+                // hold your line. Measure the swerve (rate of lateral drift off the
+                // road centre — the road's own curve is subtracted out).
+                let center = road_center_at_y(CARRIAGE_Y, self.progress);
+                let deviation = self.carriage.pos.x - center;
+                let swerve = ((deviation - self.last_lateral) / dt.max(1e-3)).abs();
+                self.last_lateral = deviation;
+                let instant = (1.0 - swerve / 220.0).clamp(0.0, 1.0);
+                // Smooth the readout so a single bump doesn't spike it.
+                self.ride_smoothness += (instant - self.ride_smoothness) * (dt * 4.0).min(1.0);
+                // Gliding clean restores comfort; jerky driving and rough road erode it.
+                let road_penalty = if self.carriage.slow_timer > 0.0 {
                     0.7
                 } else {
-                    0.12
+                    0.0
                 };
-                self.special_meter = (self.special_meter - dt * road_discomfort).clamp(0.0, 100.0);
+                let delta = (self.ride_smoothness - 0.5) * 1.4 - road_penalty;
+                self.special_meter = (self.special_meter + dt * delta).clamp(0.0, 100.0);
             }
             MissionKind::MedicineRun => {
                 let rough_decay = if self.carriage.slow_timer > 0.0 {

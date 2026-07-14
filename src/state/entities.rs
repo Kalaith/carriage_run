@@ -748,6 +748,44 @@ impl Hazard {
     }
 }
 
+/// Lifetime (seconds) of a floating combat number before it fades out.
+const FLOAT_TEXT_LIFE: f32 = 0.7;
+
+/// A short-lived floating damage number that drifts upward and fades — combat
+/// juice that also makes hits legible.
+#[derive(Debug, Clone)]
+pub struct FloatText {
+    pub pos: Vec2,
+    pub value: String,
+    pub color: Color,
+    pub age: f32,
+}
+
+impl FloatText {
+    pub(super) fn new(pos: Vec2, value: String, color: Color) -> Self {
+        Self {
+            pos,
+            value,
+            color,
+            age: 0.0,
+        }
+    }
+
+    pub(super) fn advance(&mut self, dt: f32) {
+        self.age += dt;
+        self.pos.y -= 26.0 * dt;
+    }
+
+    pub(super) fn expired(&self) -> bool {
+        self.age >= FLOAT_TEXT_LIFE
+    }
+
+    /// Fade alpha, 1 at spawn to 0 at end of life.
+    pub fn alpha(&self) -> f32 {
+        (1.0 - self.age / FLOAT_TEXT_LIFE).clamp(0.0, 1.0)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Shot {
     pub from: Vec2,

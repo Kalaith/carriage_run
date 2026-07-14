@@ -63,6 +63,11 @@ impl MissionRun {
         self.update_mission_pressure(dt);
         self.cleanup_entities();
 
+        for text in &mut self.float_texts {
+            text.advance(dt);
+        }
+        self.float_texts.retain(|text| !text.expired());
+
         if self.carriage.health <= 0.0 {
             Some(self.make_report(mission, false, "Carriage destroyed"))
         } else if self.carriage.cargo <= 0.0 {

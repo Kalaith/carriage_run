@@ -476,13 +476,18 @@ impl MissionRun {
     }
 
     fn damage_enemy(&mut self, enemy_id: u32, damage: f32) -> Option<Vec2> {
-        if let Some(enemy) = self.enemies.iter_mut().find(|enemy| enemy.id == enemy_id) {
+        let pos = {
+            let enemy = self.enemies.iter_mut().find(|enemy| enemy.id == enemy_id)?;
             enemy.health -= damage;
             enemy.hit_flash = 0.12;
-            Some(enemy.pos)
-        } else {
-            None
-        }
+            enemy.pos
+        };
+        self.float_texts.push(FloatText::new(
+            vec2(pos.x, pos.y - 22.0),
+            format!("{:.0}", damage.max(1.0)),
+            Color::new(0.98, 0.90, 0.52, 1.0),
+        ));
+        Some(pos)
     }
 
     fn nearby_enemy(&self, excluded_id: u32, pos: Vec2, radius: f32) -> Option<u32> {
@@ -553,6 +558,13 @@ impl MissionRun {
 
         self.carriage.health = (self.carriage.health - final_damage).max(0.0);
         self.carriage.cargo = (self.carriage.cargo - final_cargo_loss).max(0.0);
+        if final_damage >= 1.0 {
+            self.float_texts.push(FloatText::new(
+                vec2(self.carriage.pos.x, self.carriage.pos.y - 44.0),
+                format!("-{:.0}", final_damage),
+                Color::new(0.98, 0.42, 0.34, 1.0),
+            ));
+        }
         match self.mission_kind {
             MissionKind::PrincessEscort => {
                 self.special_meter =

@@ -144,6 +144,8 @@ pub struct MissionRun {
     pub enemies: Vec<Enemy>,
     pub hazards: Vec<Hazard>,
     pub shots: Vec<Shot>,
+    /// Floating combat numbers (juice); short-lived, purely visual.
+    pub float_texts: Vec<FloatText>,
     pub drag: DragState,
     pub alert: Alert,
     pub progress: f32,
@@ -295,6 +297,7 @@ impl MissionRun {
             enemies: Vec::new(),
             hazards: Vec::new(),
             shots: Vec::new(),
+            float_texts: Vec::new(),
             drag: DragState::None,
             alert: Alert::default(),
             progress: 0.0,

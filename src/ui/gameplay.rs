@@ -8,6 +8,8 @@ use crate::state::{
     GuardKind, GuardOrder, Hazard, HazardKind, MissionRun, PLAY_BOTTOM, PLAY_TOP, ROAD_WIDTH,
 };
 use macroquad::prelude::*;
+use macroquad_toolkit::prelude::TextStyle;
+use macroquad_toolkit::ui::draw_text_centered;
 
 pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let Some(run) = &ctx.session.mission else {
@@ -42,8 +44,24 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
     {
         draw_guard(guard);
     }
+    draw_float_texts(run);
     draw_drag_feedback(run, mouse);
     draw_gameplay_hud(ctx, run, mouse, actions);
+}
+
+/// Floating combat numbers: damage dealt (gold) and taken (red), drifting up
+/// and fading.
+fn draw_float_texts(run: &MissionRun) {
+    for text in &run.float_texts {
+        let mut color = text.color;
+        color.a = text.alpha();
+        draw_text_centered(
+            &text.value,
+            text.pos.x,
+            text.pos.y,
+            TextStyle::new(18.0, color),
+        );
+    }
 }
 
 fn draw_road(run: &MissionRun, route_motion_enabled: bool) {

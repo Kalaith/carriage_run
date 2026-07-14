@@ -199,6 +199,10 @@ impl Game {
             released: is_mouse_button_released(MouseButton::Left),
             repair_pressed: is_key_pressed(KeyCode::R),
             play_rect: ui::play_rect(),
+            steer_left: is_key_down(KeyCode::A) || is_key_down(KeyCode::Left),
+            steer_right: is_key_down(KeyCode::D) || is_key_down(KeyCode::Right),
+            boost: is_key_down(KeyCode::Up) || is_key_down(KeyCode::Space),
+            brake: is_key_down(KeyCode::Down) || is_key_down(KeyCode::LeftShift),
         };
 
         if let Some(report) = self.session.update_play(&self.data, dt, input) {

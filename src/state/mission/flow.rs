@@ -6,6 +6,13 @@ use macroquad::prelude::*;
 
 impl MissionRun {
     pub fn handle_input(&mut self, input: MissionInput) {
+        self.drive = DriveKeys {
+            left: input.steer_left,
+            right: input.steer_right,
+            boost: input.boost,
+            brake: input.brake,
+        };
+
         if input.repair_pressed {
             self.use_emergency_repair();
         }
@@ -147,10 +154,10 @@ impl MissionRun {
 
     fn handle_keyboard(&mut self, dt: f32) {
         let mut axis = 0.0;
-        if is_key_down(KeyCode::A) || is_key_down(KeyCode::Left) {
+        if self.drive.left {
             axis -= 1.0;
         }
-        if is_key_down(KeyCode::D) || is_key_down(KeyCode::Right) {
+        if self.drive.right {
             axis += 1.0;
         }
         if axis != 0.0 {
@@ -159,9 +166,9 @@ impl MissionRun {
         }
 
         // Manual throttle: rush past danger or slow down to let guards work.
-        self.throttle = if is_key_down(KeyCode::Up) || is_key_down(KeyCode::Space) {
+        self.throttle = if self.drive.boost {
             1.32
-        } else if is_key_down(KeyCode::Down) || is_key_down(KeyCode::LeftShift) {
+        } else if self.drive.brake {
             0.58
         } else {
             1.0

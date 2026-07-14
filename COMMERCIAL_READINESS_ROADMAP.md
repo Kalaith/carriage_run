@@ -57,7 +57,7 @@ Shipped and committed to `master` this cycle (checkboxes below updated to match)
 - **I1 Save hardening** — Continue/Load gated on the save actually loading; a corrupt save is skipped with a warning instead of silently failing. *(partial — rolling `.bak` / restore remains)*
 - **I2 Crash handling** — native panic hook writes a crash log to app-data. *(partial — user-facing crash dialog remains)*
 - **I3 Data validation** — semantic content-id validation, unlock-graph reachability, and cost/unlock invariant tests. *(done)*
-- **I4 Stability** — hard cap of 48 live enemies to bound runaway spawns. *(partial — soak test remains)*
+- **I4 Stability** — hard cap of 48 live enemies, plus a headless soak test that runs the full mission sim to completion under worst-case load (enabled by routing keyboard input through `MissionInput` instead of `is_key_down`). *(done)*
 - **Procedural art** — redrawn menu-backdrop wagon (horse-drawn covered wagon) and the crest (wagon-wheel emblem).
 
 ---
@@ -237,7 +237,7 @@ Foundations are genuinely good (atomic saves, versioned migration, CI, low panic
 - [x] 🟡 Cross-record invariant tests beyond the single difficulty-monotonic test (reward curves, unlock-graph reachability, cost curves).
 
 ### I4. Performance & stability
-- [ ] 🟠 Entity hard-caps + soak test (no ceiling exists on live enemies; necromancers compound).
+- [x] 🟠 Entity hard-caps + soak test (no ceiling exists on live enemies; necromancers compound).
 - [ ] 🟡 Benchmark `opt-level=3` native vs the workspace-inherited `opt-level="z"` (size-optimized) — a per-package override in the workspace root is the pattern other games already use.
 - [ ] 🟡 Fixed-timestep evaluation for simulation determinism (currently variable dt clamped at 0.1 — `main.rs:39`; matters for seeded-run fairness, A1).
 - [ ] 🟡 WASM size budget: asset atlas + PNG compression once the art pass lands (title PNG alone is 2.6 MB).

@@ -32,6 +32,22 @@ pub struct MissionInput {
     pub released: bool,
     pub repair_pressed: bool,
     pub play_rect: Rect,
+    /// Keyboard drive state, injected so the sim stays headless-testable rather
+    /// than reading `is_key_down` from inside `update`.
+    pub steer_left: bool,
+    pub steer_right: bool,
+    pub boost: bool,
+    pub brake: bool,
+}
+
+/// Per-frame keyboard drive state carried from `handle_input` into
+/// `handle_keyboard` (which has the `dt` needed to apply it).
+#[derive(Debug, Clone, Copy, Default)]
+pub(super) struct DriveKeys {
+    pub left: bool,
+    pub right: bool,
+    pub boost: bool,
+    pub brake: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -149,6 +165,8 @@ pub struct MissionRun {
     pub carriage_visual: CarriageVisual,
     /// Player throttle: >1 while boosting, <1 while braking, 1 at cruise.
     pub(super) throttle: f32,
+    /// This frame's injected keyboard drive state.
+    pub(super) drive: DriveKeys,
     /// Active chassis speed multiplier (Scout fast, Heavy slow).
     pub(super) chassis_speed_mult: f32,
     pub(super) wave: WavePhase,
@@ -302,6 +320,7 @@ impl MissionRun {
             repair_used: false,
             carriage_visual: CarriageVisual::from_campaign(campaign),
             throttle: 1.0,
+            drive: DriveKeys::default(),
             chassis_speed_mult: campaign.chassis_speed_mult,
             wave: WavePhase::Lull(2.2),
             wave_index: 0,

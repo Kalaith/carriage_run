@@ -86,6 +86,47 @@ fn set_difficulty_changes_preset_and_reports_change() {
 }
 
 #[test]
+fn siege_run_sim_stays_bounded_and_terminates() {
+    use macroquad::math::{vec2, Rect};
+
+    let data = crate::data::GameData::load().unwrap();
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    session.campaign.difficulty_preset = DifficultyPreset::Hard;
+
+    // Drop straight into the densest mission (bypassing unlock gates for the
+    // test) and run the full sim headlessly under worst-case spawn pressure.
+    let mission = data.missions.get("siege_supply").unwrap();
+    session.mission = Some(MissionRun::new(mission, &session.campaign));
+    session.screen = Screen::Playing;
+
+    let input = MissionInput {
+        mouse: vec2(0.0, 0.0),
+        pressed: false,
+        down: false,
+        released: false,
+        repair_pressed: false,
+        play_rect: Rect::new(0.0, 0.0, 1280.0, 720.0),
+        steer_left: false,
+        steer_right: false,
+        boost: false,
+        brake: false,
+    };
+
+    let mut ended = false;
+    for _ in 0..8000 {
+        if session.update_play(&data, 1.0 / 60.0, input).is_some() {
+            ended = true;
+            break;
+        }
+        // Runaway spawns would blow well past the hard cap (48).
+        let live = session.mission.as_ref().unwrap().enemies.len();
+        assert!(live < 64, "live enemy count unbounded: {live}");
+    }
+    assert!(ended, "mission did not terminate within the frame budget");
+}
+
+#[test]
 fn buying_and_spending_a_reinforced_kit() {
     let data = crate::data::GameData::load().unwrap();
     let config = test_config();

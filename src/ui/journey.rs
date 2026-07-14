@@ -269,6 +269,15 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
             .collect();
         draw_stat_line(panel, panel.y + 296.0, "Relics", &names.join(", "));
     }
+    if journey.seeded {
+        // Surface the shareable daily/seeded code.
+        draw_text_right(
+            &format!("Daily Seed {}", journey.seed_code()),
+            panel.right() - 30.0,
+            panel.y + 34.0,
+            TextStyle::new(16.0, MUTED),
+        );
+    }
 
     let road_label = if Journey::is_final_leg(journey.leg) {
         "Final Leg — Choose the Road Home"
@@ -380,6 +389,9 @@ fn draw_victory(journey: &Journey, mouse: Vec2, actions: &mut Vec<UiAction>) {
         "Total Banked",
         &format!("{}", journey.banked_gold),
     );
+    if journey.seeded {
+        draw_stat_line(panel, panel.y + 258.0, "Daily Seed", &journey.seed_code());
+    }
 
     if virtual_button(
         Rect::new(panel.x + 150.0, panel.bottom() - 70.0, 180.0, 46.0),

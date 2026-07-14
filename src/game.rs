@@ -182,6 +182,8 @@ impl Game {
                     last_event_result: None,
                     won: false,
                     legs_cleared: 2,
+                    seed: 0,
+                    seeded: false,
                 };
                 let legs = journey.generate_leg_options(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -208,6 +210,8 @@ impl Game {
                     last_event_result: None,
                     won: false,
                     legs_cleared: 2,
+                    seed: 0,
+                    seeded: false,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -234,6 +238,8 @@ impl Game {
                     last_event_result: None,
                     won: false,
                     legs_cleared: 2,
+                    seed: 0,
+                    seeded: false,
                 };
                 let event = journey.next_run_event(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -269,6 +275,8 @@ impl Game {
                     last_event_result: None,
                     won: true,
                     legs_cleared: crate::state::Journey::EXPEDITION_LENGTH,
+                    seed: 0x1A2B3C4D,
+                    seeded: true,
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -540,8 +548,21 @@ impl Game {
                 }
             }
             UiAction::StartExpedition => {
-                if self.session.start_journey(&self.data) {
+                // A fresh nonce per run so free expeditions actually vary.
+                let nonce = macroquad::miniquad::date::now().to_bits();
+                if self.session.start_journey(&self.data, nonce) {
                     self.notifications.info("Expedition begun — leg 1");
+                } else {
+                    self.notifications.warning("Could not start expedition");
+                }
+            }
+            UiAction::StartDailyExpedition => {
+                // Today's UTC day-number: the same seed for everyone today, so
+                // the run is reproducible and shareable.
+                let day = (macroquad::miniquad::date::now() / 86_400.0) as u64;
+                let seed = day.wrapping_mul(0x9E37_79B9_7F4A_7C15) ^ 0xDA11_0DA1_1000_u64;
+                if self.session.start_journey_seeded(&self.data, seed, true) {
+                    self.notifications.info("Daily expedition begun — leg 1");
                 } else {
                     self.notifications.warning("Could not start expedition");
                 }

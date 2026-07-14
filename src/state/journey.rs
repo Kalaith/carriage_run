@@ -49,6 +49,13 @@ pub struct Journey {
     /// Count of legs successfully cleared this run — the basis for the
     /// persistent expedition-token payout on return (meta-progression).
     pub legs_cleared: u32,
+    /// Run seed driving all procedural composition (leg branches, run events,
+    /// relic offers). Same seed → same run, so daily/seeded runs are shareable;
+    /// free runs get a fresh nonce so they actually vary run-to-run.
+    pub seed: u64,
+    /// Whether this run was started from an explicit (daily/shared) seed, so the
+    /// UI can surface the seed code for sharing.
+    pub seeded: bool,
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -186,6 +193,31 @@ impl Journey {
         self.alive && self.carriage_health_ratio < 0.995 && self.banked_gold >= self.repair_cost()
     }
 
+    /// A deterministic index in `0..len`, mixing the run seed, current leg, and a
+    /// per-purpose `salt` so different generators (legs / events / relics) draw
+    /// independently while staying reproducible for a given seed.
+    fn seed_index(&self, salt: u64, len: usize) -> usize {
+        if len == 0 {
+            return 0;
+        }
+        let mut h = self
+            .seed
+            .wrapping_add((self.leg as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15));
+        h ^= salt.wrapping_mul(0xD1B5_4A32_D192_ED03);
+        // SplitMix64 finalizer for good avalanche.
+        h ^= h >> 30;
+        h = h.wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        h ^= h >> 27;
+        h = h.wrapping_mul(0x94D0_49BB_1331_11EB);
+        h ^= h >> 31;
+        (h % len as u64) as usize
+    }
+
+    /// A short human-shareable code for this run's seed (e.g. for daily runs).
+    pub fn seed_code(&self) -> String {
+        format!("{:08X}", self.seed & 0xFFFF_FFFF)
+    }
+
     /// Product of reward multipliers from every collected relic (1.0 with none).
     fn reward_mult(&self, data: &GameData) -> f32 {
         self.relics
@@ -207,7 +239,7 @@ impl Journey {
         if available.is_empty() {
             return None;
         }
-        let idx = (self.leg.saturating_sub(1) as usize) % available.len();
+        let idx = self.seed_index(101, available.len());
         Some(available[idx].id.clone())
     }
 
@@ -234,10 +266,12 @@ impl Journey {
             return Vec::new();
         }
         let count = 3.min(modifiers.len()).min(missions.len().max(1));
+        let mission_start = self.seed_index(11, missions.len());
+        let mod_start = self.seed_index(23, modifiers.len());
         (0..count)
             .map(|i| {
-                let m_idx = (self.leg as usize + i) % missions.len();
-                let mod_idx = (self.leg as usize + i * 2) % modifiers.len();
+                let m_idx = (mission_start + i) % missions.len();
+                let mod_idx = (mod_start + i * 2) % modifiers.len();
                 LegOption {
                     mission_id: missions[m_idx].id.clone(),
                     modifier_id: modifiers[mod_idx].id.clone(),
@@ -253,7 +287,7 @@ impl Journey {
         if events.is_empty() {
             return None;
         }
-        Some(events[(self.leg as usize) % events.len()].id.clone())
+        Some(events[self.seed_index(53, events.len())].id.clone())
     }
 
     pub fn leg_reward_choices(&self, data: &GameData) -> [LegReward; 3] {
@@ -278,7 +312,10 @@ impl Journey {
 }
 
 impl GameSession {
-    pub fn start_journey(&mut self, data: &GameData) -> bool {
+    /// Starts an expedition. `seed` drives all procedural composition; pass a
+    /// fresh nonce for a varied free run, or a fixed/daily seed (with
+    /// `seeded = true`) for a reproducible, shareable run.
+    pub fn start_journey_seeded(&mut self, data: &GameData, seed: u64, seeded: bool) -> bool {
         self.journey = Some(Journey {
             leg: 1,
             banked_gold: 0,
@@ -303,8 +340,15 @@ impl GameSession {
             last_event_result: None,
             won: false,
             legs_cleared: 0,
+            seed,
+            seeded,
         });
         self.begin_journey_leg(data)
+    }
+
+    /// Convenience: start a free (unseeded) expedition with the given nonce.
+    pub fn start_journey(&mut self, data: &GameData, nonce: u64) -> bool {
+        self.start_journey_seeded(data, nonce, false)
     }
 
     fn journey_mission<'a>(&self, data: &'a GameData) -> Option<&'a MissionDef> {

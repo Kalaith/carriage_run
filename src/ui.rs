@@ -64,6 +64,7 @@ pub enum UiAction {
     OpenOutfitter,
     UnlockStartingRelic(String),
     StartExpedition,
+    StartDailyExpedition,
     JourneyPressOn,
     JourneyChooseReward(usize),
     JourneyResolveEvent(usize),

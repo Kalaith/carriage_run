@@ -89,8 +89,9 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
         y += 66.0;
     }
 
+    let btn_y = panel.bottom() - 58.0;
     if virtual_button(
-        Rect::new(panel.x + 60.0, panel.bottom() - 58.0, 200.0, 44.0),
+        Rect::new(panel.x + 40.0, btn_y, 150.0, 44.0),
         "Back",
         true,
         ButtonTone::Secondary,
@@ -99,10 +100,19 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
         actions.push(UiAction::OpenLoadout);
     }
     if virtual_button(
-        Rect::new(panel.right() - 260.0, panel.bottom() - 58.0, 200.0, 44.0),
-        "Begin Expedition",
+        Rect::new(panel.x + 210.0, btn_y, 190.0, 44.0),
+        "Daily Run",
         true,
         ButtonTone::Primary,
+        mouse,
+    ) {
+        actions.push(UiAction::StartDailyExpedition);
+    }
+    if virtual_button(
+        Rect::new(panel.right() - 250.0, btn_y, 210.0, 44.0),
+        "Begin Expedition",
+        true,
+        ButtonTone::Positive,
         mouse,
     ) {
         actions.push(UiAction::StartExpedition);

@@ -493,7 +493,7 @@ fn expedition_banks_rewards_and_advances_legs() {
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
     session.sync_chassis(&data);
 
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     assert_eq!(session.journey.as_ref().unwrap().leg, 1);
     assert!(session.mission.is_some());
 
@@ -525,7 +525,7 @@ fn expedition_relic_offer_is_collected_and_applied() {
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
     session.sync_chassis(&data);
 
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
 
     // Leg 1's first reward slot is a relic offer (no relics owned yet).
     session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
@@ -564,7 +564,7 @@ fn expedition_offers_bespoke_leg_branch_and_applies_modifier() {
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
     session.sync_chassis(&data);
 
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     // Leg 1 auto-starts with no branch composition.
     assert!(session.journey.as_ref().unwrap().current_leg.is_none());
 
@@ -635,7 +635,7 @@ fn expedition_run_event_applies_option_effects() {
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
     session.sync_chassis(&data);
 
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     let mut report = test_report(true, Vec::new());
     report.carriage_health_ratio = 0.7;
     session.resolve_journey_leg(&report, &data);
@@ -668,6 +668,37 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn seeded_expeditions_are_reproducible_and_seeds_vary_runs() {
+    let data = crate::data::GameData::load().unwrap();
+    let config = test_config();
+
+    // Same seed → identical next-leg branch and run event; different seed → not.
+    let branch_and_event = |seed: u64| {
+        let mut session = GameSession::new(&config, Some("muddy_road"));
+        session.sync_chassis(&data);
+        session.start_journey_seeded(&data, seed, true);
+        session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+        session.journey_choose_reward(1, &data);
+        let j = session.journey.as_ref().unwrap();
+        let legs: Vec<String> = j
+            .pending_legs
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|o| format!("{}:{}", o.mission_id, o.modifier_id))
+            .collect();
+        (legs, j.pending_event.clone(), j.seed_code())
+    };
+
+    let a1 = branch_and_event(0xABCD);
+    let a2 = branch_and_event(0xABCD);
+    let b = branch_and_event(0x1234);
+    assert_eq!(a1, a2, "same seed must reproduce the same run");
+    assert_ne!(a1.0, b.0, "different seeds should diverge");
+    assert_eq!(a1.2, "0000ABCD", "seed code is a stable shareable hex");
+}
+
+#[test]
 fn expedition_awards_tokens_and_unlocks_persist_as_starting_relics() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
@@ -675,7 +706,7 @@ fn expedition_awards_tokens_and_unlocks_persist_as_starting_relics() {
     assert_eq!(session.campaign.expedition_tokens, 0);
 
     // Run two legs, then bank early: tokens = legs cleared (no win bonus).
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     for _ in 0..2 {
         session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
         assert!(session.journey_choose_reward(1, &data));
@@ -697,7 +728,7 @@ fn expedition_awards_tokens_and_unlocks_persist_as_starting_relics() {
     assert!(!session.unlock_starting_relic(&relic, &data));
 
     // The next expedition now begins already holding the unlocked relic.
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     assert!(session.journey.as_ref().unwrap().relics.contains(&relic));
 }
 
@@ -708,7 +739,7 @@ fn expedition_final_leg_wins_the_run_with_a_bonus() {
     session.sync_chassis(&data);
     let start_gold = session.campaign.gold;
 
-    assert!(session.start_journey(&data));
+    assert!(session.start_journey(&data, 7));
     // Jump to the final leg and bank some earnings along the way.
     {
         let journey = session.journey.as_mut().unwrap();
@@ -745,7 +776,7 @@ fn expedition_bank_and_return_pays_out_full() {
     session.sync_chassis(&data);
     let start_gold = session.campaign.gold;
 
-    session.start_journey(&data);
+    session.start_journey(&data, 7);
     session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
     session.journey_choose_reward(1, &data); // War Provisions banks real gold
     let banked = session.journey.as_ref().unwrap().banked_gold;
@@ -763,7 +794,7 @@ fn expedition_failure_pays_half_and_ends_run() {
     session.sync_chassis(&data);
     let start_gold = session.campaign.gold;
 
-    session.start_journey(&data);
+    session.start_journey(&data, 7);
     session.resolve_journey_leg(&test_report(true, Vec::new()), &data); // leg 1 cleared
     session.journey_choose_reward(1, &data); // bank its reward, advance to leg 2
     let banked = session.journey.as_ref().unwrap().banked_gold;

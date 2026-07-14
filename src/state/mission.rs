@@ -1,6 +1,7 @@
 //! Active route simulation for Carriage Run missions.
 
 mod combat;
+mod damage;
 mod flow;
 mod pressure;
 mod scoring;

@@ -107,7 +107,7 @@ fn draw_reward_choice(
 }
 
 fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<UiAction>) {
-    let panel = Rect::new(360.0, 96.0, 560.0, 520.0);
+    let panel = Rect::new(360.0, 70.0, 560.0, 600.0);
     draw_panel(panel, true);
     draw_text_centered_in_box(
         &format!("Expedition — Leg {}", journey.leg),
@@ -184,24 +184,54 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
         draw_stat_line(panel, panel.y + 296.0, "Relics", &names.join(", "));
     }
 
-    let mut y = panel.y + 322.0;
-    if virtual_button(
-        Rect::new(panel.x + 60.0, y, panel.w - 120.0, 46.0),
-        &format!("Press On to Leg {}", journey.leg),
-        true,
-        ButtonTone::Positive,
-        mouse,
-    ) {
-        actions.push(UiAction::JourneyPressOn);
+    draw_section_label(
+        "Choose the Next Road",
+        panel.x + 40.0,
+        panel.y + 322.0,
+        panel.w - 80.0,
+    );
+    let mut y = panel.y + 350.0;
+    match &journey.pending_legs {
+        Some(legs) if !legs.is_empty() => {
+            for (i, option) in legs.iter().enumerate() {
+                let route = data
+                    .missions
+                    .get(&option.mission_id)
+                    .map(|mission| mission.route.as_str())
+                    .unwrap_or("");
+                if virtual_button(
+                    Rect::new(panel.x + 50.0, y, panel.w - 100.0, 40.0),
+                    &format!("{} — {}", option.title(data), route),
+                    true,
+                    ButtonTone::Positive,
+                    mouse,
+                ) {
+                    actions.push(UiAction::JourneyBeginLeg(i));
+                }
+                y += 46.0;
+            }
+        }
+        _ => {
+            if virtual_button(
+                Rect::new(panel.x + 50.0, y, panel.w - 100.0, 40.0),
+                &format!("Press On to Leg {}", journey.leg),
+                true,
+                ButtonTone::Positive,
+                mouse,
+            ) {
+                actions.push(UiAction::JourneyPressOn);
+            }
+            y += 46.0;
+        }
     }
-    y += 58.0;
+    y += 8.0;
     let repair_label = if journey.carriage_health_ratio >= 0.995 {
         "Carriage Fully Repaired".to_owned()
     } else {
         format!("Field Repairs ({} gold)", journey.repair_cost())
     };
     if virtual_button(
-        Rect::new(panel.x + 60.0, y, panel.w - 120.0, 46.0),
+        Rect::new(panel.x + 50.0, y, panel.w - 100.0, 40.0),
         &repair_label,
         journey.can_repair(),
         ButtonTone::Primary,
@@ -209,9 +239,9 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
     ) {
         actions.push(UiAction::JourneyRepair);
     }
-    y += 58.0;
+    y += 46.0;
     if virtual_button(
-        Rect::new(panel.x + 60.0, y, panel.w - 120.0, 46.0),
+        Rect::new(panel.x + 50.0, y, panel.w - 100.0, 40.0),
         &format!("Bank {} Gold & Return", journey.banked_gold),
         true,
         ButtonTone::Secondary,

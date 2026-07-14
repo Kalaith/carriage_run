@@ -12,6 +12,7 @@ const UPGRADES_JSON: &str = include_str!("../assets/data/upgrades.json");
 const CARRIAGES_JSON: &str = include_str!("../assets/data/carriages.json");
 const TEXTURE_MANIFEST_JSON: &str = include_str!("../assets/data/texture_manifest.json");
 const RELICS_JSON: &str = include_str!("../assets/data/relics.json");
+const LEG_MODIFIERS_JSON: &str = include_str!("../assets/data/leg_modifiers.json");
 
 fn one() -> f32 {
     1.0
@@ -179,6 +180,28 @@ pub struct RelicDef {
     pub reward_mult: f32,
 }
 
+/// A bespoke-expedition-leg archetype: a themed twist layered onto a base
+/// campaign route when composing a procedural expedition leg (extra enemies /
+/// hazards and difficulty/reward scaling). Drives the FTL-style branch choice.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LegModifierDef {
+    pub id: String,
+    pub name: String,
+    /// One-line flavor shown under the option in the branch picker.
+    pub descriptor: String,
+    pub order: u32,
+    #[serde(default)]
+    pub enemy_add: Vec<String>,
+    #[serde(default)]
+    pub hazard_add: Vec<String>,
+    /// Multiplies the leg's mission difficulty (1.0 = no change).
+    #[serde(default = "one")]
+    pub difficulty_mult: f32,
+    /// Multiplies the leg's banked reward (1.0 = no change).
+    #[serde(default = "one")]
+    pub reward_mult: f32,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -186,6 +209,7 @@ pub struct GameData {
     pub upgrades: DataRegistry<UpgradeDef>,
     pub chassis: DataRegistry<ChassisDef>,
     pub relics: DataRegistry<RelicDef>,
+    pub leg_modifiers: DataRegistry<LegModifierDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -196,6 +220,7 @@ impl GameData {
         let upgrades = DataRegistry::from_embedded_json(UPGRADES_JSON, "id")?;
         let chassis = DataRegistry::from_embedded_json(CARRIAGES_JSON, "id")?;
         let relics = DataRegistry::from_embedded_json(RELICS_JSON, "id")?;
+        let leg_modifiers = DataRegistry::from_embedded_json(LEG_MODIFIERS_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -204,6 +229,7 @@ impl GameData {
             upgrades,
             chassis,
             relics,
+            leg_modifiers,
             texture_manifest,
         })
     }
@@ -212,6 +238,12 @@ impl GameData {
         let mut relics: Vec<_> = self.relics.iter().map(|(_, relic)| relic).collect();
         relics.sort_by_key(|relic| relic.order);
         relics
+    }
+
+    pub fn leg_modifiers_ordered(&self) -> Vec<&LegModifierDef> {
+        let mut mods: Vec<_> = self.leg_modifiers.iter().map(|(_, m)| m).collect();
+        mods.sort_by_key(|m| m.order);
+        mods
     }
 
     pub fn first_mission_id(&self) -> Option<&str> {

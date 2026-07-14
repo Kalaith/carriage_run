@@ -374,6 +374,16 @@ impl MissionRun {
         self.carriage.health = (self.carriage.max_health * health_ratio).max(1.0);
     }
 
+    /// Folds a bespoke expedition-leg modifier into this run: extra enemies and
+    /// hazards in the spawn pools, scaled difficulty and banked reward. Applied
+    /// once when composing a procedural leg (see `GameSession::begin_journey_leg`).
+    pub fn apply_leg_modifier(&mut self, modifier: &crate::data::LegModifierDef) {
+        self.enemy_mix.extend(modifier.enemy_add.iter().cloned());
+        self.hazard_mix.extend(modifier.hazard_add.iter().cloned());
+        self.difficulty = (self.difficulty * modifier.difficulty_mult).max(0.5);
+        self.base_reward = ((self.base_reward as f32) * modifier.reward_mult).round() as i64;
+    }
+
     /// Folds a collected expedition relic's modifiers into this run. Applied per
     /// leg on top of chassis/equipment stats (see `GameSession::begin_journey_leg`).
     pub fn apply_relic(&mut self, relic: &crate::data::RelicDef) {

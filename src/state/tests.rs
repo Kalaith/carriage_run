@@ -511,7 +511,7 @@ fn expedition_banks_rewards_and_advances_legs() {
 
     // Take War Provisions (index 1): banks base gold + a partial heal, advances.
     let base = super::Journey::leg_reward(1);
-    assert!(session.journey_choose_reward(1));
+    assert!(session.journey_choose_reward(1, &data));
     let journey = session.journey.as_ref().unwrap();
     assert_eq!(journey.leg, 2);
     assert!(journey.pending_rewards.is_none());
@@ -542,7 +542,7 @@ fn expedition_relic_offer_is_collected_and_applied() {
     };
 
     // Taking it collects the relic (session-scoped) and banks no gold.
-    assert!(session.journey_choose_reward(0));
+    assert!(session.journey_choose_reward(0, &data));
     let journey = session.journey.as_ref().unwrap();
     assert_eq!(journey.relics, vec![offered.clone()]);
     assert_eq!(journey.banked_gold, 0);
@@ -556,6 +556,73 @@ fn expedition_relic_offer_is_collected_and_applied() {
 }
 
 #[test]
+fn expedition_offers_bespoke_leg_branch_and_applies_modifier() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    assert!(session.start_journey(&data));
+    // Leg 1 auto-starts with no branch composition.
+    assert!(session.journey.as_ref().unwrap().current_leg.is_none());
+
+    // Clear leg 1 and take a reward: a branch of next-leg options appears.
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    assert!(session.journey_choose_reward(1, &data));
+    let legs = session
+        .journey
+        .as_ref()
+        .unwrap()
+        .pending_legs
+        .clone()
+        .expect("branch options offered");
+    assert!(legs.len() >= 2, "expected a multi-option branch");
+    // Options pair a real route with a distinct real modifier.
+    let mut modifier_ids: Vec<&str> = legs.iter().map(|o| o.modifier_id.as_str()).collect();
+    modifier_ids.sort_unstable();
+    modifier_ids.dedup();
+    assert_eq!(modifier_ids.len(), legs.len(), "modifiers not distinct");
+    for option in &legs {
+        assert!(data.missions.get(&option.mission_id).is_some());
+        assert!(data.leg_modifiers.get(&option.modifier_id).is_some());
+    }
+
+    // Begin the branch whose modifier adds enemies, and confirm the leg's spawn
+    // pool grew to include them.
+    let idx = legs
+        .iter()
+        .position(|o| {
+            data.leg_modifiers
+                .get(&o.modifier_id)
+                .is_some_and(|m| !m.enemy_add.is_empty())
+        })
+        .expect("at least one option adds enemies");
+    let modifier = data
+        .leg_modifiers
+        .get(&legs[idx].modifier_id)
+        .unwrap()
+        .clone();
+    assert!(session.journey_begin_leg(idx, &data));
+    let run = session.mission.as_ref().unwrap();
+    for enemy in &modifier.enemy_add {
+        assert!(
+            run.enemy_mix.contains(enemy),
+            "leg modifier enemy {enemy} not in spawn pool"
+        );
+    }
+    assert_eq!(
+        session
+            .journey
+            .as_ref()
+            .unwrap()
+            .current_leg
+            .as_ref()
+            .unwrap()
+            .modifier_id,
+        legs[idx].modifier_id
+    );
+}
+
+#[test]
 fn expedition_bank_and_return_pays_out_full() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));
@@ -564,7 +631,7 @@ fn expedition_bank_and_return_pays_out_full() {
 
     session.start_journey(&data);
     session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
-    session.journey_choose_reward(1); // War Provisions banks real gold
+    session.journey_choose_reward(1, &data); // War Provisions banks real gold
     let banked = session.journey.as_ref().unwrap().banked_gold;
     assert!(banked > 0);
 
@@ -582,7 +649,7 @@ fn expedition_failure_pays_half_and_ends_run() {
 
     session.start_journey(&data);
     session.resolve_journey_leg(&test_report(true, Vec::new()), &data); // leg 1 cleared
-    session.journey_choose_reward(1); // bank its reward, advance to leg 2
+    session.journey_choose_reward(1, &data); // bank its reward, advance to leg 2
     let banked = session.journey.as_ref().unwrap().banked_gold;
 
     session.resolve_journey_leg(&test_report(false, Vec::new()), &data); // leg 2 lost

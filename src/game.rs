@@ -165,8 +165,8 @@ impl Game {
                 self.session.pending_confirm = Some(crate::state::ConfirmPrompt::NewCampaign);
             }
             "journey" => {
-                // Seed a mid-run expedition so the hub screen is visible.
-                self.session.journey = Some(crate::state::Journey {
+                // Seed a mid-run expedition hub with a bespoke branch to choose.
+                let journey = crate::state::Journey {
                     leg: 3,
                     banked_gold: 148,
                     carriage_health_ratio: 0.52,
@@ -176,6 +176,13 @@ impl Game {
                     payout: 0,
                     pending_rewards: None,
                     relics: vec!["ghost_wheels".to_owned(), "merchants_ledger".to_owned()],
+                    pending_legs: None,
+                    current_leg: None,
+                };
+                let legs = journey.generate_leg_options(&self.data);
+                self.session.journey = Some(crate::state::Journey {
+                    pending_legs: Some(legs),
+                    ..journey
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -191,6 +198,8 @@ impl Game {
                     payout: 0,
                     pending_rewards: None,
                     relics: Vec::new(),
+                    pending_legs: None,
+                    current_leg: None,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -464,9 +473,23 @@ impl Game {
                 }
             }
             UiAction::JourneyPressOn => {
-                if let Some(leg) = self.session.journey.as_ref().map(|j| j.leg) {
-                    if self.session.journey_press_on(&self.data) {
+                if self.session.journey_press_on(&self.data) {
+                    if let Some(leg) = self.session.journey.as_ref().map(|j| j.leg) {
                         self.notifications.info(format!("Leg {} — set out", leg));
+                    }
+                }
+            }
+            UiAction::JourneyBeginLeg(index) => {
+                let title = self
+                    .session
+                    .journey
+                    .as_ref()
+                    .and_then(|j| j.pending_legs.as_ref())
+                    .and_then(|legs| legs.get(index))
+                    .map(|option| option.title(&self.data));
+                if self.session.journey_begin_leg(index, &self.data) {
+                    if let Some(title) = title {
+                        self.notifications.info(format!("Set out: {}", title));
                     }
                 }
             }
@@ -478,7 +501,7 @@ impl Game {
                     .and_then(|j| j.pending_rewards.as_ref())
                     .and_then(|r| r.get(index))
                     .cloned();
-                if self.session.journey_choose_reward(index) {
+                if self.session.journey_choose_reward(index, &self.data) {
                     if let Some(reward) = reward {
                         self.notifications
                             .success(format!("{} taken", reward.title(&self.data)));

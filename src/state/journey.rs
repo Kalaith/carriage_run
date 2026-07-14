@@ -32,6 +32,31 @@ pub struct Journey {
     /// Ids of relics collected this run; folded into every leg's mission stats
     /// (see `GameSession::begin_journey_leg`). Session-only — never persisted.
     pub relics: Vec<String>,
+    /// FTL-style branch: 2–3 bespoke next-leg options to choose between at the
+    /// hub. `Some` from leg 2 onward (leg 1 auto-starts).
+    pub pending_legs: Option<Vec<LegOption>>,
+    /// The bespoke composition of the leg currently in progress (base route +
+    /// modifier). `None` on the auto-started first leg.
+    pub current_leg: Option<LegOption>,
+}
+
+/// One branch in the expedition's next-leg choice: a base campaign route paired
+/// with a bespoke [`crate::data::LegModifierDef`] twist. Resolved against the
+/// data registries for display and application.
+#[derive(Debug, Clone)]
+pub struct LegOption {
+    pub mission_id: String,
+    pub modifier_id: String,
+}
+
+impl LegOption {
+    /// The modifier's name, e.g. "Raider Ambush".
+    pub fn title(&self, data: &GameData) -> String {
+        data.leg_modifiers
+            .get(&self.modifier_id)
+            .map(|m| m.name.clone())
+            .unwrap_or_else(|| "Onward".to_owned())
+    }
 }
 
 /// One of the three rewards offered after clearing an expedition leg. A relic is
@@ -158,9 +183,40 @@ impl Journey {
     /// un-collected relic is available it takes the first slot (the build pick);
     /// otherwise that slot is a pure-gold Bounty. Relic reward multipliers are
     /// baked into the gold amounts shown.
+    /// Multiplier the current leg's modifier applies to its banked reward.
+    fn leg_reward_mult(&self, data: &GameData) -> f32 {
+        self.current_leg
+            .as_ref()
+            .and_then(|opt| data.leg_modifiers.get(&opt.modifier_id))
+            .map(|m| m.reward_mult)
+            .unwrap_or(1.0)
+    }
+
+    /// 2–3 bespoke options for the next leg: rotating base routes each paired
+    /// with a distinct modifier, chosen deterministically by leg so the branch
+    /// is stable within a run but varies down the expedition.
+    pub fn generate_leg_options(&self, data: &GameData) -> Vec<LegOption> {
+        let missions = data.missions_ordered();
+        let modifiers = data.leg_modifiers_ordered();
+        if missions.is_empty() || modifiers.is_empty() {
+            return Vec::new();
+        }
+        let count = 3.min(modifiers.len()).min(missions.len().max(1));
+        (0..count)
+            .map(|i| {
+                let m_idx = (self.leg as usize + i) % missions.len();
+                let mod_idx = (self.leg as usize + i * 2) % modifiers.len();
+                LegOption {
+                    mission_id: missions[m_idx].id.clone(),
+                    modifier_id: modifiers[mod_idx].id.clone(),
+                }
+            })
+            .collect()
+    }
+
     pub fn leg_reward_choices(&self, data: &GameData) -> [LegReward; 3] {
         let base = Journey::leg_reward(self.leg);
-        let mult = self.reward_mult(data);
+        let mult = self.reward_mult(data) * self.leg_reward_mult(data);
         let gold = |raw: i64| ((raw as f32) * mult).round() as i64;
         let first = match self.next_relic_offer(data) {
             Some(id) => LegReward::Relic(id),
@@ -191,6 +247,8 @@ impl GameSession {
             payout: 0,
             pending_rewards: None,
             relics: Vec::new(),
+            pending_legs: None,
+            current_leg: None,
         });
         self.begin_journey_leg(data)
     }
@@ -208,11 +266,22 @@ impl GameSession {
         let Some(journey) = self.journey.clone() else {
             return false;
         };
-        let Some(mission) = self.journey_mission(data) else {
+        // A bespoke leg names its own base route; the auto-started first leg
+        // (no `current_leg`) falls back to the modulo campaign cycle.
+        let mission = match &journey.current_leg {
+            Some(option) => data.missions.get(&option.mission_id),
+            None => self.journey_mission(data),
+        };
+        let Some(mission) = mission else {
             return false;
         };
         let mut run = MissionRun::new(mission, &self.campaign);
         run.scale_for_journey(journey.difficulty_scale(), journey.carriage_health_ratio);
+        if let Some(option) = &journey.current_leg {
+            if let Some(modifier) = data.leg_modifiers.get(&option.modifier_id) {
+                run.apply_leg_modifier(modifier);
+            }
+        }
         for id in &journey.relics {
             if let Some(relic) = data.relics.get(id) {
                 run.apply_relic(relic);
@@ -250,9 +319,10 @@ impl GameSession {
         self.screen = Screen::Journey;
     }
 
-    /// Applies the chosen post-leg reward and advances to the next leg. No-op if
-    /// no rewards are pending or the index is out of range.
-    pub fn journey_choose_reward(&mut self, index: usize) -> bool {
+    /// Applies the chosen post-leg reward, advances the leg counter, and offers
+    /// the bespoke branch of next-leg options. No-op if no rewards are pending or
+    /// the index is out of range.
+    pub fn journey_choose_reward(&mut self, index: usize, data: &GameData) -> bool {
         let Some(journey) = self.journey.as_mut() else {
             return false;
         };
@@ -267,20 +337,38 @@ impl GameSession {
         reward.apply(journey);
         journey.pending_rewards = None;
         journey.leg += 1;
+        let options = journey.generate_leg_options(data);
+        journey.pending_legs = Some(options);
         true
     }
 
-    pub fn journey_press_on(&mut self, data: &GameData) -> bool {
-        // A pending reward must be resolved before the next leg can begin.
-        if self
+    /// Begins the chosen branch of the pending leg options. No-op while a reward
+    /// is still pending or the index is out of range.
+    pub fn journey_begin_leg(&mut self, index: usize, data: &GameData) -> bool {
+        let ready = self
             .journey
             .as_ref()
-            .is_some_and(|journey| journey.alive && journey.pending_rewards.is_none())
-        {
-            self.begin_journey_leg(data)
-        } else {
-            false
+            .is_some_and(|journey| journey.alive && journey.pending_rewards.is_none());
+        if !ready {
+            return false;
         }
+        if let Some(journey) = self.journey.as_mut() {
+            if let Some(option) = journey
+                .pending_legs
+                .as_ref()
+                .and_then(|legs| legs.get(index))
+                .cloned()
+            {
+                journey.current_leg = Some(option);
+                journey.pending_legs = None;
+            }
+        }
+        self.begin_journey_leg(data)
+    }
+
+    /// Convenience wrapper that begins the first offered leg branch.
+    pub fn journey_press_on(&mut self, data: &GameData) -> bool {
+        self.journey_begin_leg(0, data)
     }
 
     pub fn journey_repair(&mut self) -> bool {

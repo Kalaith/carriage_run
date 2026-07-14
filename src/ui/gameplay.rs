@@ -361,6 +361,26 @@ pub(super) fn draw_hazard_icon(kind: HazardKind, pos: Vec2) {
                 Color::new(0.96, 0.80, 0.20, 0.95),
             );
         }
+        HazardKind::RiverFord => {
+            draw_rectangle(
+                pos.x - 22.0,
+                pos.y - 14.0,
+                44.0,
+                28.0,
+                Color::new(0.16, 0.34, 0.46, 0.92),
+            );
+            for i in 0..2 {
+                let y = pos.y - 5.0 + i as f32 * 10.0;
+                draw_line(
+                    pos.x - 17.0,
+                    y,
+                    pos.x + 17.0,
+                    y,
+                    2.0,
+                    Color::new(0.62, 0.80, 0.88, 0.7),
+                );
+            }
+        }
     }
 }
 
@@ -461,6 +481,28 @@ fn draw_hazard(hazard: &Hazard) {
                 hazard.radius * 0.46,
                 Color::new(0.96, 0.80, 0.20, alpha),
             );
+        }
+        HazardKind::RiverFord => {
+            let rect = hazard.rect();
+            draw_rectangle(
+                rect.x,
+                rect.y,
+                rect.w,
+                rect.h,
+                Color::new(0.16, 0.34, 0.46, 0.72),
+            );
+            // Ripple lines across the ford.
+            for i in 0..3 {
+                let y = rect.y + rect.h * (0.28 + i as f32 * 0.22);
+                draw_line(
+                    rect.x + 8.0,
+                    y,
+                    rect.right() - 8.0,
+                    y,
+                    2.0,
+                    Color::new(0.62, 0.80, 0.88, 0.55),
+                );
+            }
         }
     }
 }

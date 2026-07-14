@@ -629,11 +629,19 @@ pub enum HazardKind {
     FallenTree,
     Rocks,
     FirePatch,
+    /// A wide river crossing that drags the wheels to a long crawl.
+    RiverFord,
 }
 
 impl HazardKind {
-    pub fn all() -> [Self; 4] {
-        [Self::Mud, Self::FallenTree, Self::Rocks, Self::FirePatch]
+    pub fn all() -> [Self; 5] {
+        [
+            Self::Mud,
+            Self::FallenTree,
+            Self::Rocks,
+            Self::FirePatch,
+            Self::RiverFord,
+        ]
     }
 
     pub(super) fn from_id(id: &str) -> Option<Self> {
@@ -642,6 +650,7 @@ impl HazardKind {
             "fallen_tree" => Some(Self::FallenTree),
             "rocks" => Some(Self::Rocks),
             "fire_patch" => Some(Self::FirePatch),
+            "river_ford" => Some(Self::RiverFord),
             _ => None,
         }
     }
@@ -652,6 +661,7 @@ impl HazardKind {
             Self::FallenTree => "Fallen Tree",
             Self::Rocks => "Rockfall",
             Self::FirePatch => "Fire Patch",
+            Self::RiverFord => "River Ford",
         }
     }
 
@@ -662,6 +672,7 @@ impl HazardKind {
             Self::FallenTree => "Blocks",
             Self::Rocks => "Impact",
             Self::FirePatch => "Burns",
+            Self::RiverFord => "Wades",
         }
     }
 
@@ -676,6 +687,9 @@ impl HazardKind {
             Self::Rocks => "Loose stones that jolt the carriage on contact. Weave past to avoid the strike.",
             Self::FirePatch => {
                 "Burning ground that scorches the carriage every moment you linger. Cross it fast."
+            }
+            Self::RiverFord => {
+                "A wide crossing that drags the wheels to a crawl far longer than mud. Line up straight and power through."
             }
         }
     }
@@ -698,6 +712,7 @@ impl Hazard {
             HazardKind::FallenTree => (0.0, vec2(190.0, 36.0)),
             HazardKind::Rocks => (26.0, vec2(54.0, 42.0)),
             HazardKind::FirePatch => (34.0, vec2(74.0, 48.0)),
+            HazardKind::RiverFord => (46.0, vec2(150.0, 66.0)),
         };
 
         Self {

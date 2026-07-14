@@ -44,6 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
+- **B2 New hazards** — River Ford (a wide forced-slow crossing) added to Medicine Run and the Field Guide. *(partial — 1 of 2–3 new hazards)*
 - **A5 Elite enemies** — Alpha Wolf (elite charging wolf: tougher/faster, red-eyed sprite) added to Refugee Escort and the Field Guide. *(partial — 1 of 2–3 elites; bosses remain)*
 - **A2 Endgame economy** — Reinforced Kit consumable (+55 health for one route), a repeatable gold sink bought in the shop. *(done)*
 - **A6 Difficulty presets** — Relaxed / Standard / Hard scaling the mission difficulty scalar. *(done)*
@@ -115,7 +116,7 @@ No difficulty setting exists. For a commercial audience:
 First-clear is ~90 minutes. A $10–15 premium title needs 6–10 hours of designed content plus the expedition treadmill.
 
 - [ ] 🟠 **B1. Campaign expansion to ~24–30 missions across 3 acts/biomes** (forest → highlands → cursed marsh, or similar). Biomes matter more than mission count: new hazard sets, enemy palettes, and road visuals per act make content *feel* different. Mission data is fully JSON-driven (`missions.json`) so the cost is design + art, not engineering.
-- [ ] 🟠 **B2. New hazards** (2–3 per new biome): current 4 (mud/tree/rock/fire) are one act's worth. Candidates: river fords (forced slow), rockslides (telegraphed lane denial), cursed fog (vision), night stretches (pairs with Warding Lantern equipment).
+- [ ] 🟠 **B2. New hazards** (2–3 per new biome): current 4 (mud/tree/rock/fire) are one act's worth. Candidates: river fords (forced slow), rockslides (telegraphed lane denial), cursed fog (vision), night stretches (pairs with Warding Lantern equipment). *(partial — River Ford shipped)*
 - [ ] 🟡 **B3. 2–3 new guard classes** (e.g. Halberdier, Falconer, Cleric) — the 6-class system with per-star abilities is the game's best-realized system; extending it is high-value-per-effort.
 - [ ] 🟡 **B4. 1–2 new chassis** (e.g. Armored Coach, Sled variant for a snow biome) + 3–4 new equipment items so 4-slot choices stay contested (`equipment.rs:5-13` currently has exactly 6 items for up to 4 slots).
 - [ ] 🟡 **B5. Campaign finale**: a designed final mission with a boss (A5) and an ending screen — the campaign currently just… runs out of missions.

@@ -360,6 +360,17 @@ impl MissionRun {
                         impacts.push((8.5 * dt, 2.4 * dt, label));
                     }
                 }
+                HazardKind::RiverFord => {
+                    // A long, strong slow — no real damage, just lost time and a
+                    // small cargo jostle on entry.
+                    if hazard.pos.distance(self.carriage.pos) <= hazard.radius + 40.0 {
+                        self.carriage.slow_timer = 2.1;
+                        if !hazard.triggered {
+                            hazard.triggered = true;
+                            impacts.push((0.0, 2.0, "River ford slowed the wheels"));
+                        }
+                    }
+                }
             }
         }
 

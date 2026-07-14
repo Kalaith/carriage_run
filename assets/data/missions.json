@@ -221,7 +221,7 @@
     "difficulty": 1.34,
     "base_reward": 180,
     "enemy_mix": ["wolf", "bandit"],
-    "hazard_mix": ["mud", "rocks", "fire_patch"],
+    "hazard_mix": ["mud", "rocks", "fire_patch", "river_ford"],
     "time_limit": 78.0,
     "unlock_any_missions": ["bandit_bend", "courier_deadline"],
     "route_choices": [

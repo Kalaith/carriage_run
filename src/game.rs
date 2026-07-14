@@ -321,8 +321,10 @@ impl Game {
                 // Drop straight into the princess "drive clean" mission so the
                 // HUD smoothness multiplier is visible (bypasses unlock gates).
                 if let Some(mission) = self.data.missions.get("princess_road") {
-                    self.session.mission =
-                        Some(crate::state::MissionRun::new(mission, &self.session.campaign));
+                    self.session.mission = Some(crate::state::MissionRun::new(
+                        mission,
+                        &self.session.campaign,
+                    ));
                     self.session.screen = crate::state::Screen::Playing;
                 } else {
                     self.session.open_map();
@@ -740,6 +742,18 @@ impl Game {
                         .map(|chassis| chassis.name.clone())
                         .unwrap_or(id);
                     self.notifications.info(format!("Now driving the {}", name));
+                    self.auto_save();
+                }
+            }
+            UiAction::SelectFrame(id) => {
+                if self.session.select_frame(&self.data, &id) {
+                    let name = self
+                        .data
+                        .carriage_frames
+                        .get(&id)
+                        .map(|frame| frame.name.clone())
+                        .unwrap_or(id);
+                    self.notifications.info(format!("Frame set: {}", name));
                     self.auto_save();
                 }
             }

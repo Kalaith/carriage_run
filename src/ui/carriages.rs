@@ -13,24 +13,49 @@ pub(super) fn draw_carriages(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     draw_menu_backdrop(70.0);
     draw_top_nav(ctx, "Carriages", mouse, actions);
 
-    let banner = Rect::new(82.0, 122.0, 1116.0, 74.0);
+    let banner = Rect::new(82.0, 110.0, 1116.0, 108.0);
     draw_panel(banner, false);
     draw_ui_text_ex(
         "Choose Your Wagon",
         banner.x + 24.0,
-        banner.y + 34.0,
-        TextStyle::new(26.0, INK).params(),
+        banner.y + 30.0,
+        TextStyle::new(24.0, INK).params(),
     );
-    draw_text_block(
-        "A bigger wagon carries more guards and gear but rolls slower. Buy once, then switch freely between the wagons you own.",
-        banner.x + 24.0,
-        banner.y + 44.0,
-        900.0,
-        26.0,
-        16.0,
-        2.0,
-        MUTED,
-    );
+    // Frame tuning: a mutually-exclusive build-identity choice (opportunity cost).
+    let frame_id = &ctx.session.campaign.carriage_frame_id;
+    let frames = ctx.data.carriage_frames_ordered();
+    let n = frames.len().max(1) as f32;
+    let fw = (banner.w - 48.0 - (n - 1.0) * 12.0) / n;
+    for (i, frame) in frames.iter().enumerate() {
+        let selected = &frame.id == frame_id;
+        let rect = Rect::new(
+            banner.x + 24.0 + i as f32 * (fw + 12.0),
+            banner.y + 52.0,
+            fw,
+            42.0,
+        );
+        if virtual_button(
+            rect,
+            &frame.name,
+            true,
+            if selected {
+                ButtonTone::Positive
+            } else {
+                ButtonTone::Secondary
+            },
+            mouse,
+        ) {
+            actions.push(UiAction::SelectFrame(frame.id.clone()));
+        }
+    }
+    if let Some(active) = frames.iter().find(|f| &f.id == frame_id) {
+        draw_ui_text_ex(
+            &active.description,
+            banner.x + 320.0,
+            banner.y + 30.0,
+            TextStyle::new(15.0, MUTED).params(),
+        );
+    }
 
     let chassis = ctx.data.chassis_ordered();
     let card_w = 356.0;
@@ -40,9 +65,9 @@ pub(super) fn draw_carriages(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     for (index, def) in chassis.iter().enumerate() {
         let rect = Rect::new(
             start_x + index as f32 * (card_w + gap),
-            220.0,
+            238.0,
             card_w,
-            400.0,
+            398.0,
         );
         draw_chassis_card(ctx, def, rect, mouse, actions);
     }

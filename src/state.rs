@@ -307,6 +307,17 @@ pub struct CampaignState {
     /// choice sticks; defaults to the no-stake tier.
     #[serde(default = "default_stake_id")]
     pub selected_stake_id: String,
+    /// Chosen mutually-exclusive carriage frame tuning id (Carriages screen).
+    /// Exactly one is active; defaults to the balanced Standard Frame.
+    #[serde(default = "default_frame_id")]
+    pub carriage_frame_id: String,
+    /// Resolved frame-tuning multipliers (refreshed from `carriage_frame_id`).
+    #[serde(default = "one_f32")]
+    pub frame_speed_mult: f32,
+    #[serde(default = "one_f32")]
+    pub frame_health_mult: f32,
+    #[serde(default = "one_f32")]
+    pub frame_cargo_mult: f32,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -349,6 +360,10 @@ impl CampaignState {
             expedition_unlocks: Vec::new(),
             expedition_records: ExpeditionRecords::default(),
             selected_stake_id: default_stake_id(),
+            carriage_frame_id: default_frame_id(),
+            frame_speed_mult: 1.0,
+            frame_health_mult: 1.0,
+            frame_cargo_mult: 1.0,
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -556,6 +571,14 @@ fn default_guard_id() -> String {
 
 fn default_stake_id() -> String {
     "none".to_owned()
+}
+
+fn default_frame_id() -> String {
+    "standard".to_owned()
+}
+
+fn one_f32() -> f32 {
+    1.0
 }
 
 fn default_selected_guard_ids() -> Vec<String> {

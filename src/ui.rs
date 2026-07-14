@@ -79,6 +79,7 @@ pub enum UiAction {
     BuyUpgrade(String),
     BuyChassis(String),
     SelectChassis(String),
+    SelectFrame(String),
     BuyReinforcedKit,
     Save,
     Load,

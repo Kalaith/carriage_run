@@ -1,0 +1,38 @@
+[
+  {
+    "id": "standard",
+    "name": "Standard Frame",
+    "description": "A balanced build. No trade-offs.",
+    "order": 1,
+    "speed_mult": 1.0,
+    "health_mult": 1.0,
+    "cargo_mult": 1.0
+  },
+  {
+    "id": "reinforced",
+    "name": "Reinforced Frame",
+    "description": "+18% carriage health, but 8% slower.",
+    "order": 2,
+    "speed_mult": 0.92,
+    "health_mult": 1.18,
+    "cargo_mult": 1.0
+  },
+  {
+    "id": "racing",
+    "name": "Racing Frame",
+    "description": "+15% speed, but 12% less health.",
+    "order": 3,
+    "speed_mult": 1.15,
+    "health_mult": 0.88,
+    "cargo_mult": 1.0
+  },
+  {
+    "id": "hauler",
+    "name": "Hauler Frame",
+    "description": "+25% cargo capacity, but 10% slower.",
+    "order": 4,
+    "speed_mult": 0.9,
+    "health_mult": 1.0,
+    "cargo_mult": 1.25
+  }
+]

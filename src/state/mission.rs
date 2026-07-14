@@ -212,8 +212,9 @@ impl MissionRun {
         let wave_pace = if campaign.slower_waves { 1.5 } else { 1.0 };
         let max_health = (100.0 + campaign.carriage_level as f32 * 26.0)
             * campaign.chassis_health_mult
+            * campaign.frame_health_mult
             * assist_health;
-        let cargo_max = 100.0 + campaign.cargo_level as f32 * 6.0;
+        let cargo_max = (100.0 + campaign.cargo_level as f32 * 6.0) * campaign.frame_cargo_mult;
         let route_choice = campaign.selected_route_choice(mission);
         let route_choice_id = route_choice
             .map(|choice| choice.id.clone())
@@ -345,7 +346,7 @@ impl MissionRun {
             carriage_visual: CarriageVisual::from_campaign(campaign),
             throttle: 1.0,
             drive: DriveKeys::default(),
-            chassis_speed_mult: campaign.chassis_speed_mult,
+            chassis_speed_mult: campaign.chassis_speed_mult * campaign.frame_speed_mult,
             // Siege runs open with a longer calm before the first mega-wave.
             wave: WavePhase::Lull(
                 2.2 * wave_pace

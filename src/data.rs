@@ -15,6 +15,7 @@ const RELICS_JSON: &str = include_str!("../assets/data/relics.json");
 const LEG_MODIFIERS_JSON: &str = include_str!("../assets/data/leg_modifiers.json");
 const RUN_EVENTS_JSON: &str = include_str!("../assets/data/run_events.json");
 const STAKES_JSON: &str = include_str!("../assets/data/stakes.json");
+const CARRIAGE_FRAMES_JSON: &str = include_str!("../assets/data/carriage_frames.json");
 
 fn one() -> f32 {
     1.0
@@ -250,6 +251,23 @@ pub struct StakeDef {
     pub reward_mult: f32,
 }
 
+/// A mutually-exclusive carriage frame tuning: a build-identity choice that
+/// trades one stat axis against another (speed / health / cargo). Exactly one is
+/// active at a time, so no build gets every advantage. Applied in `MissionRun::new`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CarriageFrameDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub order: u32,
+    #[serde(default = "one")]
+    pub speed_mult: f32,
+    #[serde(default = "one")]
+    pub health_mult: f32,
+    #[serde(default = "one")]
+    pub cargo_mult: f32,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -260,6 +278,7 @@ pub struct GameData {
     pub leg_modifiers: DataRegistry<LegModifierDef>,
     pub run_events: DataRegistry<RunEventDef>,
     pub stakes: DataRegistry<StakeDef>,
+    pub carriage_frames: DataRegistry<CarriageFrameDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -273,6 +292,7 @@ impl GameData {
         let leg_modifiers = DataRegistry::from_embedded_json(LEG_MODIFIERS_JSON, "id")?;
         let run_events = DataRegistry::from_embedded_json(RUN_EVENTS_JSON, "id")?;
         let stakes = DataRegistry::from_embedded_json(STAKES_JSON, "id")?;
+        let carriage_frames = DataRegistry::from_embedded_json(CARRIAGE_FRAMES_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -284,6 +304,7 @@ impl GameData {
             leg_modifiers,
             run_events,
             stakes,
+            carriage_frames,
             texture_manifest,
         })
     }
@@ -298,6 +319,12 @@ impl GameData {
         let mut stakes: Vec<_> = self.stakes.iter().map(|(_, s)| s).collect();
         stakes.sort_by_key(|s| s.order);
         stakes
+    }
+
+    pub fn carriage_frames_ordered(&self) -> Vec<&CarriageFrameDef> {
+        let mut frames: Vec<_> = self.carriage_frames.iter().map(|(_, f)| f).collect();
+        frames.sort_by_key(|f| f.order);
+        frames
     }
 
     pub fn relics_ordered(&self) -> Vec<&RelicDef> {

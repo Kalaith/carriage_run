@@ -153,6 +153,56 @@ fn buying_and_spending_a_reinforced_kit() {
 }
 
 #[test]
+fn carriage_frames_trade_stats_and_exclude_each_other() {
+    let data = crate::data::GameData::load().unwrap();
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    let mission = data.missions.get("muddy_road").unwrap();
+
+    // Standard frame is the balanced baseline.
+    assert_eq!(session.campaign.carriage_frame_id, "standard");
+    let base_health = MissionRun::new(mission, &session.campaign)
+        .carriage
+        .max_health;
+
+    // Reinforced trades speed for health.
+    assert!(session.select_frame(&data, "reinforced"));
+    assert!(!session.select_frame(&data, "reinforced")); // re-selecting is a no-op
+    let reinforced = MissionRun::new(mission, &session.campaign);
+    assert!(
+        reinforced.carriage.max_health > base_health,
+        "reinforced frame should add health"
+    );
+
+    // Switching to racing is exclusive: it drops health below baseline and the
+    // reinforced bonus is gone (only one frame active at a time).
+    assert!(session.select_frame(&data, "racing"));
+    assert_eq!(session.campaign.carriage_frame_id, "racing");
+    let racing = MissionRun::new(mission, &session.campaign);
+    assert!(
+        racing.carriage.max_health < base_health,
+        "racing frame should cost health"
+    );
+
+    // Hauler boosts cargo capacity.
+    assert!(session.select_frame(&data, "hauler"));
+    let hauler = MissionRun::new(mission, &session.campaign);
+    assert!(
+        hauler.carriage.max_cargo
+            > MissionRun::new(mission, &{
+                let mut c = session.campaign.clone();
+                c.carriage_frame_id = "standard".to_owned();
+                c.frame_cargo_mult = 1.0;
+                c
+            })
+            .carriage
+            .max_cargo,
+        "hauler frame should add cargo capacity"
+    );
+}
+
+#[test]
 fn princess_comfort_rewards_smooth_driving_over_swerving() {
     use macroquad::math::{vec2, Rect};
     let data = crate::data::GameData::load().unwrap();

@@ -33,6 +33,20 @@ impl CampaignState {
             self.normalize_equipment();
         }
     }
+
+    /// Resolve the active carriage frame tuning into cached multipliers, falling
+    /// back to the balanced Standard Frame if the id is unknown.
+    pub fn refresh_frame_stats(&mut self, data: &GameData) {
+        let frame = data
+            .carriage_frames
+            .get(&self.carriage_frame_id)
+            .or_else(|| data.carriage_frames.get("standard"));
+        if let Some(frame) = frame {
+            self.frame_speed_mult = frame.speed_mult;
+            self.frame_health_mult = frame.health_mult;
+            self.frame_cargo_mult = frame.cargo_mult;
+        }
+    }
 }
 
 impl GameSession {
@@ -70,6 +84,7 @@ impl GameSession {
                 .unwrap_or(default_id);
         }
         self.campaign.refresh_chassis_stats(data);
+        self.campaign.refresh_frame_stats(data);
     }
 
     pub fn buy_chassis(&mut self, data: &GameData, id: &str) -> bool {
@@ -94,6 +109,17 @@ impl GameSession {
 
         self.campaign.chassis_id = id.to_owned();
         self.campaign.refresh_chassis_stats(data);
+        true
+    }
+
+    /// Selects the mutually-exclusive carriage frame tuning. Returns false if the
+    /// id is unknown or already selected.
+    pub fn select_frame(&mut self, data: &GameData, id: &str) -> bool {
+        if !data.carriage_frames.contains(id) || self.campaign.carriage_frame_id == id {
+            return false;
+        }
+        self.campaign.carriage_frame_id = id.to_owned();
+        self.campaign.refresh_frame_stats(data);
         true
     }
 }

@@ -44,6 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
+- **A4 Mutually-exclusive carriage frames** — the first build-identity opportunity-cost choice. 4 data-driven frame tunings (`assets/data/carriage_frames.json`) picked on the Carriages screen: Standard (balanced), Reinforced (+18% health / −8% speed), Racing (+15% speed / −12% health), Hauler (+25% cargo / −10% speed). Exactly one is active at a time (persisted), so no build stacks every advantage — the multipliers fold into the mission run's speed/health/cargo. *(A4: 1 of 3)*
 - **A3 Princess drive-clean — meets the 3–4 verb target** — the princess-comfort meter is now smoothness-driven. Each frame the carriage's swerve (lateral drift off the road centre, road curve subtracted) feeds a smoothed **ride-smoothness multiplier (×1.00–×2.00)** shown live on the HUD; gliding a clean line restores comfort while jerky steering erodes it. With monster-egg and siege, that's 3 meters reworked into genuine verbs — the design review's 3–4 target is met.
 - **A3 Siege-run rhythm inversion** — the siege supply run no longer spawns a steady trickle. It now alternates **long tense calms and heavily-telegraphed mega-waves** (~2.4× enemies flooding in fast, 2× longer lulls, "Siege assault N incoming!"). The Momentum meter drains during an assault but recovers in the calm, so the mission plays as weather-the-surge-then-breathe rather than constant pressure. *(A3: 2 of 3–4 meters reworked)*
 - **A3 Monster-egg verb** — the first of the mission-type meters promoted from a passive formula to a real mechanic. The egg's Stability meter is now a bomb timer: it cracks (telegraph) as stability falls and, when spent, the egg **hatches mid-route** — a brood erupts around the carriage and swarms it (`hatch_egg` in `pressure.rs`), replacing the old instant "Egg destabilized" fail. The mission continues under the swarm; the bonus becomes "deliver without it ever hatching". *(A3: 1 of 3–4 meters reworked)*
@@ -108,7 +109,7 @@ Three meters are now genuine verbs (monster-egg hatch, siege mega-waves, princes
 ### A4. 🟠 Choice-based progression (build identity)
 All 8 upgrade tracks are flat linear stat bumps (`upgrades.json`, cost = `base_cost·(level+1)`). Add opportunity cost:
 - [ ] 3★ guard **specialization forks** (e.g. Swordsman → Berserker or Bodyguard; Mage → Pyromancer or Warden) — the star-ability system (`combat.rs:399-458`) is already wired to receive this.
-- [ ] 2–3 **mutually-exclusive carriage upgrades** (e.g. slot +1 but −speed).
+- [x] **Mutually-exclusive carriage frame tunings**: 4 data-driven frames (`assets/data/carriage_frames.json` → `CarriageFrameDef`) selected on the Carriages screen — Standard (balanced), Reinforced (+18% health / −8% speed), Racing (+15% speed / −12% health), Hauler (+25% cargo / −10% speed). Exactly one is active (persisted `carriage_frame_id`), so no build gets every advantage; the multipliers fold into `MissionRun::new` alongside the chassis stats. *(done — real opportunity-cost stat choice)*
 - [ ] Rebalance so no build can max everything in one campaign — choices must exclude.
 
 ### A5. 🟡 Elite/boss enemies

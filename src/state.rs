@@ -296,6 +296,10 @@ pub struct CampaignState {
     /// Persistent expedition stats + recent-run history (Records screen).
     #[serde(default)]
     pub expedition_records: ExpeditionRecords,
+    /// Chosen expedition entry-stake tier id (Outfitter). Persisted so the last
+    /// choice sticks; defaults to the no-stake tier.
+    #[serde(default = "default_stake_id")]
+    pub selected_stake_id: String,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -335,6 +339,7 @@ impl CampaignState {
             expedition_tokens: 0,
             expedition_unlocks: Vec::new(),
             expedition_records: ExpeditionRecords::default(),
+            selected_stake_id: default_stake_id(),
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -538,6 +543,10 @@ impl CampaignState {
 
 fn default_guard_id() -> String {
     "swordsman".to_owned()
+}
+
+fn default_stake_id() -> String {
+    "none".to_owned()
 }
 
 fn default_selected_guard_ids() -> Vec<String> {

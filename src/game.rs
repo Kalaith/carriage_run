@@ -184,6 +184,7 @@ impl Game {
                     legs_cleared: 2,
                     seed: 0,
                     seeded: false,
+                    stake_mult: 1.0,
                 };
                 let legs = journey.generate_leg_options(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -212,6 +213,7 @@ impl Game {
                     legs_cleared: 2,
                     seed: 0,
                     seeded: false,
+                    stake_mult: 1.0,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -240,6 +242,7 @@ impl Game {
                     legs_cleared: 2,
                     seed: 0,
                     seeded: false,
+                    stake_mult: 1.0,
                 };
                 let event = journey.next_run_event(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -310,6 +313,7 @@ impl Game {
                     legs_cleared: crate::state::Journey::EXPEDITION_LENGTH,
                     seed: 0x1A2B3C4D,
                     seeded: true,
+                    stake_mult: 1.0,
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -574,6 +578,11 @@ impl Game {
             }
             UiAction::OpenOutfitter => self.session.open_outfitter(),
             UiAction::OpenRecords => self.session.open_records(),
+            UiAction::SelectStake(id) => {
+                if self.session.select_stake(&id, &self.data) {
+                    self.auto_save();
+                }
+            }
             UiAction::UnlockStartingRelic(id) => {
                 if self.session.unlock_starting_relic(&id, &self.data) {
                     self.notifications.success("Starting relic unlocked");

@@ -14,6 +14,7 @@ const TEXTURE_MANIFEST_JSON: &str = include_str!("../assets/data/texture_manifes
 const RELICS_JSON: &str = include_str!("../assets/data/relics.json");
 const LEG_MODIFIERS_JSON: &str = include_str!("../assets/data/leg_modifiers.json");
 const RUN_EVENTS_JSON: &str = include_str!("../assets/data/run_events.json");
+const STAKES_JSON: &str = include_str!("../assets/data/stakes.json");
 
 fn one() -> f32 {
     1.0
@@ -231,6 +232,24 @@ pub struct RunEventOptionDef {
     pub relic: String,
 }
 
+/// An expedition entry-stake tier: an up-front ante (gold-in) paid when a run
+/// begins, in exchange for a multiplier on all banked gold that run
+/// (multiplier-out). A push-your-luck gold sink — the ante is forfeit if the run
+/// goes badly, so bigger wagers demand deeper runs to pay off.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StakeDef {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub order: u32,
+    /// Gold paid up front when the expedition begins.
+    #[serde(default)]
+    pub cost: i64,
+    /// Multiplier applied to all gold banked during the run.
+    #[serde(default = "one")]
+    pub reward_mult: f32,
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -240,6 +259,7 @@ pub struct GameData {
     pub relics: DataRegistry<RelicDef>,
     pub leg_modifiers: DataRegistry<LegModifierDef>,
     pub run_events: DataRegistry<RunEventDef>,
+    pub stakes: DataRegistry<StakeDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -252,6 +272,7 @@ impl GameData {
         let relics = DataRegistry::from_embedded_json(RELICS_JSON, "id")?;
         let leg_modifiers = DataRegistry::from_embedded_json(LEG_MODIFIERS_JSON, "id")?;
         let run_events = DataRegistry::from_embedded_json(RUN_EVENTS_JSON, "id")?;
+        let stakes = DataRegistry::from_embedded_json(STAKES_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -262,6 +283,7 @@ impl GameData {
             relics,
             leg_modifiers,
             run_events,
+            stakes,
             texture_manifest,
         })
     }
@@ -270,6 +292,12 @@ impl GameData {
         let mut events: Vec<_> = self.run_events.iter().map(|(_, e)| e).collect();
         events.sort_by_key(|e| e.order);
         events
+    }
+
+    pub fn stakes_ordered(&self) -> Vec<&StakeDef> {
+        let mut stakes: Vec<_> = self.stakes.iter().map(|(_, s)| s).collect();
+        stakes.sort_by_key(|s| s.order);
+        stakes
     }
 
     pub fn relics_ordered(&self) -> Vec<&RelicDef> {

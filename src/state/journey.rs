@@ -109,6 +109,9 @@ pub struct Journey {
     /// Whether this run was started from an explicit (daily/shared) seed, so the
     /// UI can surface the seed code for sharing.
     pub seeded: bool,
+    /// Reward multiplier from the entry stake paid at the start of this run
+    /// (1.0 = no stake). Applied to every leg reward and the completion bonus.
+    pub stake_mult: f32,
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -345,7 +348,7 @@ impl Journey {
 
     pub fn leg_reward_choices(&self, data: &GameData) -> [LegReward; 3] {
         let base = Journey::leg_reward(self.leg);
-        let mult = self.reward_mult(data) * self.leg_reward_mult(data);
+        let mult = self.reward_mult(data) * self.leg_reward_mult(data) * self.stake_mult;
         let gold = |raw: i64| ((raw as f32) * mult).round() as i64;
         let first = match self.next_relic_offer(data) {
             Some(id) => LegReward::Relic(id),
@@ -370,6 +373,17 @@ impl GameSession {
     /// `seeded = true`) for a reproducible, shareable run.
     pub fn start_journey_seeded(&mut self, data: &GameData, seed: u64, seeded: bool) -> bool {
         self.campaign.expedition_records.runs_started += 1;
+        // Pay the chosen entry stake's ante up front (falls back to no stake if
+        // unaffordable); its reward multiplier rides along for the whole run.
+        let stake_mult = data
+            .stakes
+            .get(&self.campaign.selected_stake_id)
+            .filter(|stake| self.campaign.gold >= stake.cost)
+            .map(|stake| {
+                self.campaign.gold -= stake.cost;
+                stake.reward_mult
+            })
+            .unwrap_or(1.0);
         self.journey = Some(Journey {
             leg: 1,
             banked_gold: 0,
@@ -396,6 +410,7 @@ impl GameSession {
             legs_cleared: 0,
             seed,
             seeded,
+            stake_mult,
         });
         self.begin_journey_leg(data)
     }
@@ -491,7 +506,7 @@ impl GameSession {
         journey.pending_rewards = None;
         if Journey::is_final_leg(journey.leg) {
             // The final leg's reward was just taken — the expedition is won.
-            let bonus = Journey::completion_bonus();
+            let bonus = ((Journey::completion_bonus() as f32) * journey.stake_mult).round() as i64;
             journey.banked_gold += bonus;
             journey.payout = bonus;
             journey.won = true;
@@ -612,6 +627,16 @@ impl GameSession {
         }
         self.mission = None;
         self.screen = Screen::MissionMap;
+    }
+
+    /// Selects the expedition entry-stake tier for the next run. Returns false if
+    /// the id is unknown or already selected.
+    pub fn select_stake(&mut self, stake_id: &str, data: &GameData) -> bool {
+        if !data.stakes.contains(stake_id) || self.campaign.selected_stake_id == stake_id {
+            return false;
+        }
+        self.campaign.selected_stake_id = stake_id.to_owned();
+        true
     }
 
     /// Spends expedition tokens to permanently unlock a starting relic. Future

@@ -64,6 +64,7 @@ pub enum UiAction {
     BeginMission,
     OpenOutfitter,
     OpenRecords,
+    SelectStake(String),
     UnlockStartingRelic(String),
     StartExpedition,
     StartDailyExpedition,

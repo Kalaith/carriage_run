@@ -44,6 +44,7 @@ The workspace `standing.md` estimates **4–7 months to finish** — consistent 
 
 Shipped and committed to `master` this cycle (checkboxes below updated to match):
 
+- **A2 Expedition entry stakes** — a push-your-luck gold sink layered onto the Outfitter. 3 data-driven stake tiers (`assets/data/stakes.json`: No Stake / Caravan Bond +30% / High Wager +70%). The chosen ante is paid up front from campaign gold when a run begins and its multiplier applies to every leg reward and the completion bonus; a run that ends badly forfeits the ante. Bigger wagers demand deeper runs to pay off. *(done)*
 - **A1 Run summary & records — completes the expedition overhaul (all 8 A1 items done)** — persistent `ExpeditionRecords` on the saved campaign track lifetime bests (best legs, best banked, completions, total legs, runs started) and a capped recent-run history. A new **Records** screen (reached from the Outfitter) shows the lifetime stats plus a run log with each run's outcome, banked gold, and shareable daily seed. Also addresses F6's stats/records screen. **Workstream A1 (expedition → roguelite) is now fully shipped.**
 - **A1 Seeded/daily runs** — every expedition now carries a run seed that deterministically drives all procedural composition (leg branches, run events, relic offers) through a SplitMix64-mixed `seed_index`. Same seed reproduces the same run, so the Outfitter's new **Daily Run** button starts a date-derived run identical for everyone that day; the shareable `seed_code` (8-hex) shows on the hub and victory screen. Free runs now use a fresh nonce, so they finally vary run-to-run instead of being identical every time. *(done)*
 - **A1 Meta-progression** — expeditions now persist. Each run banks **expedition tokens** (1 per leg cleared + a 5-token completion bonus) onto the saved `CampaignState`. A new pre-run **Expedition Outfitter** screen (opened from the loadout's Expedition button) spends tokens to permanently unlock **starting relics**; every future expedition then begins already holding them. This is the first thing in the game that carries across runs. *(done)*
@@ -90,7 +91,7 @@ The core 60-second loop is good. What's missing is what happens after hour one.
 ### A2. 🟠 Endgame economy (post-max gold sink)
 `upgrade_cost` returns `None` at max (`state.rs:144-147`) and then gold is worthless. Needed:
 - [x] Consumables purchasable per-mission (one-run buffs: rations, oil flask, hired scout) — a repeatable sink.
-- [ ] Expedition entry stakes / insurance options (gold-in, multiplier-out).
+- [x] Expedition entry stakes (gold-in, multiplier-out): 3 data-driven stake tiers (`assets/data/stakes.json` → `StakeDef`: No Stake / Caravan Bond +30% / High Wager +70%) selected at the Outfitter. The ante is paid up front from campaign gold when a run begins (forfeit if it goes badly) and its `stake_mult` multiplies every leg reward and the completion bonus — a push-your-luck gold sink. *(done — insurance/loss-mitigation tier can be added on the same `StakeDef` shape)*
 - [ ] Cosmetic sink (carriage liveries, guard colors) once the art pass exists.
 - [ ] Optional: prestige/NG+ (reset campaign with a permanent token).
 

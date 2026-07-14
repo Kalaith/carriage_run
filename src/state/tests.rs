@@ -668,6 +668,49 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn expedition_entry_stake_pays_ante_and_multiplies_rewards() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    // Pick a paid stake tier and give enough gold to cover the ante.
+    let stake = data
+        .stakes_ordered()
+        .into_iter()
+        .find(|s| s.cost > 0)
+        .unwrap()
+        .clone();
+    assert!(session.select_stake(&stake.id, &data));
+    assert!(!session.select_stake(&stake.id, &data)); // re-selecting is a no-op
+    session.campaign.gold = 500;
+
+    // Starting the run pays the ante up front and records the multiplier.
+    assert!(session.start_journey(&data, 3));
+    assert_eq!(session.campaign.gold, 500 - stake.cost);
+    let j = session.journey.as_ref().unwrap();
+    assert!((j.stake_mult - stake.reward_mult).abs() < 1e-4);
+
+    // The staked multiplier is baked into the leg reward choices.
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    let base = super::Journey::leg_reward(1);
+    let staked_provisions = match &session
+        .journey
+        .as_ref()
+        .unwrap()
+        .pending_rewards
+        .as_ref()
+        .unwrap()[1]
+    {
+        super::LegReward::Provisions { gold, .. } => *gold,
+        other => panic!("expected provisions, got {:?}", other),
+    };
+    assert_eq!(
+        staked_provisions,
+        ((base as f32) * stake.reward_mult).round() as i64
+    );
+}
+
+#[test]
 fn expedition_records_track_bests_and_history() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

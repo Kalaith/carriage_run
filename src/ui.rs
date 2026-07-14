@@ -9,6 +9,7 @@ mod loadout;
 mod management;
 mod mission_map;
 mod mission_map_art;
+mod outfitter;
 mod upgrade_visuals;
 mod upgrades;
 mod widgets;
@@ -60,6 +61,8 @@ pub enum UiAction {
     ToggleSetting(String),
     SetDifficulty(String),
     BeginMission,
+    OpenOutfitter,
+    UnlockStartingRelic(String),
     StartExpedition,
     JourneyPressOn,
     JourneyChooseReward(usize),
@@ -108,6 +111,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Paused => management::draw_pause(&ctx, mouse, &mut actions),
         Screen::Results => draw_results(&ctx, mouse, &mut actions),
         Screen::Journey => journey::draw_journey(&ctx, mouse, &mut actions),
+        Screen::Outfitter => outfitter::draw_outfitter(&ctx, mouse, &mut actions),
         Screen::Codex => draw_codex(&ctx, mouse, &mut actions),
     }
 

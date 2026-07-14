@@ -31,6 +31,7 @@ pub enum Screen {
     Paused,
     Results,
     Journey,
+    Outfitter,
     Codex,
 }
 
@@ -283,6 +284,14 @@ pub struct CampaignState {
     /// start of each campaign route.
     #[serde(default)]
     pub reinforced_kits: u32,
+    /// Persistent expedition currency (meta-progression). Earned per leg cleared
+    /// across all expeditions; spent at the Outfitter on permanent unlocks.
+    #[serde(default)]
+    pub expedition_tokens: i64,
+    /// Relic ids permanently unlocked as expedition starting boons; every future
+    /// expedition begins with these.
+    #[serde(default)]
+    pub expedition_unlocks: Vec<String>,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -319,6 +328,8 @@ impl CampaignState {
             difficulty_preset: DifficultyPreset::Standard,
             generous_timers: false,
             reinforced_kits: 0,
+            expedition_tokens: 0,
+            expedition_unlocks: Vec::new(),
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -676,6 +687,10 @@ impl GameSession {
 
     pub fn open_settings(&mut self) {
         self.screen = Screen::Settings;
+    }
+
+    pub fn open_outfitter(&mut self) {
+        self.screen = Screen::Outfitter;
     }
 
     pub fn open_codex(&mut self) {

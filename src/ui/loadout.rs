@@ -47,7 +47,7 @@ pub(super) fn draw_loadout(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
         ButtonTone::Primary,
         mouse,
     ) {
-        actions.push(UiAction::StartExpedition);
+        actions.push(UiAction::OpenOutfitter);
     }
     if virtual_button(
         Rect::new(1044.0, 642.0, 154.0, 42.0),

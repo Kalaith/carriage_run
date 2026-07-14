@@ -181,6 +181,7 @@ impl Game {
                     pending_event: None,
                     last_event_result: None,
                     won: false,
+                    legs_cleared: 2,
                 };
                 let legs = journey.generate_leg_options(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -206,6 +207,7 @@ impl Game {
                     pending_event: None,
                     last_event_result: None,
                     won: false,
+                    legs_cleared: 2,
                 };
                 let choices = journey.leg_reward_choices(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -231,6 +233,7 @@ impl Game {
                     pending_event: None,
                     last_event_result: None,
                     won: false,
+                    legs_cleared: 2,
                 };
                 let event = journey.next_run_event(&self.data);
                 self.session.journey = Some(crate::state::Journey {
@@ -238,6 +241,15 @@ impl Game {
                     ..journey
                 });
                 self.session.screen = crate::state::Screen::Journey;
+            }
+            "outfitter" => {
+                // Seed the pre-expedition Outfitter with tokens and one unlock.
+                self.session.campaign.expedition_tokens = 14;
+                self.session
+                    .campaign
+                    .expedition_unlocks
+                    .push("greased_axles".to_owned());
+                self.session.open_outfitter();
             }
             "journey_win" => {
                 // Seed the expedition-victory summary screen.
@@ -256,6 +268,7 @@ impl Game {
                     pending_event: None,
                     last_event_result: None,
                     won: true,
+                    legs_cleared: crate::state::Journey::EXPEDITION_LENGTH,
                 });
                 self.session.screen = crate::state::Screen::Journey;
             }
@@ -354,6 +367,7 @@ impl Game {
                 | Screen::Guards
                 | Screen::Upgrades
                 | Screen::Settings => self.events.push(UiAction::OpenMap),
+                Screen::Outfitter => self.events.push(UiAction::OpenLoadout),
                 Screen::MissionMap => self.events.push(UiAction::ReturnTitle),
                 Screen::Codex => self.events.push(UiAction::ReturnTitle),
                 // Expedition decisions must be made with the on-screen buttons
@@ -514,6 +528,15 @@ impl Game {
                     }
                 } else {
                     self.notifications.warning("Route locked");
+                }
+            }
+            UiAction::OpenOutfitter => self.session.open_outfitter(),
+            UiAction::UnlockStartingRelic(id) => {
+                if self.session.unlock_starting_relic(&id, &self.data) {
+                    self.notifications.success("Starting relic unlocked");
+                    self.auto_save();
+                } else {
+                    self.notifications.warning("Cannot unlock that relic");
                 }
             }
             UiAction::StartExpedition => {

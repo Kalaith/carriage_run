@@ -46,6 +46,9 @@ pub struct Journey {
     /// True once the final leg has been cleared: the run is won and awaiting the
     /// victory summary. A won run still `alive`, so banking pays out in full.
     pub won: bool,
+    /// Count of legs successfully cleared this run — the basis for the
+    /// persistent expedition-token payout on return (meta-progression).
+    pub legs_cleared: u32,
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -150,6 +153,13 @@ impl Journey {
     /// Number of legs in a full expedition. Clearing the final leg wins the run
     /// (a defined arc + win condition, not an endless "leave or die" treadmill).
     pub const EXPEDITION_LENGTH: u32 = 8;
+
+    /// Bonus persistent tokens for completing a whole expedition (on top of one
+    /// per leg cleared).
+    pub const EXPEDITION_WIN_TOKENS: i64 = 5;
+
+    /// Expedition-token cost to permanently unlock one starting relic.
+    pub const STARTING_RELIC_COST: i64 = 10;
 
     /// Whether `leg` is the final leg of the expedition.
     pub fn is_final_leg(leg: u32) -> bool {
@@ -278,12 +288,21 @@ impl GameSession {
             last_mission_name: String::new(),
             payout: 0,
             pending_rewards: None,
-            relics: Vec::new(),
+            // Persistent meta-progression: permanently-unlocked relics ride along
+            // from leg 1 (filtered to still-valid relic ids).
+            relics: self
+                .campaign
+                .expedition_unlocks
+                .iter()
+                .filter(|id| data.relics.contains(id))
+                .cloned()
+                .collect(),
             pending_legs: None,
             current_leg: None,
             pending_event: None,
             last_event_result: None,
             won: false,
+            legs_cleared: 0,
         });
         self.begin_journey_leg(data)
     }
@@ -341,6 +360,7 @@ impl GameSession {
             let journey = self.journey.as_mut().unwrap();
             journey.last_mission_name = report.mission_name.clone();
             journey.carriage_health_ratio = report.carriage_health_ratio.max(0.05);
+            journey.legs_cleared += 1;
             journey.pending_rewards = Some(choices);
         } else {
             let journey = self.journey.as_mut().unwrap();
@@ -459,14 +479,41 @@ impl GameSession {
     }
 
     /// Ends the expedition. A surviving run banks its full earnings; a failed
-    /// run's payout was already applied when it ended.
+    /// run's payout was already applied when it ended. Either way the run pays out
+    /// persistent expedition tokens (meta-progression) for the legs it cleared.
     pub fn journey_bank_and_return(&mut self) {
         if let Some(journey) = self.journey.take() {
             if journey.alive {
                 self.campaign.gold += journey.banked_gold;
             }
+            let tokens = journey.legs_cleared as i64
+                + if journey.won {
+                    Journey::EXPEDITION_WIN_TOKENS
+                } else {
+                    0
+                };
+            self.campaign.expedition_tokens += tokens;
         }
         self.mission = None;
         self.screen = Screen::MissionMap;
+    }
+
+    /// Spends expedition tokens to permanently unlock a starting relic. Future
+    /// expeditions then begin with it. No-op if unaffordable, already unlocked,
+    /// or the relic id is unknown.
+    pub fn unlock_starting_relic(&mut self, relic_id: &str, data: &GameData) -> bool {
+        if !data.relics.contains(relic_id)
+            || self
+                .campaign
+                .expedition_unlocks
+                .iter()
+                .any(|id| id == relic_id)
+            || self.campaign.expedition_tokens < Journey::STARTING_RELIC_COST
+        {
+            return false;
+        }
+        self.campaign.expedition_tokens -= Journey::STARTING_RELIC_COST;
+        self.campaign.expedition_unlocks.push(relic_id.to_owned());
+        true
     }
 }

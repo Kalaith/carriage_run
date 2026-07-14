@@ -668,6 +668,40 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn expedition_awards_tokens_and_unlocks_persist_as_starting_relics() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    assert_eq!(session.campaign.expedition_tokens, 0);
+
+    // Run two legs, then bank early: tokens = legs cleared (no win bonus).
+    assert!(session.start_journey(&data));
+    for _ in 0..2 {
+        session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+        assert!(session.journey_choose_reward(1, &data));
+        if session.journey.as_ref().unwrap().pending_event.is_some() {
+            session.journey_resolve_event(1, &data);
+        }
+    }
+    session.journey_bank_and_return();
+    assert_eq!(session.campaign.expedition_tokens, 2);
+
+    // Too poor to unlock anything but the first (cost 10) once we top up.
+    let relic = data.relics_ordered()[0].id.clone();
+    assert!(!session.unlock_starting_relic(&relic, &data));
+    session.campaign.expedition_tokens = super::Journey::STARTING_RELIC_COST + 1;
+    assert!(session.unlock_starting_relic(&relic, &data));
+    assert_eq!(session.campaign.expedition_tokens, 1);
+    assert!(session.campaign.expedition_unlocks.contains(&relic));
+    // Re-unlocking the same relic is rejected.
+    assert!(!session.unlock_starting_relic(&relic, &data));
+
+    // The next expedition now begins already holding the unlocked relic.
+    assert!(session.start_journey(&data));
+    assert!(session.journey.as_ref().unwrap().relics.contains(&relic));
+}
+
+#[test]
 fn expedition_final_leg_wins_the_run_with_a_bonus() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

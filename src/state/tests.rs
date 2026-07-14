@@ -668,6 +668,53 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn expedition_records_track_bests_and_history() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+
+    // Win a run: jump to the final leg, clear it, take reward, then bank.
+    session.start_journey_seeded(&data, 0xABCD, true);
+    assert_eq!(session.campaign.expedition_records.runs_started, 1);
+    {
+        let j = session.journey.as_mut().unwrap();
+        j.leg = super::Journey::EXPEDITION_LENGTH;
+        j.banked_gold = 400;
+    }
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    session.journey_choose_reward(1, &data);
+    assert!(session.journey.as_ref().unwrap().won);
+    let won_banked = session.journey.as_ref().unwrap().banked_gold;
+    session.journey_bank_and_return();
+
+    // The win jumped straight to the final leg, so only that one leg counts.
+    let records = &session.campaign.expedition_records;
+    assert_eq!(records.wins, 1);
+    assert_eq!(records.best_legs, 1);
+    assert_eq!(records.best_banked, won_banked);
+    assert_eq!(records.total_legs, 1);
+    assert_eq!(records.history.len(), 1);
+    assert!(records.history[0].won);
+    assert_eq!(records.history[0].seed_code, "0000ABCD");
+
+    // A short second run appends to history (newest first) and adds to totals.
+    session.start_journey(&data, 5);
+    session.resolve_journey_leg(&test_report(true, Vec::new()), &data);
+    session.journey_choose_reward(1, &data);
+    if session.journey.as_ref().unwrap().pending_event.is_some() {
+        session.journey_resolve_event(1, &data);
+    }
+    session.journey_bank_and_return();
+
+    let records = &session.campaign.expedition_records;
+    assert_eq!(records.runs_started, 2);
+    assert_eq!(records.history.len(), 2);
+    assert!(!records.history[0].won, "newest run is first");
+    assert_eq!(records.total_legs, 2);
+    assert!(!records.history[0].seeded, "free run not flagged seeded");
+}
+
+#[test]
 fn seeded_expeditions_are_reproducible_and_seeds_vary_runs() {
     let data = crate::data::GameData::load().unwrap();
     let config = test_config();

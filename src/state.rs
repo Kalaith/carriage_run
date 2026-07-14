@@ -9,7 +9,7 @@ mod mission;
 
 pub use entities::*;
 pub use equipment::*;
-pub use journey::{Journey, LegReward};
+pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegReward};
 pub use mission::{MissionInput, MissionReport, MissionRun};
 
 use crate::data::{GameConfig, GameData, MissionDef, UpgradeDef};
@@ -32,6 +32,7 @@ pub enum Screen {
     Results,
     Journey,
     Outfitter,
+    Records,
     Codex,
 }
 
@@ -292,6 +293,9 @@ pub struct CampaignState {
     /// expedition begins with these.
     #[serde(default)]
     pub expedition_unlocks: Vec<String>,
+    /// Persistent expedition stats + recent-run history (Records screen).
+    #[serde(default)]
+    pub expedition_records: ExpeditionRecords,
     pub selected_mission_id: String,
     #[serde(default)]
     pub selected_route_choices: HashMap<String, String>,
@@ -330,6 +334,7 @@ impl CampaignState {
             reinforced_kits: 0,
             expedition_tokens: 0,
             expedition_unlocks: Vec::new(),
+            expedition_records: ExpeditionRecords::default(),
             selected_mission_id: first_mission_id.unwrap_or("muddy_road").to_owned(),
             selected_route_choices: HashMap::new(),
             records: HashMap::new(),
@@ -691,6 +696,10 @@ impl GameSession {
 
     pub fn open_outfitter(&mut self) {
         self.screen = Screen::Outfitter;
+    }
+
+    pub fn open_records(&mut self) {
+        self.screen = Screen::Records;
     }
 
     pub fn open_codex(&mut self) {

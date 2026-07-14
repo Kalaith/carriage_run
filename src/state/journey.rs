@@ -4,11 +4,64 @@
 //! An expedition reuses the campaign loadout (guards, chassis, equipment) but
 //! runs missions back-to-back. Carriage damage carries between legs, difficulty
 //! climbs each leg, and rewards bank as you go — cash out to keep them all, or
-//! push on and risk losing half if a leg is lost. Expeditions are session-only
-//! (not saved) and never touch campaign mission records.
+//! push on and risk losing half if a leg is lost. The active run is session-only
+//! and never touches campaign mission records, but persistent meta-progression
+//! (expedition tokens, unlocks, and run records) carries across runs.
 
 use super::{GameSession, MissionReport, MissionRun, Screen};
 use crate::data::{GameData, MissionDef, RelicDef};
+use serde::{Deserialize, Serialize};
+
+/// The most recent expeditions kept in the run-history log.
+const RUN_HISTORY_CAP: usize = 8;
+
+/// Persistent expedition statistics and recent-run history, saved on the
+/// campaign. Powers the Records screen.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ExpeditionRecords {
+    /// Expeditions ever started.
+    #[serde(default)]
+    pub runs_started: u32,
+    /// Expeditions run to full completion (all legs cleared).
+    #[serde(default)]
+    pub wins: u32,
+    /// Most legs cleared in a single run.
+    #[serde(default)]
+    pub best_legs: u32,
+    /// Most gold banked from a single run.
+    #[serde(default)]
+    pub best_banked: i64,
+    /// Legs cleared across all runs.
+    #[serde(default)]
+    pub total_legs: u32,
+    /// Most recent runs, newest first, capped at `RUN_HISTORY_CAP`.
+    #[serde(default)]
+    pub history: Vec<ExpeditionRunSummary>,
+}
+
+/// A single completed expedition's outcome, for the history log.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExpeditionRunSummary {
+    pub seed_code: String,
+    pub seeded: bool,
+    pub legs_cleared: u32,
+    pub banked: i64,
+    pub won: bool,
+}
+
+impl ExpeditionRecords {
+    /// Folds a finished run into the records: bests, totals, and history.
+    fn record(&mut self, summary: ExpeditionRunSummary) {
+        self.best_legs = self.best_legs.max(summary.legs_cleared);
+        self.best_banked = self.best_banked.max(summary.banked);
+        self.total_legs += summary.legs_cleared;
+        if summary.won {
+            self.wins += 1;
+        }
+        self.history.insert(0, summary);
+        self.history.truncate(RUN_HISTORY_CAP);
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Journey {
@@ -316,6 +369,7 @@ impl GameSession {
     /// fresh nonce for a varied free run, or a fixed/daily seed (with
     /// `seeded = true`) for a reproducible, shareable run.
     pub fn start_journey_seeded(&mut self, data: &GameData, seed: u64, seeded: bool) -> bool {
+        self.campaign.expedition_records.runs_started += 1;
         self.journey = Some(Journey {
             leg: 1,
             banked_gold: 0,
@@ -527,9 +581,12 @@ impl GameSession {
     /// persistent expedition tokens (meta-progression) for the legs it cleared.
     pub fn journey_bank_and_return(&mut self) {
         if let Some(journey) = self.journey.take() {
-            if journey.alive {
-                self.campaign.gold += journey.banked_gold;
-            }
+            let banked_out = if journey.alive {
+                journey.banked_gold
+            } else {
+                0
+            };
+            self.campaign.gold += banked_out;
             let tokens = journey.legs_cleared as i64
                 + if journey.won {
                     Journey::EXPEDITION_WIN_TOKENS
@@ -537,6 +594,21 @@ impl GameSession {
                     0
                 };
             self.campaign.expedition_tokens += tokens;
+            self.campaign
+                .expedition_records
+                .record(ExpeditionRunSummary {
+                    seed_code: journey.seed_code(),
+                    seeded: journey.seeded,
+                    legs_cleared: journey.legs_cleared,
+                    // For a survived/won run this is what banked; for a lost run it's
+                    // the half-salvage payout already applied when it failed.
+                    banked: if journey.alive {
+                        journey.banked_gold
+                    } else {
+                        journey.payout
+                    },
+                    won: journey.won,
+                });
         }
         self.mission = None;
         self.screen = Screen::MissionMap;

@@ -10,6 +10,7 @@ mod management;
 mod mission_map;
 mod mission_map_art;
 mod outfitter;
+mod records;
 mod upgrade_visuals;
 mod upgrades;
 mod widgets;
@@ -62,6 +63,7 @@ pub enum UiAction {
     SetDifficulty(String),
     BeginMission,
     OpenOutfitter,
+    OpenRecords,
     UnlockStartingRelic(String),
     StartExpedition,
     StartDailyExpedition,
@@ -113,6 +115,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Results => draw_results(&ctx, mouse, &mut actions),
         Screen::Journey => journey::draw_journey(&ctx, mouse, &mut actions),
         Screen::Outfitter => outfitter::draw_outfitter(&ctx, mouse, &mut actions),
+        Screen::Records => records::draw_records(&ctx, mouse, &mut actions),
         Screen::Codex => draw_codex(&ctx, mouse, &mut actions),
     }
 

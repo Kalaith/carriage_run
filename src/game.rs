@@ -257,6 +257,39 @@ impl Game {
                     .push("greased_axles".to_owned());
                 self.session.open_outfitter();
             }
+            "records" => {
+                // Seed the Records screen with lifetime stats and run history.
+                let records = &mut self.session.campaign.expedition_records;
+                records.runs_started = 12;
+                records.wins = 3;
+                records.best_legs = 8;
+                records.best_banked = 742;
+                records.total_legs = 47;
+                records.history = vec![
+                    crate::state::ExpeditionRunSummary {
+                        seed_code: "1A2B3C4D".to_owned(),
+                        seeded: true,
+                        legs_cleared: 8,
+                        banked: 742,
+                        won: true,
+                    },
+                    crate::state::ExpeditionRunSummary {
+                        seed_code: "00000000".to_owned(),
+                        seeded: false,
+                        legs_cleared: 5,
+                        banked: 318,
+                        won: false,
+                    },
+                    crate::state::ExpeditionRunSummary {
+                        seed_code: "00000000".to_owned(),
+                        seeded: false,
+                        legs_cleared: 3,
+                        banked: 210,
+                        won: false,
+                    },
+                ];
+                self.session.open_records();
+            }
             "journey_win" => {
                 // Seed the expedition-victory summary screen.
                 self.session.journey = Some(crate::state::Journey {
@@ -376,6 +409,7 @@ impl Game {
                 | Screen::Upgrades
                 | Screen::Settings => self.events.push(UiAction::OpenMap),
                 Screen::Outfitter => self.events.push(UiAction::OpenLoadout),
+                Screen::Records => self.events.push(UiAction::OpenOutfitter),
                 Screen::MissionMap => self.events.push(UiAction::ReturnTitle),
                 Screen::Codex => self.events.push(UiAction::ReturnTitle),
                 // Expedition decisions must be made with the on-screen buttons
@@ -539,6 +573,7 @@ impl Game {
                 }
             }
             UiAction::OpenOutfitter => self.session.open_outfitter(),
+            UiAction::OpenRecords => self.session.open_records(),
             UiAction::UnlockStartingRelic(id) => {
                 if self.session.unlock_starting_relic(&id, &self.data) {
                     self.notifications.success("Starting relic unlocked");

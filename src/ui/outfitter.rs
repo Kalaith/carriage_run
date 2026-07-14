@@ -42,6 +42,15 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
         22.0,
         UI_GOLD,
     );
+    if virtual_button(
+        Rect::new(panel.right() - 160.0, panel.y + 24.0, 130.0, 34.0),
+        "Records",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenRecords);
+    }
 
     draw_section_label(
         "Starting Relics",

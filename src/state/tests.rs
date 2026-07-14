@@ -153,6 +153,37 @@ fn buying_and_spending_a_reinforced_kit() {
 }
 
 #[test]
+fn assist_toggles_soften_the_run() {
+    let data = crate::data::GameData::load().unwrap();
+    let mission = data.missions.get("muddy_road").unwrap();
+    let config = test_config();
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    // Sturdy Carriage grants bonus max health.
+    let base_health = MissionRun::new(mission, &campaign).carriage.max_health;
+    campaign.sturdy_carriage = true;
+    let sturdy_health = MissionRun::new(mission, &campaign).carriage.max_health;
+    assert!(
+        sturdy_health > base_health,
+        "sturdy carriage not applied: {sturdy_health} !> {base_health}"
+    );
+
+    // Slower Waves lengthens the opening lull before the first wave.
+    campaign.sturdy_carriage = false;
+    let base_lull = MissionRun::new(mission, &campaign).wave_pace;
+    campaign.slower_waves = true;
+    let slow = MissionRun::new(mission, &campaign);
+    assert!(slow.wave_pace > base_lull, "slower waves not applied");
+
+    // Both are plain settings toggles.
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    assert!(session.toggle_setting("slower_waves"));
+    assert!(session.campaign.slower_waves);
+    assert!(session.toggle_setting("sturdy_carriage"));
+    assert!(session.campaign.sturdy_carriage);
+}
+
+#[test]
 fn generous_timers_extends_timed_missions() {
     let data = crate::data::GameData::load().unwrap();
     let mission = data.missions.get("courier_deadline").unwrap();

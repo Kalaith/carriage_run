@@ -189,12 +189,19 @@ pub struct MissionRun {
     /// Radius within which the Warding Lantern slows enemies. Zero when not
     /// equipped.
     pub(super) ward_radius: f32,
+    /// Multiplier on the lulls between enemy waves (>1 = gentler pacing). Driven
+    /// by the Slower Waves accessibility assist.
+    pub(super) wave_pace: f32,
 }
 
 impl MissionRun {
     pub fn new(mission: &MissionDef, campaign: &CampaignState) -> Self {
-        let max_health =
-            (100.0 + campaign.carriage_level as f32 * 26.0) * campaign.chassis_health_mult;
+        // Accessibility assists: sturdier carriage (+health) and gentler pacing.
+        let assist_health = if campaign.sturdy_carriage { 1.25 } else { 1.0 };
+        let wave_pace = if campaign.slower_waves { 1.5 } else { 1.0 };
+        let max_health = (100.0 + campaign.carriage_level as f32 * 26.0)
+            * campaign.chassis_health_mult
+            * assist_health;
         let cargo_max = 100.0 + campaign.cargo_level as f32 * 6.0;
         let route_choice = campaign.selected_route_choice(mission);
         let route_choice_id = route_choice
@@ -328,7 +335,7 @@ impl MissionRun {
             throttle: 1.0,
             drive: DriveKeys::default(),
             chassis_speed_mult: campaign.chassis_speed_mult,
-            wave: WavePhase::Lull(2.2),
+            wave: WavePhase::Lull(2.2 * wave_pace),
             wave_index: 0,
             next_enemy_id: 10,
             hazard_timer: 1.6,
@@ -364,6 +371,7 @@ impl MissionRun {
             } else {
                 0.0
             },
+            wave_pace,
         }
     }
 

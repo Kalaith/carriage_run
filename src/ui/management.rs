@@ -150,7 +150,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(390.0, 74.0, 500.0, 566.0),
+            Rect::new(390.0, 66.0, 500.0, 600.0),
             true,
         );
     } else {
@@ -160,7 +160,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             ctx,
             mouse,
             actions,
-            Rect::new(360.0, 96.0, 560.0, 566.0),
+            Rect::new(360.0, 84.0, 560.0, 600.0),
             false,
         );
     }
@@ -624,46 +624,60 @@ fn draw_settings_panel(
         TextStyle::new(33.0, INK).params(),
     );
 
-    let mut y = panel.y + 94.0;
+    let mut y = panel.y + 90.0;
+    let row = |y: f32| Rect::new(panel.x + 34.0, y, panel.w - 68.0, 52.0);
     draw_setting_row(
         "route_motion",
         "Route Motion",
         ctx.session.campaign.route_motion_enabled,
-        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        row(y),
         mouse,
         actions,
     );
-    y += 72.0;
+    y += 60.0;
     draw_setting_row(
         "alerts",
         "Route Alerts",
         ctx.session.campaign.alerts_enabled,
-        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        row(y),
         mouse,
         actions,
     );
-    y += 72.0;
+    y += 60.0;
     draw_setting_row(
         "auto_save",
         "Autosave",
         ctx.session.campaign.auto_save_enabled,
-        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        row(y),
         mouse,
         actions,
     );
-    y += 72.0;
-    draw_difficulty_row(
-        ctx,
-        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
-        mouse,
-        actions,
-    );
-    y += 72.0;
+    y += 60.0;
+    draw_difficulty_row(ctx, row(y), mouse, actions);
+    y += 60.0;
     draw_setting_row(
         "generous_timers",
         "Generous Timers",
         ctx.session.campaign.generous_timers,
-        Rect::new(panel.x + 34.0, y, panel.w - 68.0, 58.0),
+        row(y),
+        mouse,
+        actions,
+    );
+    y += 60.0;
+    draw_setting_row(
+        "slower_waves",
+        "Slower Waves",
+        ctx.session.campaign.slower_waves,
+        row(y),
+        mouse,
+        actions,
+    );
+    y += 60.0;
+    draw_setting_row(
+        "sturdy_carriage",
+        "Sturdy Carriage",
+        ctx.session.campaign.sturdy_carriage,
+        row(y),
         mouse,
         actions,
     );

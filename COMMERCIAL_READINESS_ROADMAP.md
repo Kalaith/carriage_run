@@ -58,7 +58,7 @@ Shipped and committed to `master` this cycle (checkboxes below updated to match)
 - **A5 Elite enemies** — Alpha Wolf (fast charging pack leader) and Armored Bandit (tanky non-fleeing raider, countered by crossbow armor-pierce), added to Refugee Escort / Gold Shipment and the Field Guide. *(elite variants done — 2 of 2–3; bosses remain)*
 - **A2 Endgame economy** — Reinforced Kit consumable (+55 health for one route), a repeatable gold sink bought in the shop. *(done)*
 - **A6 Difficulty presets** — Relaxed / Standard / Hard scaling the mission difficulty scalar. *(done)*
-- **A6 Assist toggles** — "Generous Timers" (+15s on timed missions), orthogonal to the presets. *(partial — one assist so far; slower-waves / extra-gold remain)*
+- **A6 Assist toggles — completed** — added **Slower Waves** (1.5× longer lulls between attacks via `MissionRun::wave_pace`) and **Sturdy Carriage** (+25% carriage max health) alongside the existing Generous Timers. All three are persisted Settings toggles orthogonal to the difficulty preset; A6 is now fully shipped. *(done)*
 - **C1 Narrative** — courier-log intro (loadout brief) and outro (results screen) for all 12 missions. *(done)*
 - **F3 Confirmation dialogs** — New Campaign confirms before overwriting the save. *(partial — chassis/expedition confirms remain)*
 - **F4 Post-mission clarity** — structured bonus objectives graded met/missed on a relaid-out results screen. *(partial — "what to buy next" nudge remains)*
@@ -114,10 +114,9 @@ Roster is 5 kinds, no elites, no bosses (`entities.rs:432-439`). Add:
 - [ ] 2–3 **bosses** for campaign finale + expedition finale (multi-phase, telegraph-heavy — the wave state machine in `flow.rs` extends naturally).
 - [ ] 3–4 additional standard enemies to support biome variety (A6/B1).
 
-### A6. 🟡 Difficulty options & assists
-No difficulty setting exists. For a commercial audience:
+### A6. ✅ Difficulty options & assists — **COMPLETE**
 - [x] 3 difficulty presets (spawn-rate/damage multipliers over the existing `difficulty` scalar in `entities.rs:519-527`).
-- [ ] Assist toggles (slower waves, extra starting gold) — cheap, widens the audience, and doubles as an accessibility feature.
+- [x] Assist toggles — three now ship, all orthogonal to the difficulty preset: **Generous Timers** (+15s on timed missions), **Slower Waves** (1.5× longer lulls between attacks, via `MissionRun::wave_pace`), and **Sturdy Carriage** (+25% carriage max health). All persisted campaign flags toggled in Settings. *(done — widens the audience and doubles as accessibility)*
 
 ---
 

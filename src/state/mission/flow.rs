@@ -256,8 +256,9 @@ impl MissionRun {
                     next = self.rng_range(0.45, 0.8);
                 }
                 if remaining == 0 {
-                    let lull =
-                        (self.rng_range(3.4, 5.2) * grace / self.difficulty.max(0.8)).max(1.6);
+                    let lull = (self.rng_range(3.4, 5.2) * grace * self.wave_pace
+                        / self.difficulty.max(0.8))
+                    .max(1.6);
                     WavePhase::Lull(lull)
                 } else {
                     WavePhase::Active {

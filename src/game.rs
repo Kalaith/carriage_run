@@ -825,6 +825,8 @@ fn setting_label(id: &str) -> &'static str {
         "alerts" => "Route alerts",
         "auto_save" => "Autosave",
         "generous_timers" => "Generous timers",
+        "slower_waves" => "Slower waves",
+        "sturdy_carriage" => "Sturdy carriage",
         _ => "Setting",
     }
 }
@@ -835,6 +837,8 @@ fn setting_value(session: &GameSession, id: &str) -> &'static str {
         "alerts" => session.campaign.alerts_enabled,
         "auto_save" => session.campaign.auto_save_enabled,
         "generous_timers" => session.campaign.generous_timers,
+        "slower_waves" => session.campaign.slower_waves,
+        "sturdy_carriage" => session.campaign.sturdy_carriage,
         _ => false,
     };
     if enabled {

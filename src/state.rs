@@ -285,6 +285,13 @@ pub struct CampaignState {
     /// start of each campaign route.
     #[serde(default)]
     pub reinforced_kits: u32,
+    /// Accessibility assist: gentler wave pacing (longer lulls between attacks).
+    /// Orthogonal to the difficulty preset.
+    #[serde(default)]
+    pub slower_waves: bool,
+    /// Accessibility assist: the carriage sets out with bonus max health.
+    #[serde(default)]
+    pub sturdy_carriage: bool,
     /// Persistent expedition currency (meta-progression). Earned per leg cleared
     /// across all expeditions; spent at the Outfitter on permanent unlocks.
     #[serde(default)]
@@ -336,6 +343,8 @@ impl CampaignState {
             difficulty_preset: DifficultyPreset::Standard,
             generous_timers: false,
             reinforced_kits: 0,
+            slower_waves: false,
+            sturdy_carriage: false,
             expedition_tokens: 0,
             expedition_unlocks: Vec::new(),
             expedition_records: ExpeditionRecords::default(),
@@ -888,6 +897,8 @@ impl GameSession {
             "alerts" => self.campaign.alerts_enabled = !self.campaign.alerts_enabled,
             "auto_save" => self.campaign.auto_save_enabled = !self.campaign.auto_save_enabled,
             "generous_timers" => self.campaign.generous_timers = !self.campaign.generous_timers,
+            "slower_waves" => self.campaign.slower_waves = !self.campaign.slower_waves,
+            "sturdy_carriage" => self.campaign.sturdy_carriage = !self.campaign.sturdy_carriage,
             _ => return false,
         }
         true

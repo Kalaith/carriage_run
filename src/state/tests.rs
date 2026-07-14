@@ -153,6 +153,29 @@ fn buying_and_spending_a_reinforced_kit() {
 }
 
 #[test]
+fn siege_run_fields_larger_waves_than_a_normal_route() {
+    let data = crate::data::GameData::load().unwrap();
+    let config = test_config();
+    let campaign = CampaignState::new(&config, Some("muddy_road"));
+
+    // Same difficulty via the mission data, but the siege run's spawn bursts and
+    // opening calm are scaled up for the mega-wave rhythm.
+    let siege = MissionRun::new(data.missions.get("siege_supply").unwrap(), &campaign);
+    let steady = MissionRun::new(data.missions.get("bandit_bend").unwrap(), &campaign);
+
+    let siege_wave = siege.debug_wave_size();
+    let steady_wave = steady.debug_wave_size();
+    assert!(
+        siege_wave >= steady_wave * 2,
+        "siege mega-wave not larger: {siege_wave} vs {steady_wave}"
+    );
+    assert!(
+        siege.debug_initial_lull() > steady.debug_initial_lull(),
+        "siege should open with a longer calm"
+    );
+}
+
+#[test]
 fn monster_egg_hatches_into_a_brood_instead_of_instant_fail() {
     let data = crate::data::GameData::load().unwrap();
     let mission = data.missions.get("monster_egg").unwrap();

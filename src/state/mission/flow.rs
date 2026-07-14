@@ -224,9 +224,15 @@ impl MissionRun {
                 let remaining = timer - dt;
                 if remaining <= 0.0 {
                     self.wave_index += 1;
-                    self.alert
-                        .set(&format!("Wave {} incoming", self.wave_index));
-                    WavePhase::Telegraph(1.3)
+                    // Siege runs invert the rhythm: long calm, then a heavily
+                    // telegraphed mega-wave.
+                    let (telegraph, msg) = if self.is_siege() {
+                        (2.4, format!("Siege assault {} incoming!", self.wave_index))
+                    } else {
+                        (1.3, format!("Wave {} incoming", self.wave_index))
+                    };
+                    self.alert.set(&msg);
+                    WavePhase::Telegraph(telegraph)
                 } else {
                     WavePhase::Lull(remaining)
                 }
@@ -250,10 +256,17 @@ impl MissionRun {
                 if next <= 0.0 && remaining > 0 {
                     self.spawn_enemy();
                     remaining -= 1;
-                    next = self.rng_range(0.45, 0.8);
+                    // Mega-waves flood in fast; steady runs trickle.
+                    next = if self.is_siege() {
+                        self.rng_range(0.16, 0.34)
+                    } else {
+                        self.rng_range(0.45, 0.8)
+                    };
                 }
                 if remaining == 0 {
-                    let lull = (self.rng_range(3.4, 5.2) * grace * self.wave_pace
+                    // Siege runs get a long calm between assaults (rhythm inversion).
+                    let siege_calm = if self.is_siege() { 2.2 } else { 1.0 };
+                    let lull = (self.rng_range(3.4, 5.2) * grace * self.wave_pace * siege_calm
                         / self.difficulty.max(0.8))
                     .max(1.6);
                     WavePhase::Lull(lull)
@@ -267,10 +280,34 @@ impl MissionRun {
         };
     }
 
-    /// Enemies per burst, growing gently with difficulty and wave count.
+    /// True on the siege supply run, which trades steady spawns for timed
+    /// mega-waves (see `update_wave` / `wave_size`).
+    fn is_siege(&self) -> bool {
+        self.mission_kind == MissionKind::SiegeSupplyRun
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_wave_size(&self) -> u32 {
+        self.wave_size()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn debug_initial_lull(&self) -> f32 {
+        match self.wave {
+            WavePhase::Lull(t) => t,
+            _ => 0.0,
+        }
+    }
+
+    /// Enemies per burst, growing gently with difficulty and wave count. Siege
+    /// runs field far larger mega-waves.
     fn wave_size(&self) -> u32 {
         let base = 2.0 + self.difficulty * 1.4 + self.wave_index as f32 * 0.25;
-        (base.round() as u32).clamp(2, 7)
+        if self.is_siege() {
+            ((base * 2.4).round() as u32).clamp(6, 14)
+        } else {
+            (base.round() as u32).clamp(2, 7)
+        }
     }
 
     /// Eases spawn pressure at the start of a route so the player can settle

@@ -99,19 +99,24 @@ impl MissionRun {
                     (self.special_meter - dt * (road_decay + heat_decay)).clamp(0.0, 100.0);
             }
             MissionKind::SiegeSupplyRun => {
-                let enemy_pressure = self
+                // Momentum drains under an assault but recovers in the calm
+                // between mega-waves, matching the inverted spawn rhythm.
+                let nearby = self
                     .enemies
                     .iter()
                     .filter(|enemy| enemy.pos.distance(self.carriage.pos) < 190.0)
-                    .count() as f32
-                    * 0.28;
-                let road_drag = if self.carriage.slow_timer > 0.0 {
-                    0.34
+                    .count();
+                let delta = if nearby == 0 && self.carriage.slow_timer <= 0.0 {
+                    0.55
                 } else {
-                    0.10
+                    let road_drag = if self.carriage.slow_timer > 0.0 {
+                        0.34
+                    } else {
+                        0.10
+                    };
+                    -(road_drag + nearby as f32 * 0.28)
                 };
-                self.special_meter =
-                    (self.special_meter - dt * (road_drag + enemy_pressure)).clamp(0.0, 100.0);
+                self.special_meter = (self.special_meter + dt * delta).clamp(0.0, 100.0);
             }
         }
     }

@@ -340,7 +340,15 @@ impl MissionRun {
             throttle: 1.0,
             drive: DriveKeys::default(),
             chassis_speed_mult: campaign.chassis_speed_mult,
-            wave: WavePhase::Lull(2.2 * wave_pace),
+            // Siege runs open with a longer calm before the first mega-wave.
+            wave: WavePhase::Lull(
+                2.2 * wave_pace
+                    * if mission_kind == MissionKind::SiegeSupplyRun {
+                        2.0
+                    } else {
+                        1.0
+                    },
+            ),
             wave_index: 0,
             next_enemy_id: 10,
             hazard_timer: 1.6,

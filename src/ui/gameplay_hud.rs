@@ -753,7 +753,5 @@ fn timer_label(run: &MissionRun) -> (String, Color) {
     } else {
         INK
     };
-    let minutes = (seconds / 60.0).floor() as i32;
-    let seconds = (seconds % 60.0).floor() as i32;
-    (format!("{:02}:{:02}", minutes, seconds), color)
+    (format_mmss(seconds), color)
 }

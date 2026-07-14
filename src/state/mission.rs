@@ -9,7 +9,9 @@ use super::entities::*;
 use super::{CampaignState, CarriageEquipment, CarriageVisual};
 use crate::data::MissionDef;
 use macroquad::prelude::*;
+use macroquad_toolkit::fx::{FloatingTextLayer, ParticleSystem};
 use macroquad_toolkit::rng::SeededRng;
+use macroquad_toolkit::timing::Timer;
 
 /// Extra seconds added to every timed mission when the "Generous Timers"
 /// accessibility assist is on.
@@ -17,6 +19,9 @@ const GENEROUS_TIMER_BONUS: f32 = 15.0;
 
 /// Bonus carriage health granted by spending one Reinforced Kit consumable.
 const REINFORCED_KIT_HEALTH: f32 = 55.0;
+
+/// Lifetime (seconds) of a floating combat number before it fades out.
+const FLOAT_TEXT_LIFE: f32 = 0.7;
 
 /// Hard ceiling on simultaneously live enemies. Well above what normal play
 /// produces, so it never affects balance — it only backstops pathological
@@ -145,9 +150,9 @@ pub struct MissionRun {
     pub hazards: Vec<Hazard>,
     pub shots: Vec<Shot>,
     /// Floating combat numbers (juice); short-lived, purely visual.
-    pub float_texts: Vec<FloatText>,
+    pub float_texts: FloatingTextLayer,
     /// Burst particles (juice); short-lived, purely visual.
-    pub particles: Vec<Particle>,
+    pub particles: ParticleSystem,
     pub drag: DragState,
     pub alert: Alert,
     pub progress: f32,
@@ -318,8 +323,14 @@ impl MissionRun {
             enemies: Vec::new(),
             hazards: Vec::new(),
             shots: Vec::new(),
-            float_texts: Vec::new(),
-            particles: Vec::new(),
+            float_texts: {
+                let mut layer = FloatingTextLayer::new();
+                layer.default_lifetime = FLOAT_TEXT_LIFE;
+                layer.default_rise_speed = 26.0;
+                layer.shadow = false;
+                layer
+            },
+            particles: ParticleSystem::new(),
             drag: DragState::None,
             alert: Alert::default(),
             progress: 0.0,
@@ -514,7 +525,7 @@ impl MissionRun {
         self.repair_used = true;
         self.carriage.health =
             (self.carriage.health + self.repair_heal).min(self.carriage.max_health);
-        self.carriage.hit_flash = 0.28;
+        self.carriage.hit_flash = Timer::new(0.28);
         self.alert.set("Emergency repair");
         true
     }

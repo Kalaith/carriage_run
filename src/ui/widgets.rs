@@ -168,7 +168,7 @@ pub(super) fn virtual_button(
     let pressed = hovered && is_mouse_button_down(MouseButton::Left);
     let activated = hovered && is_mouse_button_released(MouseButton::Left);
     let fill = if !enabled {
-        Color::new(PANEL.r, PANEL.g, PANEL.b, 0.58)
+        with_alpha(PANEL, 0.58)
     } else if pressed {
         style.pressed
     } else if hovered {
@@ -213,12 +213,7 @@ pub(super) fn virtual_button(
                     INK
                 }
             } else {
-                Color::new(
-                    style.text_color.r,
-                    style.text_color.g,
-                    style.text_color.b,
-                    0.42,
-                )
+                with_alpha(style.text_color, 0.42)
             },
         ),
     );

@@ -52,28 +52,27 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
 
 /// Burst particles: death scatter and combat sparks, fading and shrinking.
 fn draw_particles(run: &MissionRun) {
-    for particle in &run.particles {
+    for particle in run.particles.particles() {
+        let fade = particle.life_fraction();
         let mut color = particle.color;
-        color.a = particle.alpha();
-        draw_circle(
-            particle.pos.x,
-            particle.pos.y,
-            particle.draw_radius(),
-            color,
-        );
+        color.a = fade;
+        // Shrinks to 45% of its spawn size over its life, matching the
+        // original hand-rolled burst particle's falloff.
+        let radius = particle.size * (0.45 + 0.55 * fade);
+        draw_circle(particle.position.x, particle.position.y, radius, color);
     }
 }
 
 /// Floating combat numbers: damage dealt (gold) and taken (red), drifting up
 /// and fading.
 fn draw_float_texts(run: &MissionRun) {
-    for text in &run.float_texts {
+    for text in run.float_texts.texts() {
         let mut color = text.color;
-        color.a = text.alpha();
+        color.a = text.life_fraction();
         draw_text_centered(
-            &text.value,
-            text.pos.x,
-            text.pos.y,
+            &text.text,
+            text.position.x,
+            text.position.y,
             TextStyle::new(18.0, color),
         );
     }
@@ -541,7 +540,7 @@ fn draw_hazard(hazard: &Hazard) {
 }
 
 fn draw_enemy(enemy: &Enemy) {
-    let flash = enemy.hit_flash > 0.0;
+    let flash = !enemy.hit_flash.finished();
     draw_circle(
         enemy.pos.x + 3.0,
         enemy.pos.y + 6.0,
@@ -791,7 +790,7 @@ fn draw_guard(guard: &Guard) {
     };
     let body = if down {
         Color::new(0.20, 0.23, 0.25, 0.72)
-    } else if guard.hit_flash > 0.0 {
+    } else if !guard.hit_flash.finished() {
         WHITE
     } else {
         base_color

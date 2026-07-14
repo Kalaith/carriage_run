@@ -7,7 +7,7 @@ pub(super) fn draw_carriage(run: &MissionRun) {
     let carriage = &run.carriage;
     let visual = run.carriage_visual;
     let rect = carriage.rect();
-    let body = if carriage.hit_flash > 0.0 {
+    let body = if !carriage.hit_flash.finished() {
         Color::new(0.96, 0.92, 0.78, 1.0)
     } else {
         body_color(visual.chassis_level)

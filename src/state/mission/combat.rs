@@ -2,6 +2,14 @@
 
 use super::*;
 use macroquad::prelude::*;
+use macroquad_toolkit::fx::Particle;
+
+/// Lifetime (seconds) of a burst particle.
+const PARTICLE_LIFE: f32 = 0.42;
+
+/// Per-second velocity decay approximating the previous per-frame `0.90`
+/// falloff at a ~60fps target, so bursts still feel like a quick scatter.
+const PARTICLE_DRAG: f32 = 0.0018;
 
 struct PendingGuardHit {
     kind: GuardKind,
@@ -30,7 +38,7 @@ impl MissionRun {
 
         for (index, guard) in self.guards.iter_mut().enumerate() {
             guard.cooldown = (guard.cooldown - dt).max(0.0);
-            guard.hit_flash = (guard.hit_flash - dt).max(0.0);
+            guard.hit_flash.tick(dt);
             guard.attack_flash = (guard.attack_flash - dt).max(0.0);
 
             if !guard.is_active() {
@@ -201,7 +209,7 @@ impl MissionRun {
             enemy.cooldown = (enemy.cooldown - dt).max(0.0);
             enemy.special_timer = (enemy.special_timer - dt).max(0.0);
             enemy.slow_timer = (enemy.slow_timer - dt).max(0.0);
-            enemy.hit_flash = (enemy.hit_flash - dt).max(0.0);
+            enemy.hit_flash.tick(dt);
 
             // Warding Lantern: keep nearby enemies slowed while they linger.
             if ward_radius > 0.0 && enemy.pos.distance(carriage_pos) < ward_radius {
@@ -210,7 +218,7 @@ impl MissionRun {
             // Spiked Hubs: bleed enemies that press against the carriage.
             if hub_damage > 0.0 && enemy.pos.distance(carriage_pos) < 60.0 {
                 enemy.health -= hub_damage * dt;
-                enemy.hit_flash = 0.08;
+                enemy.hit_flash = Timer::new(0.08);
                 if !enemy.is_active() {
                     continue;
                 }
@@ -426,12 +434,15 @@ impl MissionRun {
             let angle = i as f32 * std::f32::consts::TAU / 6.0 + pos.x * 0.03;
             let (sin, cos) = angle.sin_cos();
             let speed = 55.0 + i as f32 * 9.0;
-            self.particles.push(Particle::new(
+            let mut particle = Particle::new(
                 pos,
                 vec2(cos * speed, sin * speed),
-                color,
+                PARTICLE_LIFE,
                 4.5,
-            ));
+                color,
+            );
+            particle.drag = PARTICLE_DRAG;
+            self.particles.spawn(particle);
         }
     }
 
@@ -504,14 +515,14 @@ impl MissionRun {
         let pos = {
             let enemy = self.enemies.iter_mut().find(|enemy| enemy.id == enemy_id)?;
             enemy.health -= damage;
-            enemy.hit_flash = 0.12;
+            enemy.hit_flash = Timer::new(0.12);
             enemy.pos
         };
-        self.float_texts.push(FloatText::new(
-            vec2(pos.x, pos.y - 22.0),
+        self.float_texts.spawn(
             format!("{:.0}", damage.max(1.0)),
+            vec2(pos.x, pos.y - 22.0),
             Color::new(0.98, 0.90, 0.52, 1.0),
-        ));
+        );
         Some(pos)
     }
 
@@ -548,7 +559,7 @@ impl MissionRun {
         if let Some(guard) = self.guards.iter_mut().find(|guard| guard.id == guard_id) {
             let final_damage = (damage - guard.armor).max(damage * 0.35);
             guard.health = (guard.health - final_damage).max(0.0);
-            guard.hit_flash = 0.18;
+            guard.hit_flash = Timer::new(0.18);
             self.guard_damage_taken += final_damage;
             if self.mission_kind == MissionKind::RefugeeEscort {
                 self.special_meter = (self.special_meter - final_damage * 0.08).max(0.0);
@@ -584,11 +595,11 @@ impl MissionRun {
         self.carriage.health = (self.carriage.health - final_damage).max(0.0);
         self.carriage.cargo = (self.carriage.cargo - final_cargo_loss).max(0.0);
         if final_damage >= 1.0 {
-            self.float_texts.push(FloatText::new(
-                vec2(self.carriage.pos.x, self.carriage.pos.y - 44.0),
+            self.float_texts.spawn(
                 format!("-{:.0}", final_damage),
+                vec2(self.carriage.pos.x, self.carriage.pos.y - 44.0),
                 Color::new(0.98, 0.42, 0.34, 1.0),
-            ));
+            );
         }
         match self.mission_kind {
             MissionKind::PrincessEscort => {
@@ -633,7 +644,7 @@ impl MissionRun {
         }
         self.damage_taken += final_damage;
         self.cargo_lost += final_cargo_loss;
-        self.carriage.hit_flash = 0.22;
+        self.carriage.hit_flash = Timer::new(0.22);
         if !label.is_empty() {
             self.alert.set(label);
         }

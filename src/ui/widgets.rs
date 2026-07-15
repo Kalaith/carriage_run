@@ -140,7 +140,7 @@ pub(super) fn draw_mix_list(rect: Rect, title: &str, values: &[String]) {
     for value in values {
         draw_badge(
             Rect::new(rect.x, y, rect.w, 20.0),
-            &format_label(value),
+            &display_name(value),
             Color::new(0.06, 0.08, 0.07, 0.92),
             MUTED,
         );
@@ -227,18 +227,4 @@ pub(super) fn star_label(stars: u8) -> String {
         2 => "**".to_owned(),
         _ => "***".to_owned(),
     }
-}
-
-pub(super) fn format_label(value: &str) -> String {
-    value
-        .split('_')
-        .map(|part| {
-            let mut chars = part.chars();
-            match chars.next() {
-                Some(first) => format!("{}{}", first.to_ascii_uppercase(), chars.as_str()),
-                None => String::new(),
-            }
-        })
-        .collect::<Vec<_>>()
-        .join(" ")
 }

@@ -8,7 +8,7 @@ use super::upgrade_visuals::{
     draw_crest, draw_panel_with_fill, draw_stat_icon, nav_tile, GOLD as UI_GOLD, GOLD_SOFT, INK,
     MUTED,
 };
-use super::widgets::{draw_menu_backdrop, format_label};
+use super::widgets::draw_menu_backdrop;
 use super::{UiAction, UiContext};
 use crate::data::{MissionDef, RouteChoiceDef};
 use macroquad::prelude::*;
@@ -606,7 +606,7 @@ fn draw_mix_tiles(rect: Rect, title: &str, values: &[String], hazard: bool) {
         draw_panel_with_fill(tile, color, false);
         draw_mini_icon(vec2(tile.x + 22.0, tile.y + 16.0), value, hazard);
         draw_text_centered_in_box(
-            &format_label(value),
+            &display_name(value),
             tile.x + 42.0,
             tile.y + 6.0,
             tile.w - 48.0,

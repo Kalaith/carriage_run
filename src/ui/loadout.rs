@@ -3,9 +3,7 @@
 use super::upgrade_visuals::{
     draw_panel, draw_panel_with_fill, draw_section_label, GOLD as UI_GOLD, INK, MUTED, PANEL_ALT,
 };
-use super::widgets::{
-    draw_menu_backdrop, draw_mix_list, draw_top_nav, format_label, virtual_button,
-};
+use super::widgets::{draw_menu_backdrop, draw_mix_list, draw_top_nav, virtual_button};
 use super::{UiAction, UiContext};
 use crate::state::GuardKind;
 use macroquad::prelude::*;
@@ -77,7 +75,7 @@ fn draw_mission_summary(ctx: &UiContext<'_>, mission: &crate::data::MissionDef, 
     );
     draw_badge(
         Rect::new(rect.x + 22.0, rect.y + 50.0, 134.0, 25.0),
-        &format_label(&mission.mission_type),
+        &display_name(&mission.mission_type),
         Color::new(0.12, 0.16, 0.16, 1.0),
         MUTED,
     );

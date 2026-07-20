@@ -1,0 +1,21 @@
+{
+  "title": "Carriage Run",
+  "status": { "text": "Playable", "class": "playable" },
+  "canvas_rendering": "pixelated",
+  "about": [
+    "Escort a supply carriage through hostile roads, steer around hazards, command guards, and spend mission gold on caravan upgrades."
+  ],
+  "controls": [
+    { "key": "Mouse / Touch", "desc": "Drag carriage or guards" },
+    { "key": "A / D", "desc": "Steer carriage" },
+    { "key": "R", "desc": "Use emergency repair" },
+    { "key": "S / L", "desc": "Save / load toolkit slot" }
+  ],
+  "details": [
+    { "label": "Genre", "value": "Escort Strategy" },
+    { "label": "Engine", "value": "Macroquad + Toolkit" },
+    { "label": "Platform", "value": "Browser, Windows" }
+  ],
+  "wasm_cache_bust": "20260615-title-art",
+  "repository": "https://github.com/Kalaith/carriage_run"
+}

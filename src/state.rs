@@ -8,6 +8,7 @@ mod journey;
 mod mission;
 mod save;
 mod session;
+#[cfg(any(debug_assertions, test))]
 mod validation;
 
 pub use entities::*;
@@ -16,6 +17,7 @@ pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegReward};
 pub use mission::{MissionInput, MissionReport, MissionRun};
 pub use save::{migrate_save_value, SaveData};
 pub use session::GameSession;
+#[cfg(any(debug_assertions, test))]
 pub use validation::{validate_mission_content, validate_mission_reachability};
 
 use crate::data::{GameConfig, UpgradeDef};

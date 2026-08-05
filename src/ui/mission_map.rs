@@ -107,25 +107,25 @@ fn draw_routes_header(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiActi
     draw_panel_with_fill(level, Color::new(0.040, 0.050, 0.043, 0.95), false);
     draw_stat_icon("level", vec2(level.x + 32.0, level.y + 33.0));
     draw_ui_text_ex(
-        "Carriage Level",
+        "Campaign Rank",
         level.x + 70.0,
         level.y + 22.0,
         TextStyle::new(13.0, UI_GOLD).params(),
     );
     draw_ui_text_ex(
-        &ctx.session.campaign.carriage_level.to_string(),
+        &ctx.session.campaign.campaign_rank.to_string(),
         level.x + 30.0,
         level.y + 44.0,
         TextStyle::new(20.0, INK).params(),
     );
-    let xp = route_xp(ctx);
+    let (clears, target) = rank_progress(ctx);
     draw_meter_bar(
         Rect::new(level.x + 74.0, level.y + 40.0, 92.0, 10.0),
-        xp as f32 / 300.0,
+        clears as f32 / target as f32,
         UI_GOLD,
     );
     draw_ui_text_ex(
-        &format!("{} / 300 XP", xp),
+        &format!("{clears}/{target} clears"),
         level.x + 170.0,
         level.y + 49.0,
         TextStyle::new(10.0, MUTED).params(),
@@ -147,15 +147,20 @@ fn draw_routes_header(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiActi
     }
 }
 
-fn route_xp(ctx: &UiContext<'_>) -> i64 {
+fn rank_progress(ctx: &UiContext<'_>) -> (usize, usize) {
     let completed = ctx
         .session
         .campaign
         .records
         .values()
-        .map(|record| record.completions as i64)
-        .sum::<i64>();
-    (completed * 140).clamp(0, 300)
+        .filter(|record| record.completions > 0)
+        .count();
+    let target = match ctx.session.campaign.campaign_rank {
+        1 => 1,
+        2 => 4,
+        _ => 8,
+    };
+    (completed.min(target), target)
 }
 
 fn draw_mission_card(ctx: &UiContext<'_>, mission: &MissionDef, rect: Rect, mouse: Vec2) -> bool {

@@ -5,15 +5,11 @@ use super::{CampaignState, GameSession};
 use crate::data::GameData;
 
 impl CampaignState {
-    /// Guard and equipment slot count, driven by the active chassis. Falls back
-    /// to the legacy carriage-level formula for saves predating chassis.
+    /// Guard and equipment slot count, driven only by the active chassis. A
+    /// not-yet-resolved campaign gets the starter's two slots.
     pub fn chassis_slot_count(&self) -> usize {
         if self.chassis_slots > 0 {
             self.chassis_slots.clamp(2, 4)
-        } else if self.carriage_level >= 4 {
-            4
-        } else if self.carriage_level >= 2 {
-            3
         } else {
             2
         }
@@ -57,7 +53,7 @@ impl GameSession {
         let default_id = data.default_chassis_id();
 
         if self.campaign.owned_chassis_ids.is_empty() {
-            let derived = data.chassis_for_level(self.campaign.carriage_level);
+            let derived = data.chassis_for_legacy_level(self.campaign.armor_level);
             self.campaign.owned_chassis_ids = vec![derived.clone()];
             if self.campaign.chassis_id.is_empty() {
                 self.campaign.chassis_id = derived;

@@ -331,7 +331,7 @@ fn draw_shop_guard_card(
     } else if unlocked {
         format!("{} gold", campaign.guard_hire_cost(kind))
     } else {
-        format!("Carriage L{}", kind.unlock_level())
+        format!("Rank {}", kind.unlock_level())
     };
     draw_badge(
         Rect::new(rect.x + 22.0, rect.bottom() - 33.0, 132.0, 24.0),
@@ -463,7 +463,7 @@ fn draw_roster_guard_card(
     } else if unlocked {
         format!("{} gold", campaign.guard_hire_cost(kind))
     } else {
-        format!("Carriage L{}", kind.unlock_level())
+        format!("Rank {}", kind.unlock_level())
     };
     draw_badge(
         Rect::new(rect.x + 22.0, rect.bottom() - 33.0, 92.0, 24.0),

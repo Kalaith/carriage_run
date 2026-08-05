@@ -49,7 +49,7 @@ impl CarriageEquipment {
 
 #[derive(Debug, Clone, Copy)]
 pub struct CarriageVisual {
-    pub chassis_level: u32,
+    pub armor_level: u32,
     /// Slot count of the active chassis (2 Scout / 3 Standard / 4 Heavy).
     pub chassis_slots: usize,
     pub iron_plating: bool,
@@ -64,7 +64,7 @@ pub struct CarriageVisual {
 impl CarriageVisual {
     pub fn from_campaign(campaign: &CampaignState) -> Self {
         Self {
-            chassis_level: campaign.carriage_level,
+            armor_level: campaign.armor_level,
             chassis_slots: campaign.chassis_slot_count(),
             iron_plating: campaign.is_equipment_equipped(CarriageEquipment::IronPlating),
             reinforced_wheels: campaign.is_equipment_equipped(CarriageEquipment::ReinforcedWheels),
@@ -84,7 +84,7 @@ impl CampaignState {
 
     pub fn equipment_level(&self, equipment: CarriageEquipment) -> u32 {
         match equipment {
-            CarriageEquipment::IronPlating => self.carriage_level,
+            CarriageEquipment::IronPlating => self.armor_level,
             CarriageEquipment::ReinforcedWheels => self.wheel_level,
             CarriageEquipment::CargoStraps => self.cargo_level,
             CarriageEquipment::RepairKit => self.repair_level,

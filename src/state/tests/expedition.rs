@@ -360,6 +360,30 @@ fn seeded_expeditions_are_reproducible_and_seeds_vary_runs() {
 }
 
 #[test]
+fn expedition_mission_ignores_stored_campaign_route_effects() {
+    let data = GameData::load().unwrap();
+    let mission = data.missions.get("muddy_road").unwrap();
+    assert!(mission.route_choices.len() >= 2);
+    let config = test_config();
+    let mut first = CampaignState::new(&config, Some("muddy_road"));
+    let mut second = first.clone();
+    first.select_route_choice(mission, &mission.route_choices[0].id);
+    second.select_route_choice(mission, &mission.route_choices[1].id);
+
+    let a = MissionRun::new_for_expedition(mission, &first, 42);
+    let b = MissionRun::new_for_expedition(mission, &second, 42);
+
+    assert_eq!(a.route_name, mission.route);
+    assert_eq!(a.route_name, b.route_name);
+    assert_eq!(a.distance, b.distance);
+    assert_eq!(a.time_limit, b.time_limit);
+    assert_eq!(a.difficulty, b.difficulty);
+    assert_eq!(a.base_reward, b.base_reward);
+    assert_eq!(a.enemy_mix, b.enemy_mix);
+    assert_eq!(a.hazard_mix, b.hazard_mix);
+}
+
+#[test]
 fn expedition_awards_tokens_and_unlocks_persist_as_starting_relics() {
     let data = GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

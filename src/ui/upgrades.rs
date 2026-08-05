@@ -53,8 +53,8 @@ fn draw_stats_panel(ctx: &UiContext<'_>, rect: Rect) {
     );
     draw_stat(
         Rect::new(rect.x + 130.0, rect.y + 10.0, 112.0, 52.0),
-        "Carriage",
-        &format!("Level {}", campaign.carriage_level),
+        "Iron Plating",
+        &format!("Level {}", campaign.armor_level),
         "level",
     );
     draw_stat(

@@ -97,7 +97,7 @@ fn near_unlock_covers_only_one_step_away_missions() {
     let config = test_config();
     let mut campaign = CampaignState::new(&config, Some("muddy_road"));
 
-    // One carriage level short: teased on the map.
+    // One campaign rank short: teased on the map.
     let level_gated = test_mission("gold_shipment", &[], &[], 2);
     assert!(!campaign.is_mission_unlocked(&level_gated));
     assert!(campaign.is_mission_near_unlock(&level_gated));
@@ -118,4 +118,29 @@ fn near_unlock_covers_only_one_step_away_missions() {
     // A prerequisite plus a level gap is two steps: hidden.
     let two_steps = test_mission("bonebridge_pass", &["courier_deadline"], &[], 2);
     assert!(!campaign.is_mission_near_unlock(&two_steps));
+}
+
+#[test]
+fn shipped_mission_graph_is_reachable_without_buying_armor() {
+    let data = GameData::load().unwrap();
+    let config = test_config();
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+    let starting_armor = campaign.armor_level;
+
+    loop {
+        let next = data.missions_ordered().into_iter().find(|mission| {
+            !campaign.is_mission_completed(&mission.id) && campaign.is_mission_unlocked(mission)
+        });
+        let Some(mission) = next else {
+            break;
+        };
+        campaign.records.insert(mission.id.clone(), test_record());
+        campaign.refresh_campaign_rank();
+    }
+
+    assert_eq!(campaign.armor_level, starting_armor);
+    assert!(data
+        .missions_ordered()
+        .into_iter()
+        .all(|mission| campaign.is_mission_completed(&mission.id)));
 }

@@ -25,7 +25,7 @@ fn buying_upgrade_spends_gold_and_increases_level() {
 fn hiring_guard_spends_gold_and_selects_recruit() {
     let config = test_config();
     let mut session = GameSession::new(&config, Some("muddy_road"));
-    session.campaign.carriage_level = 2;
+    session.campaign.campaign_rank = 2;
 
     assert!(session.hire_guard("shield_guard"));
     assert_eq!(session.campaign.gold, 0);
@@ -35,6 +35,53 @@ fn hiring_guard_spends_gold_and_selects_recruit() {
         .selected_guard_ids
         .iter()
         .any(|id| id == "shield_guard"));
+}
+
+#[test]
+fn iron_plating_never_advances_campaign_rank_or_unlocks_content() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.campaign.gold = 10_000;
+    let armor = data.upgrades.get("carriage_armor").unwrap();
+    let rank_two_mission = data
+        .missions_ordered()
+        .into_iter()
+        .find(|mission| mission.unlock_level == 2)
+        .unwrap();
+
+    assert!(!session.campaign.is_mission_unlocked(rank_two_mission));
+    assert!(!session.campaign.is_guard_unlocked(GuardKind::ShieldGuard));
+    assert!(session.buy_upgrade(armor));
+    assert_eq!(session.campaign.armor_level, 2);
+    assert_eq!(session.campaign.campaign_rank, 1);
+    assert!(!session.campaign.is_mission_unlocked(rank_two_mission));
+    assert!(!session.campaign.is_guard_unlocked(GuardKind::ShieldGuard));
+}
+
+#[test]
+fn successful_distinct_missions_advance_documented_campaign_ranks() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+
+    session.apply_report(test_report(true, Vec::new()));
+    assert_eq!(session.campaign.campaign_rank, 2);
+    for id in ["bandit_bend", "courier_deadline", "bonebridge_pass"] {
+        let mut report = test_report(true, Vec::new());
+        report.mission_id = id.to_owned();
+        session.apply_report(report);
+    }
+    assert_eq!(session.campaign.campaign_rank, 3);
+    for id in [
+        "prisoner_wagon",
+        "medicine_run",
+        "gold_shipment",
+        "monster_egg",
+    ] {
+        let mut report = test_report(true, Vec::new());
+        report.mission_id = id.to_owned();
+        session.apply_report(report);
+    }
+    assert_eq!(session.campaign.campaign_rank, 4);
 }
 
 #[test]
@@ -209,4 +256,42 @@ fn legacy_points_migrate_to_gold() {
     assert_eq!(migrated.version, "0.1.0");
     assert_eq!(migrated.campaign.gold, 42);
     assert_eq!(migrated.campaign.selected_mission_id, "muddy_road");
+}
+
+#[test]
+fn legacy_carriage_level_migrates_to_armor_and_conservative_rank() {
+    let config = test_config();
+    let session = GameSession::new(&config, Some("muddy_road"));
+    let mut value = serde_json::to_value(session.to_save(&config.version)).unwrap();
+    let campaign = value["campaign"].as_object_mut().unwrap();
+    campaign.remove("campaign_rank");
+    campaign.remove("armor_level");
+    campaign.insert("carriage_level".to_owned(), serde_json::json!(3));
+
+    let migrated = migrate_save_value(None, value, &config, Some("muddy_road")).unwrap();
+
+    assert_eq!(migrated.campaign.armor_level, 3);
+    assert_eq!(migrated.campaign.campaign_rank, 3);
+}
+
+#[test]
+fn legacy_rank_derives_from_completed_missions_before_level_fallback() {
+    let config = test_config();
+    let mut session = GameSession::new(&config, Some("muddy_road"));
+    for index in 0..8 {
+        session
+            .campaign
+            .records
+            .insert(format!("completed_{index}"), test_record());
+    }
+    let mut value = serde_json::to_value(session.to_save(&config.version)).unwrap();
+    let campaign = value["campaign"].as_object_mut().unwrap();
+    campaign.remove("campaign_rank");
+    campaign.remove("armor_level");
+    campaign.insert("carriage_level".to_owned(), serde_json::json!(1));
+
+    let migrated = migrate_save_value(None, value, &config, Some("muddy_road")).unwrap();
+
+    assert_eq!(migrated.campaign.campaign_rank, 4);
+    assert_eq!(migrated.campaign.armor_level, 1);
 }

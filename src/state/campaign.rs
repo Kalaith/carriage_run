@@ -5,7 +5,7 @@ use crate::data::{MissionDef, RouteChoiceDef};
 
 impl CampaignState {
     pub fn is_mission_unlocked(&self, mission: &MissionDef) -> bool {
-        self.carriage_level >= mission.unlock_level
+        self.campaign_rank >= mission.unlock_level
             && mission
                 .prerequisite_missions
                 .iter()
@@ -24,7 +24,7 @@ impl CampaignState {
             return false;
         }
 
-        let level_steps = mission.unlock_level.saturating_sub(self.carriage_level);
+        let level_steps = mission.unlock_level.saturating_sub(self.campaign_rank);
         let prereq_steps = mission
             .prerequisite_missions
             .iter()
@@ -45,8 +45,8 @@ impl CampaignState {
     }
 
     pub fn mission_unlock_label(&self, mission: &MissionDef) -> String {
-        if self.carriage_level < mission.unlock_level {
-            return format!("Carriage Level {}", mission.unlock_level);
+        if self.campaign_rank < mission.unlock_level {
+            return format!("Campaign Rank {}", mission.unlock_level);
         }
 
         if let Some(id) = mission

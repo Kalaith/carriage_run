@@ -22,7 +22,8 @@ pub fn migrate_save_value(
     config: &GameConfig,
     first_mission_id: Option<&str>,
 ) -> Result<SaveData, String> {
-    let payload = value.get("data").cloned().unwrap_or(value);
+    let mut payload = value.get("data").cloned().unwrap_or(value);
+    inject_legacy_campaign_rank(&mut payload);
 
     if let Ok(mut current) = serde_json::from_value::<SaveData>(payload.clone()) {
         current.version = config.version.clone();
@@ -49,4 +50,43 @@ pub fn migrate_save_value(
         version: config.version.clone(),
         campaign,
     })
+}
+
+/// Old saves coupled unlock standing to `carriage_level`. Give those saves the
+/// better of their completion-derived rank and former level exactly once, then
+/// deserialize that same field as the renamed Iron Plating `armor_level`.
+fn inject_legacy_campaign_rank(payload: &mut Value) {
+    let campaign = if payload.get("campaign").is_some() {
+        payload.get_mut("campaign").expect("campaign key exists")
+    } else {
+        payload
+    };
+    let Some(object) = campaign.as_object_mut() else {
+        return;
+    };
+    if object.contains_key("campaign_rank") {
+        return;
+    }
+    let completed = object
+        .get("records")
+        .and_then(Value::as_object)
+        .map(|records| {
+            records
+                .values()
+                .filter(|record| {
+                    record
+                        .get("completions")
+                        .and_then(Value::as_u64)
+                        .unwrap_or(0)
+                        > 0
+                })
+                .count()
+        })
+        .unwrap_or(0);
+    let legacy_level = object
+        .get("carriage_level")
+        .and_then(Value::as_u64)
+        .unwrap_or(1) as u32;
+    let rank = CampaignState::rank_for_completed_missions(completed).max(legacy_level);
+    object.insert("campaign_rank".to_owned(), Value::from(rank.min(4)));
 }

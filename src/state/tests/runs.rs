@@ -24,7 +24,7 @@ fn relics_apply_authored_flat_armor_without_clamping_campaign_armor() {
     let mission = data.missions.get("muddy_road").unwrap();
     let config = test_config();
     let mut campaign = CampaignState::new(&config, Some("muddy_road"));
-    campaign.carriage_level = 3;
+    campaign.armor_level = 3;
 
     let base = MissionRun::new(mission, &campaign);
     assert!(base.armor_reduction > 0.9, "fixture needs upgraded armor");

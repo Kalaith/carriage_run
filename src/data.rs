@@ -367,10 +367,10 @@ impl GameData {
 
     /// Best-fit chassis for a legacy save's carriage level, so migrated saves
     /// keep the slot count they had before chassis existed.
-    pub fn chassis_for_level(&self, carriage_level: u32) -> String {
-        let target_slots = if carriage_level >= 4 {
+    pub fn chassis_for_legacy_level(&self, legacy_level: u32) -> String {
+        let target_slots = if legacy_level >= 4 {
             4
-        } else if carriage_level >= 2 {
+        } else if legacy_level >= 2 {
             3
         } else {
             2
@@ -405,8 +405,8 @@ mod tests {
             .all(|mission| !mission.intro_text.is_empty() && !mission.outro_text.is_empty()));
         assert_eq!(data.default_chassis_id(), "scout_cart");
         assert_eq!(data.chassis_ordered().len(), 3);
-        assert_eq!(data.chassis_for_level(4), "heavy_wagon");
-        assert_eq!(data.chassis_for_level(1), "scout_cart");
+        assert_eq!(data.chassis_for_legacy_level(4), "heavy_wagon");
+        assert_eq!(data.chassis_for_legacy_level(1), "scout_cart");
         assert!(!data
             .missions
             .get("bandit_bend")

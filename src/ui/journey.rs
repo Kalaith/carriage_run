@@ -196,7 +196,7 @@ fn draw_reward_choice(
 }
 
 fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<UiAction>) {
-    let panel = Rect::new(360.0, 70.0, 560.0, 600.0);
+    let panel = Rect::new(360.0, 70.0, 560.0, 630.0);
     draw_panel(panel, true);
     draw_text_centered_in_box(
         &format!(
@@ -302,7 +302,7 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
                     .map(|mission| mission.route.as_str())
                     .unwrap_or("");
                 if virtual_button(
-                    Rect::new(panel.x + 50.0, y, panel.w - 100.0, 40.0),
+                    Rect::new(panel.x + 50.0, y, panel.w - 100.0, 36.0),
                     &format!("{} — {}", option.title(data), route),
                     true,
                     ButtonTone::Positive,
@@ -310,7 +310,16 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
                 ) {
                     actions.push(UiAction::JourneyBeginLeg(i));
                 }
-                y += 46.0;
+                draw_text_centered_in_box(
+                    &leg_effect_summary(option, data),
+                    panel.x + 52.0,
+                    y + 37.0,
+                    panel.w - 104.0,
+                    22.0,
+                    13.0,
+                    MUTED,
+                );
+                y += 62.0;
             }
         }
         _ => {
@@ -351,6 +360,38 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
     ) {
         actions.push(UiAction::JourneyBank);
     }
+}
+
+fn leg_effect_summary(option: &crate::state::LegOption, data: &GameData) -> String {
+    let Some(modifier) = data.leg_modifiers.get(&option.modifier_id) else {
+        return "Base route only".to_owned();
+    };
+    let mut effects = Vec::new();
+    if !modifier.enemy_add.is_empty() {
+        effects.push(format!(
+            "adds {}",
+            modifier.enemy_add.join(", ").replace('_', " ")
+        ));
+    }
+    if !modifier.hazard_add.is_empty() {
+        effects.push(format!(
+            "adds {}",
+            modifier.hazard_add.join(", ").replace('_', " ")
+        ));
+    }
+    if (modifier.difficulty_mult - 1.0).abs() > f32::EPSILON {
+        effects.push(format!(
+            "threat {:+}%",
+            ((modifier.difficulty_mult - 1.0) * 100.0).round() as i32
+        ));
+    }
+    if (modifier.reward_mult - 1.0).abs() > f32::EPSILON {
+        effects.push(format!(
+            "reward {:+}%",
+            ((modifier.reward_mult - 1.0) * 100.0).round() as i32
+        ));
+    }
+    format!("{} · {}", modifier.descriptor, effects.join(" · "))
 }
 
 fn draw_victory(journey: &Journey, mouse: Vec2, actions: &mut Vec<UiAction>) {

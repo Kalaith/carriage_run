@@ -429,6 +429,7 @@ impl GameSession {
             record.best_stars = record.best_stars.max(report.stars);
             record.best_score = record.best_score.max(report.score);
             record.best_reward = record.best_reward.max(report.reward);
+            self.campaign.refresh_campaign_rank();
         }
     }
 

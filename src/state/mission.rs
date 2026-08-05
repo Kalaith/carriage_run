@@ -211,30 +211,60 @@ pub struct MissionRun {
     pub(super) ride_smoothness: f32,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum MissionRunContext {
+    Campaign,
+    Expedition { seed: u64 },
+}
+
 impl MissionRun {
     pub fn new(mission: &MissionDef, campaign: &CampaignState) -> Self {
+        Self::new_with_context(mission, campaign, MissionRunContext::Campaign)
+    }
+
+    pub(crate) fn new_for_expedition(
+        mission: &MissionDef,
+        campaign: &CampaignState,
+        seed: u64,
+    ) -> Self {
+        Self::new_with_context(mission, campaign, MissionRunContext::Expedition { seed })
+    }
+
+    fn new_with_context(
+        mission: &MissionDef,
+        campaign: &CampaignState,
+        context: MissionRunContext,
+    ) -> Self {
         // Accessibility assists: sturdier carriage (+health) and gentler pacing.
         let assist_health = if campaign.sturdy_carriage { 1.25 } else { 1.0 };
         let wave_pace = if campaign.slower_waves { 1.5 } else { 1.0 };
-        let max_health = (100.0 + campaign.carriage_level as f32 * 26.0)
+        let max_health = (100.0 + campaign.armor_level as f32 * 26.0)
             * campaign.chassis_health_mult
             * campaign.frame_health_mult
             * assist_health;
         let cargo_max = (100.0 + campaign.cargo_level as f32 * 6.0) * campaign.frame_cargo_mult;
-        let route_choice = campaign.selected_route_choice(mission);
+        let route_choice = match context {
+            MissionRunContext::Campaign => campaign.selected_route_choice(mission),
+            MissionRunContext::Expedition { .. } => None,
+        };
         let route_choice_id = route_choice
             .map(|choice| choice.id.clone())
             .unwrap_or_default();
         let route_seed = route_choice_id.bytes().fold(0_u64, |seed, byte| {
             seed.wrapping_mul(37).wrapping_add(byte as u64)
         });
-        let seed = mission.order as u64 * 10_007
-            + campaign
-                .records
-                .get(&mission.id)
-                .map(|record| record.completions as u64)
-                .unwrap_or(0)
-            + route_seed;
+        let seed = match context {
+            MissionRunContext::Campaign => {
+                mission.order as u64 * 10_007
+                    + campaign
+                        .records
+                        .get(&mission.id)
+                        .map(|record| record.completions as u64)
+                        .unwrap_or(0)
+                    + route_seed
+            }
+            MissionRunContext::Expedition { seed } => seed,
+        };
         let mission_kind = MissionKind::from_id(&mission.mission_type);
         let mut enemy_mix = mission.enemy_mix.clone();
         let mut hazard_mix = mission.hazard_mix.clone();
@@ -374,9 +404,9 @@ impl MissionRun {
             rng: SeededRng::new(seed),
             ranged_slots,
             armor_reduction: if armor_equipped {
-                campaign.carriage_level as f32 * 1.8
+                campaign.armor_level as f32 * 1.8
             } else {
-                campaign.carriage_level as f32 * 0.45
+                campaign.armor_level as f32 * 0.45
             },
             cargo_protection: if straps_equipped {
                 (campaign.cargo_level as f32 * 0.12).min(0.42)

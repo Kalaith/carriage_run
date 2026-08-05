@@ -10,7 +10,7 @@ pub(super) fn draw_carriage(run: &MissionRun) {
     let body = if !carriage.hit_flash.finished() {
         Color::new(0.96, 0.92, 0.78, 1.0)
     } else {
-        body_color(visual.chassis_level)
+        body_color(visual.armor_level)
     };
 
     draw_rectangle(
@@ -27,7 +27,7 @@ pub(super) fn draw_carriage(run: &MissionRun) {
         rect.y + 12.0,
         rect.w - 20.0,
         34.0,
-        trim_color(visual.chassis_level),
+        trim_color(visual.armor_level),
     );
     draw_rectangle(
         rect.x + 13.0,
@@ -53,8 +53,8 @@ pub(super) fn draw_carriage(run: &MissionRun) {
     if visual.warding_lantern {
         draw_warding_lantern(carriage.pos);
     }
-    if visual.chassis_level >= 3 {
-        draw_roof_trim(rect, visual.chassis_level);
+    if visual.armor_level >= 3 {
+        draw_roof_trim(rect, visual.armor_level);
     }
 
     draw_rectangle_lines(

@@ -13,7 +13,7 @@ mod validation;
 
 pub use entities::*;
 pub use equipment::*;
-pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegReward};
+pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegOption, LegReward};
 pub use mission::{MissionInput, MissionReport, MissionRun};
 pub use save::{migrate_save_value, SaveData};
 pub use session::GameSession;
@@ -126,7 +126,12 @@ pub struct MissionRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CampaignState {
     pub gold: i64,
-    pub carriage_level: u32,
+    /// Campaign standing earned from distinct successful mission clears.
+    #[serde(default)]
+    pub campaign_rank: u32,
+    /// Iron Plating strength. `carriage_level` is the pre-rank save name.
+    #[serde(default = "default_armor_level", alias = "carriage_level")]
+    pub armor_level: u32,
     pub guard_level: u32,
     pub archer_level: u32,
     pub wheel_level: u32,
@@ -223,7 +228,8 @@ impl CampaignState {
     pub fn new(config: &GameConfig, first_mission_id: Option<&str>) -> Self {
         Self {
             gold: config.starting_gold,
-            carriage_level: 1,
+            campaign_rank: 1,
+            armor_level: 1,
             guard_level: 1,
             archer_level: 1,
             wheel_level: 0,
@@ -267,7 +273,7 @@ impl CampaignState {
 
     pub fn upgrade_level(&self, id: &str) -> u32 {
         match id {
-            "carriage_armor" => self.carriage_level,
+            "carriage_armor" => self.armor_level,
             "guard_training" => self.guard_level,
             "mounted_archer" => self.archer_level,
             "reinforced_wheels" => self.wheel_level,
@@ -319,7 +325,7 @@ impl CampaignState {
     }
 
     pub fn is_guard_unlocked(&self, kind: GuardKind) -> bool {
-        self.carriage_level >= kind.unlock_level()
+        self.campaign_rank >= kind.unlock_level()
     }
 
     pub fn is_guard_hired(&self, kind: GuardKind) -> bool {
@@ -366,6 +372,8 @@ impl CampaignState {
     }
 
     pub fn normalize(&mut self, first_mission_id: Option<&str>) {
+        self.armor_level = self.armor_level.max(1);
+        self.refresh_campaign_rank();
         if self.selected_mission_id.is_empty() {
             self.selected_mission_id = first_mission_id.unwrap_or("muddy_road").to_owned();
         }
@@ -447,7 +455,7 @@ impl CampaignState {
 
     fn add_upgrade_level(&mut self, id: &str) {
         match id {
-            "carriage_armor" => self.carriage_level += 1,
+            "carriage_armor" => self.armor_level += 1,
             "guard_training" => self.guard_level += 1,
             "mounted_archer" => self.archer_level += 1,
             "reinforced_wheels" => self.wheel_level += 1,
@@ -458,10 +466,37 @@ impl CampaignState {
             _ => {}
         }
     }
+
+    /// Rank milestones are campaign clears, never equipment purchases: one
+    /// distinct clear reaches rank 2, four reach rank 3, and eight reach rank 4.
+    pub fn rank_for_completed_missions(completed: usize) -> u32 {
+        match completed {
+            0 => 1,
+            1..=3 => 2,
+            4..=7 => 3,
+            _ => 4,
+        }
+    }
+
+    pub fn refresh_campaign_rank(&mut self) {
+        let completed = self
+            .records
+            .values()
+            .filter(|record| record.completions > 0)
+            .count();
+        self.campaign_rank = self
+            .campaign_rank
+            .max(Self::rank_for_completed_missions(completed))
+            .clamp(1, 4);
+    }
 }
 
 fn default_guard_id() -> String {
     "swordsman".to_owned()
+}
+
+fn default_armor_level() -> u32 {
+    1
 }
 
 fn default_stake_id() -> String {

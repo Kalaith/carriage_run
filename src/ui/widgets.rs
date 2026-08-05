@@ -41,8 +41,8 @@ pub(super) fn draw_top_nav(
     );
     draw_header_stat(
         Rect::new(rect.x + 418.0, rect.y + 28.0, 136.0, 42.0),
-        "Carriage",
-        &format!("Carriage L{}", ctx.session.campaign.carriage_level),
+        "Rank",
+        &format!("Campaign R{}", ctx.session.campaign.campaign_rank),
         "level",
     );
 

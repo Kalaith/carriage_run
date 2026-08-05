@@ -9,7 +9,7 @@
 //! (expedition tokens, unlocks, and run records) carries across runs.
 
 use super::{GameSession, MissionReport, MissionRun, Screen};
-use crate::data::{GameData, MissionDef, RelicDef};
+use crate::data::{GameData, MissionDef, RelicDef, RunEventOptionDef};
 use serde::{Deserialize, Serialize};
 
 /// The most recent expeditions kept in the run-history log.
@@ -112,6 +112,14 @@ pub struct Journey {
     /// Reward multiplier from the entry stake paid at the start of this run
     /// (1.0 = no stake). Applied to every leg reward and the completion bonus.
     pub stake_mult: f32,
+}
+
+impl Journey {
+    /// Event purchases use this run's banked gold only. Campaign gold and the
+    /// already-paid entry stake are deliberately outside the expedition loop.
+    pub fn can_choose_event_option(&self, option: &RunEventOptionDef) -> bool {
+        option.gold >= 0 || self.banked_gold >= option.gold.saturating_abs()
+    }
 }
 
 /// One branch in the expedition's next-leg choice: a base campaign route paired
@@ -532,10 +540,17 @@ impl GameSession {
         let Some(option) = event.options.get(index) else {
             return false;
         };
+        if !self
+            .journey
+            .as_ref()
+            .is_some_and(|journey| journey.can_choose_event_option(option))
+        {
+            return false;
+        }
         let Some(journey) = self.journey.as_mut() else {
             return false;
         };
-        journey.banked_gold = (journey.banked_gold + option.gold).max(0);
+        journey.banked_gold += option.gold;
         if option.health.abs() > f32::EPSILON {
             journey.carriage_health_ratio =
                 (journey.carriage_health_ratio + option.health).clamp(0.05, 1.0);

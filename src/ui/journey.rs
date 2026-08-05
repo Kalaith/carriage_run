@@ -34,14 +34,20 @@ pub(super) fn draw_journey(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
     } else if let Some(rewards) = &journey.pending_rewards {
         draw_reward_choice(journey, rewards, ctx.data, mouse, actions);
     } else if let Some(event_id) = &journey.pending_event {
-        draw_run_event(event_id, ctx.data, mouse, actions);
+        draw_run_event(journey, event_id, ctx.data, mouse, actions);
     } else {
         draw_hub(journey, ctx.data, mouse, actions);
     }
 }
 
 /// Between-legs vignette: a short prompt and a couple of resource-trade choices.
-fn draw_run_event(event_id: &str, data: &GameData, mouse: Vec2, actions: &mut Vec<UiAction>) {
+fn draw_run_event(
+    journey: &Journey,
+    event_id: &str,
+    data: &GameData,
+    mouse: Vec2,
+    actions: &mut Vec<UiAction>,
+) {
     let Some(event) = data.run_events.get(event_id) else {
         return;
     };
@@ -69,6 +75,7 @@ fn draw_run_event(event_id: &str, data: &GameData, mouse: Vec2, actions: &mut Ve
 
     let mut y = panel.y + 210.0;
     for (i, option) in event.options.iter().enumerate() {
+        let affordable = journey.can_choose_event_option(option);
         let card = Rect::new(panel.x + 40.0, y, panel.w - 80.0, 84.0);
         draw_panel(card, false);
         draw_ui_text_ex(
@@ -85,8 +92,8 @@ fn draw_run_event(event_id: &str, data: &GameData, mouse: Vec2, actions: &mut Ve
         );
         if virtual_button(
             Rect::new(card.right() - 148.0, card.y + 22.0, 124.0, 42.0),
-            "Choose",
-            true,
+            if affordable { "Choose" } else { "Need Gold" },
+            affordable,
             ButtonTone::Positive,
             mouse,
         ) {

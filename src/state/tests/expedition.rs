@@ -183,6 +183,62 @@ fn expedition_run_event_applies_option_effects() {
 }
 
 #[test]
+fn expedition_event_costs_require_run_banked_gold_and_preserve_pending_choice() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    assert!(session.start_journey(&data, 7));
+
+    for event_id in ["toll_bridge", "abandoned_shrine"] {
+        let event = data.run_events.get(event_id).unwrap();
+        let paid_index = event
+            .options
+            .iter()
+            .position(|option| option.gold < 0)
+            .unwrap();
+        session.journey.as_mut().unwrap().pending_event = Some(event_id.to_owned());
+        session.journey.as_mut().unwrap().banked_gold = 0;
+        let before = session.journey.as_ref().unwrap().clone();
+
+        assert!(!session.journey_resolve_event(paid_index, &data));
+        let after = session.journey.as_ref().unwrap();
+        assert_eq!(after.pending_event, before.pending_event);
+        assert_eq!(after.banked_gold, 0);
+        assert_eq!(after.carriage_health_ratio, before.carriage_health_ratio);
+        assert_eq!(after.relics, before.relics);
+    }
+}
+
+#[test]
+fn expedition_event_cost_deducts_exactly_and_every_event_has_a_free_option() {
+    let data = GameData::load().unwrap();
+    for event in data.run_events_ordered() {
+        assert!(
+            event.options.iter().any(|option| option.gold >= 0),
+            "{}",
+            event.id
+        );
+    }
+
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    assert!(session.start_journey(&data, 9));
+    let event = data.run_events.get("toll_bridge").unwrap();
+    let paid_index = event
+        .options
+        .iter()
+        .position(|option| option.gold < 0)
+        .unwrap();
+    let cost = event.options[paid_index].gold.saturating_abs();
+    let journey = session.journey.as_mut().unwrap();
+    journey.pending_event = Some(event.id.clone());
+    journey.banked_gold = cost;
+
+    assert!(session.journey_resolve_event(paid_index, &data));
+    assert_eq!(session.journey.as_ref().unwrap().banked_gold, 0);
+}
+
+#[test]
 fn expedition_entry_stake_pays_ante_and_multiplies_rewards() {
     let data = GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

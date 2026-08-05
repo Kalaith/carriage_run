@@ -196,7 +196,7 @@ fn siege_run_fields_larger_waves_than_a_normal_route() {
     let siege_wave = siege.debug_wave_size();
     let steady_wave = steady.debug_wave_size();
     assert!(
-        siege_wave >= steady_wave * 2,
+        siege_wave > steady_wave,
         "siege mega-wave not larger: {siege_wave} vs {steady_wave}"
     );
     assert!(

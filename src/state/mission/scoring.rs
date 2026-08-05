@@ -103,6 +103,8 @@ impl MissionRun {
             special_label: self.mission_kind.label().map(ToOwned::to_owned),
             special_ratio,
             enemies_defeated: self.enemies_defeated,
+            enemies_encountered: self.enemies_encountered,
+            hazards_encountered: self.hazards_encountered,
             injured_guard_ids: injured_guard_ids(&self.guards),
             bonus_met,
         }

@@ -5,14 +5,14 @@ use super::upgrade_visuals::{
 };
 use super::widgets::{draw_menu_backdrop, draw_mix_list, draw_top_nav, virtual_button};
 use super::{UiAction, UiContext};
-use crate::state::GuardKind;
+use crate::state::{CarriageEquipment, GuardKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
 
 pub(super) fn draw_loadout(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     draw_menu_backdrop(54.0);
-    draw_top_nav(ctx, "Mission Loadout", mouse, actions);
+    draw_top_nav(ctx, "Loadout", mouse, actions);
 
     let mission = ctx
         .data
@@ -28,6 +28,23 @@ pub(super) fn draw_loadout(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<U
     draw_pool(ctx, false, 330.0, mouse, actions);
     draw_slot_row(ctx, "Carriage Ranged Slots", true, 458.0, mouse, actions);
     draw_pool(ctx, true, 542.0, mouse, actions);
+
+    if let Some((limit, boost_needed)) = timing_advisory(ctx, mission) {
+        draw_badge(
+            Rect::new(872.0, 610.0, 326.0, 25.0),
+            &if boost_needed {
+                format!("{limit:.0}s deadline · ACTIVE BOOST REQUIRED")
+            } else {
+                format!("{limit:.0}s deadline · cruise has safe headroom")
+            },
+            if boost_needed {
+                Color::new(0.20, 0.12, 0.10, 1.0)
+            } else {
+                Color::new(0.10, 0.18, 0.12, 1.0)
+            },
+            INK,
+        );
+    }
 
     if virtual_button(
         Rect::new(700.0, 642.0, 154.0, 42.0),
@@ -129,19 +146,42 @@ fn draw_mission_summary(ctx: &UiContext<'_>, mission: &crate::data::MissionDef, 
             INK,
         );
     }
-    if let Some(limit) = mission.time_limit.map(|limit| {
-        route_choice
-            .map(|choice| limit + choice.time_limit_delta)
-            .unwrap_or(limit)
-            .max(30.0)
-    }) {
-        draw_badge(
-            Rect::new(rect.right() - 222.0, rect.bottom() - 34.0, 92.0, 25.0),
-            &format!("{:.0}s", limit),
-            Color::new(0.20, 0.12, 0.10, 1.0),
-            INK,
-        );
-    }
+}
+
+fn timing_advisory(ctx: &UiContext<'_>, mission: &crate::data::MissionDef) -> Option<(f32, bool)> {
+    let route_choice = ctx.session.campaign.selected_route_choice(mission);
+    mission
+        .time_limit
+        .map(|limit| {
+            route_choice
+                .map(|choice| limit + choice.time_limit_delta)
+                .unwrap_or(limit)
+                .max(30.0)
+        })
+        .map(|limit| {
+            let distance = route_choice
+                .map(|choice| mission.distance + choice.distance_delta)
+                .unwrap_or(mission.distance);
+            let base_speed = if mission.mission_type == "siege_supply_run" {
+                15.2
+            } else {
+                18.3
+            };
+            let wheel_bonus = if ctx
+                .session
+                .campaign
+                .is_equipment_equipped(CarriageEquipment::ReinforcedWheels)
+            {
+                ctx.session.campaign.wheel_level as f32 * 1.5
+            } else {
+                0.0
+            };
+            let cruise = (base_speed + wheel_bonus)
+                * ctx.session.campaign.chassis_speed_mult
+                * ctx.session.campaign.frame_speed_mult;
+            let boost_needed = distance / limit > cruise * 0.82;
+            (limit, boost_needed)
+        })
 }
 
 fn loadout_mixes(

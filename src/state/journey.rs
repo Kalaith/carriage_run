@@ -232,6 +232,9 @@ impl Journey {
     /// Expedition-token cost to permanently unlock one starting relic.
     pub const STARTING_RELIC_COST: i64 = 10;
 
+    /// Permanent unlocks form a collection; only this many ride at once.
+    pub const STARTING_RELIC_SLOTS: usize = 2;
+
     /// Whether `leg` is the final leg of the expedition.
     pub fn is_final_leg(leg: u32) -> bool {
         leg >= Self::EXPEDITION_LENGTH
@@ -376,22 +379,29 @@ impl Journey {
 }
 
 impl GameSession {
+    pub fn can_start_journey(&self, data: &GameData) -> bool {
+        data.stakes
+            .get(&self.campaign.selected_stake_id)
+            .is_some_and(|stake| self.campaign.gold >= stake.cost)
+    }
+
     /// Starts an expedition. `seed` drives all procedural composition; pass a
     /// fresh nonce for a varied free run, or a fixed/daily seed (with
     /// `seeded = true`) for a reproducible, shareable run.
     pub fn start_journey_seeded(&mut self, data: &GameData, seed: u64, seeded: bool) -> bool {
+        if !self.can_start_journey(data) {
+            return false;
+        }
         self.campaign.expedition_records.runs_started += 1;
-        // Pay the chosen entry stake's ante up front (falls back to no stake if
-        // unaffordable); its reward multiplier rides along for the whole run.
+        // Pay the selected ante in full; callers must choose an affordable tier.
         let stake_mult = data
             .stakes
             .get(&self.campaign.selected_stake_id)
-            .filter(|stake| self.campaign.gold >= stake.cost)
             .map(|stake| {
                 self.campaign.gold -= stake.cost;
                 stake.reward_mult
             })
-            .unwrap_or(1.0);
+            .expect("affordability check resolved the selected stake");
         self.journey = Some(Journey {
             leg: 1,
             banked_gold: 0,
@@ -405,7 +415,7 @@ impl GameSession {
             // from leg 1 (filtered to still-valid relic ids).
             relics: self
                 .campaign
-                .expedition_unlocks
+                .selected_starting_relic_ids
                 .iter()
                 .filter(|id| data.relics.contains(id))
                 .cloned()
@@ -671,6 +681,39 @@ impl GameSession {
         }
         self.campaign.expedition_tokens -= Journey::STARTING_RELIC_COST;
         self.campaign.expedition_unlocks.push(relic_id.to_owned());
+        if self.campaign.selected_starting_relic_ids.len() < Journey::STARTING_RELIC_SLOTS {
+            self.campaign
+                .selected_starting_relic_ids
+                .push(relic_id.to_owned());
+        }
+        true
+    }
+
+    pub fn toggle_starting_relic(&mut self, relic_id: &str, data: &GameData) -> bool {
+        if !data.relics.contains(relic_id)
+            || !self
+                .campaign
+                .expedition_unlocks
+                .iter()
+                .any(|id| id == relic_id)
+        {
+            return false;
+        }
+        if let Some(index) = self
+            .campaign
+            .selected_starting_relic_ids
+            .iter()
+            .position(|id| id == relic_id)
+        {
+            self.campaign.selected_starting_relic_ids.remove(index);
+            return true;
+        }
+        if self.campaign.selected_starting_relic_ids.len() >= Journey::STARTING_RELIC_SLOTS {
+            return false;
+        }
+        self.campaign
+            .selected_starting_relic_ids
+            .push(relic_id.to_owned());
         true
     }
 }

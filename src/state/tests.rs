@@ -1,5 +1,8 @@
 //! Shared fixtures for the state tests; behaviour lives in the submodules.
 
+mod balance;
+mod balance_expedition;
+mod balance_report;
 mod chassis;
 mod expedition;
 mod progression;
@@ -48,6 +51,8 @@ fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
         special_label: None,
         special_ratio: None,
         enemies_defeated: 0,
+        enemies_encountered: 0,
+        hazards_encountered: 0,
         injured_guard_ids,
         bonus_met: None,
     }

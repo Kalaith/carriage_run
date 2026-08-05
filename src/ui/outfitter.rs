@@ -97,7 +97,11 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     );
 
     draw_section_label(
-        "Starting Relics",
+        &format!(
+            "Starting Relics ({}/{} equipped)",
+            campaign.selected_starting_relic_ids.len(),
+            Journey::STARTING_RELIC_SLOTS
+        ),
         panel.x + 36.0,
         panel.y + 214.0,
         panel.w - 72.0,
@@ -121,12 +125,25 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
             TextStyle::new(15.0, MUTED).params(),
         );
         if owned {
-            draw_badge(
-                Rect::new(row.right() - 138.0, row.y + 14.0, 116.0, 24.0),
-                "Unlocked",
-                Color::new(0.12, 0.22, 0.14, 1.0),
-                Color::new(0.42, 0.86, 0.46, 1.0),
-            );
+            let selected = campaign
+                .selected_starting_relic_ids
+                .iter()
+                .any(|id| id == &relic.id);
+            let can_equip = selected
+                || campaign.selected_starting_relic_ids.len() < Journey::STARTING_RELIC_SLOTS;
+            if virtual_button(
+                Rect::new(row.right() - 138.0, row.y + 9.0, 116.0, 34.0),
+                if selected { "Equipped" } else { "Equip" },
+                can_equip,
+                if selected {
+                    ButtonTone::Positive
+                } else {
+                    ButtonTone::Secondary
+                },
+                mouse,
+            ) {
+                actions.push(UiAction::ToggleStartingRelic(relic.id.clone()));
+            }
         } else {
             let affordable = campaign.expedition_tokens >= Journey::STARTING_RELIC_COST;
             if virtual_button(
@@ -143,6 +160,7 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     }
 
     let btn_y = panel.bottom() - 58.0;
+    let can_start = ctx.session.can_start_journey(ctx.data);
     if virtual_button(
         Rect::new(panel.x + 40.0, btn_y, 150.0, 44.0),
         "Back",
@@ -154,8 +172,8 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     }
     if virtual_button(
         Rect::new(panel.x + 210.0, btn_y, 190.0, 44.0),
-        "Daily Run",
-        true,
+        if can_start { "Daily Run" } else { "Need Gold" },
+        can_start,
         ButtonTone::Primary,
         mouse,
     ) {
@@ -163,8 +181,12 @@ pub(super) fn draw_outfitter(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     }
     if virtual_button(
         Rect::new(panel.right() - 250.0, btn_y, 210.0, 44.0),
-        "Begin Expedition",
-        true,
+        if can_start {
+            "Begin Expedition"
+        } else {
+            "Select Affordable Stake"
+        },
+        can_start,
         ButtonTone::Positive,
         mouse,
     ) {

@@ -76,6 +76,8 @@ pub struct MissionReport {
     pub special_label: Option<String>,
     pub special_ratio: Option<f32>,
     pub enemies_defeated: u32,
+    pub enemies_encountered: u32,
+    pub hazards_encountered: u32,
     pub injured_guard_ids: Vec<String>,
     /// Whether the mission's bonus objective was achieved. `None` when the
     /// mission defines no structured bonus criteria.
@@ -168,6 +170,8 @@ pub struct MissionRun {
     pub road_scroll: f32,
     pub terrain_scroll: f32,
     pub enemies_defeated: u32,
+    pub enemies_encountered: u32,
+    pub hazards_encountered: u32,
     pub damage_taken: f32,
     pub guard_damage_taken: f32,
     pub cargo_lost: f32,
@@ -298,7 +302,12 @@ impl MissionRun {
             .unwrap_or(mission.difficulty)
             .max(0.6)
             * campaign.difficulty_preset.difficulty_scale())
-        .max(0.5);
+            * if mission_kind == MissionKind::SiegeSupplyRun {
+                0.60
+            } else {
+                1.0
+            };
+        let difficulty = difficulty.max(0.5);
         let base_reward = route_choice
             .map(|choice| mission.base_reward + choice.reward_delta)
             .unwrap_or(mission.base_reward)
@@ -392,6 +401,8 @@ impl MissionRun {
             road_scroll: 0.0,
             terrain_scroll: 0.0,
             enemies_defeated: 0,
+            enemies_encountered: 0,
+            hazards_encountered: 0,
             damage_taken: 0.0,
             guard_damage_taken: 0.0,
             cargo_lost: 0.0,

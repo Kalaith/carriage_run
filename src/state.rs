@@ -200,6 +200,9 @@ pub struct CampaignState {
     /// expedition begins with these.
     #[serde(default)]
     pub expedition_unlocks: Vec<String>,
+    /// Up to two unlocked relics equipped for the next expedition.
+    #[serde(default)]
+    pub selected_starting_relic_ids: Vec<String>,
     /// Persistent expedition stats + recent-run history (Records screen).
     #[serde(default)]
     pub expedition_records: ExpeditionRecords,
@@ -259,6 +262,7 @@ impl CampaignState {
             sturdy_carriage: false,
             expedition_tokens: 0,
             expedition_unlocks: Vec::new(),
+            selected_starting_relic_ids: Vec::new(),
             expedition_records: ExpeditionRecords::default(),
             selected_stake_id: default_stake_id(),
             carriage_frame_id: default_frame_id(),
@@ -379,6 +383,21 @@ impl CampaignState {
         }
         self.selected_route_choices
             .retain(|mission_id, route_id| !mission_id.is_empty() && !route_id.is_empty());
+        self.selected_starting_relic_ids.retain(|id| {
+            self.expedition_unlocks
+                .iter()
+                .any(|unlocked| unlocked == id)
+        });
+        if self.selected_starting_relic_ids.is_empty() {
+            self.selected_starting_relic_ids = self
+                .expedition_unlocks
+                .iter()
+                .take(Journey::STARTING_RELIC_SLOTS)
+                .cloned()
+                .collect();
+        }
+        self.selected_starting_relic_ids
+            .truncate(Journey::STARTING_RELIC_SLOTS);
 
         if self.hired_guard_ids.is_empty() {
             self.hired_guard_ids = default_hired_guard_ids();

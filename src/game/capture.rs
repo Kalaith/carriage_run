@@ -28,9 +28,19 @@ impl Game {
                         },
                     );
                 }
+                self.session.campaign.refresh_campaign_rank();
                 self.session.open_map();
             }
-            "loadout" => self.session.open_loadout(),
+            "loadout" => {
+                self.session.campaign.campaign_rank = 4;
+                self.session.campaign.chassis_id = "heavy_wagon".to_owned();
+                self.session.campaign.owned_chassis_ids = vec!["heavy_wagon".to_owned()];
+                self.session.campaign.carriage_frame_id = "hauler".to_owned();
+                self.session.campaign.refresh_chassis_stats(&self.data);
+                self.session.campaign.refresh_frame_stats(&self.data);
+                self.session.select_mission("siege_supply");
+                self.session.open_loadout();
+            }
             "upgrades" => self.session.open_upgrades(),
             "carriages" => self.session.open_carriages(),
             "guards" => {
@@ -69,11 +79,11 @@ impl Game {
                     reason: "Delivered before the medicine spoiled".to_owned(),
                     stars: 2,
                     score: 742,
-                    reward: 214,
+                    reward: 225,
                     reward_breakdown: crate::state::RewardBreakdown {
                         contract: 140,
                         stars: 64,
-                        bonus_objective: 10,
+                        bonus_objective: 21,
                         ..crate::state::RewardBreakdown::default()
                     },
                     gold_penalty: 0,
@@ -84,6 +94,8 @@ impl Game {
                     special_label: Some("Potency".to_owned()),
                     special_ratio: Some(0.79),
                     enemies_defeated: 11,
+                    enemies_encountered: 14,
+                    hazards_encountered: 6,
                     injured_guard_ids: Vec::new(),
                     bonus_met: Some(true),
                 });
@@ -123,6 +135,7 @@ impl Game {
                 let journey = mid_run_journey();
                 let event = journey.next_run_event(&self.data);
                 self.session.journey = Some(Journey {
+                    banked_gold: 0,
                     pending_event: event,
                     ..journey
                 });
@@ -134,6 +147,10 @@ impl Game {
                 self.session
                     .campaign
                     .expedition_unlocks
+                    .push("greased_axles".to_owned());
+                self.session
+                    .campaign
+                    .selected_starting_relic_ids
                     .push("greased_axles".to_owned());
                 self.session.open_outfitter();
             }

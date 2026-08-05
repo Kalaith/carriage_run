@@ -165,6 +165,15 @@ impl Game {
                     self.notifications.warning("Cannot unlock that relic");
                 }
             }
+            UiAction::ToggleStartingRelic(id) => {
+                if self.session.toggle_starting_relic(&id, &self.data) {
+                    self.notifications.info("Starting relic loadout updated");
+                    self.auto_save();
+                } else {
+                    self.notifications
+                        .warning("Both starting relic slots are full");
+                }
+            }
             UiAction::StartExpedition => {
                 // A fresh nonce per run so free expeditions actually vary.
                 let nonce = macroquad::miniquad::date::now().to_bits();

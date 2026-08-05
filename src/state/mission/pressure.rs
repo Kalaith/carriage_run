@@ -119,14 +119,14 @@ impl MissionRun {
                     .filter(|enemy| enemy.pos.distance(self.carriage.pos) < 190.0)
                     .count();
                 let delta = if nearby == 0 && self.carriage.slow_timer <= 0.0 {
-                    0.55
+                    0.8
                 } else {
                     let road_drag = if self.carriage.slow_timer > 0.0 {
-                        0.34
+                        0.22
                     } else {
-                        0.10
+                        0.06
                     };
-                    -(road_drag + nearby as f32 * 0.28)
+                    -(road_drag + nearby as f32 * 0.16)
                 };
                 self.special_meter = (self.special_meter + dt * delta).clamp(0.0, 100.0);
             }

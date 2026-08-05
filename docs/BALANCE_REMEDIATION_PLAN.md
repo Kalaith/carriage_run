@@ -2,6 +2,9 @@
 
 Date: 2026-08-05
 
+Status: Complete (2026-08-05). Measured corridors and economy decisions are in
+`docs/BALANCE_SIMULATION_REPORT.md`.
+
 ## Purpose
 
 This plan resolves the correctness, interaction, communication, and balance
@@ -34,7 +37,7 @@ The remediation is complete when:
 
 ## Phase 1: Correctness Blockers
 
-### 1. Normalize armor units and relic application
+### 1. Normalize armor units and relic application — Complete
 
 Problem: `MissionRun::armor_reduction` is used as flat damage reduction, while
 relic data describes small fractional-looking additions. `apply_relic` clamps
@@ -61,7 +64,7 @@ Acceptance tests:
 - Ghost Wheels reduces armor only by its authored penalty; and
 - carriage damage remains bounded and non-negative at maximum armor.
 
-### 2. Enforce expedition event affordability
+### 2. Enforce expedition event affordability — Complete
 
 Problem: event options with negative gold are always enabled. Resolution clamps
 run gold at zero, allowing the player to receive paid benefits without paying
@@ -86,7 +89,7 @@ Acceptance tests:
 
 ## Phase 2: Progression and Mode Boundaries
 
-### 3. Separate campaign rank from Iron Plating
+### 3. Separate campaign rank from Iron Plating — Complete
 
 Problem: `carriage_level` simultaneously means campaign rank, Iron Plating
 level, legacy chassis progression, mission unlock gate, and guard unlock gate.
@@ -116,7 +119,7 @@ Acceptance tests:
   and
 - the full mission graph remains reachable without a mandatory armor build.
 
-### 4. Isolate expedition legs from campaign route selections
+### 4. Isolate expedition legs from campaign route selections — Complete
 
 Problem: expedition legs call `MissionRun::new`, which silently applies the
 campaign profile's stored route choice for that mission. The expedition UI only
@@ -143,7 +146,7 @@ Acceptance tests:
 
 ## Phase 3: Rewards and Player-Facing Truth
 
-### 5. Give bonus objectives an explicit reward
+### 5. Give bonus objectives an explicit reward — Complete
 
 Problem: bonus objectives produce a Met/Missed badge but do not change score,
 stars, gold, unlocks, or records. Some happen to correlate with other scoring
@@ -167,7 +170,7 @@ Acceptance tests:
 - the results breakdown reconciles exactly to awarded gold; and
 - Bandit Bend's threat objective provides a real benefit beyond per-kill gold.
 
-### 6. Reconcile descriptions with mechanics
+### 6. Reconcile descriptions with mechanics — Complete
 
 Resolve each mismatch by either implementing the promised behavior or narrowing
 the text. Prefer mechanics when they create useful counterplay; prefer text-only
@@ -195,7 +198,7 @@ Acceptance tests:
 
 ## Phase 4: Balance Tuning
 
-### 7. Make boost and brake situational choices
+### 7. Make boost and brake situational choices — Complete
 
 Problem: boost provides unlimited `1.32x` progress. Because enemy waves and
 hazards spawn against elapsed time, continuous boost also reduces total exposure
@@ -229,7 +232,7 @@ Acceptance corridors:
   combinations that require active boosting; and
 - Relaxed, Standard, and Hard win rates remain strictly ordered.
 
-### 8. Audit campaign and expedition economies
+### 8. Audit campaign and expedition economies — Complete
 
 The static review found 2,435 gold in listed campaign base rewards against 3,375
 gold in upgrade purchases from new-game levels, before chassis, recruits, and
@@ -257,7 +260,7 @@ alone.
 
 ## Phase 5: Validation Infrastructure
 
-### 9. Add a deterministic balance simulation harness
+### 9. Add a deterministic balance simulation harness — Complete
 
 Create a headless harness over `MissionRun` that can execute reproducible driver
 and loadout policies without rendering. Keep it inside the crate's unit-test
@@ -279,7 +282,7 @@ difficulty monotonicity, seeded reproducibility, non-dominant throttle policies,
 and minimum viability. Keep broader tuning reports inspectable without making
 every numerical adjustment break the build.
 
-### 10. Validation sequence for every phase
+### 10. Validation sequence for every phase — Complete
 
 For each implementation phase:
 

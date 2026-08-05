@@ -69,6 +69,7 @@ pub enum UiAction {
     OpenRecords,
     SelectStake(String),
     UnlockStartingRelic(String),
+    ToggleStartingRelic(String),
     StartExpedition,
     StartDailyExpedition,
     JourneyPressOn,
@@ -484,7 +485,7 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         return;
     };
 
-    let panel = Rect::new(320.0, 112.0, 640.0, 476.0);
+    let panel = Rect::new(320.0, 82.0, 640.0, 526.0);
     draw_panel(panel, true);
 
     draw_text_centered_in_box(
@@ -626,6 +627,13 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
         stats.push((label.clone(), format!("{:.0}%", ratio * 100.0)));
     }
     stats.push(("Threats".to_owned(), result.enemies_defeated.to_string()));
+    stats.push((
+        "Seen".to_owned(),
+        format!(
+            "{} threats / {} hazards",
+            result.enemies_encountered, result.hazards_encountered
+        ),
+    ));
     let time_value = result
         .time_limit
         .map(|limit| format!("{:.0}s / {:.0}s", result.elapsed, limit))

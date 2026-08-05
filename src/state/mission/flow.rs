@@ -298,7 +298,7 @@ impl MissionRun {
     fn wave_size(&self) -> u32 {
         let base = 2.0 + self.difficulty * 1.4 + self.wave_index as f32 * 0.25;
         if self.is_siege() {
-            ((base * 2.4).round() as u32).clamp(6, 14)
+            ((base * 1.75).round() as u32).clamp(5, 10)
         } else {
             (base.round() as u32).clamp(2, 7)
         }
@@ -347,6 +347,7 @@ impl MissionRun {
         self.enemies
             .push(Enemy::new(self.next_enemy_id, kind, pos, self.difficulty));
         self.next_enemy_id += 1;
+        self.enemies_encountered += 1;
     }
 
     fn spawn_hazard(&mut self) {
@@ -355,6 +356,7 @@ impl MissionRun {
         let y = PLAY_TOP - 48.0;
         let pos = vec2(self.road_x_at(y, 70.0), y);
         self.hazards.push(Hazard::new(kind, pos));
+        self.hazards_encountered += 1;
     }
 
     fn update_hazards(&mut self, dt: f32) {

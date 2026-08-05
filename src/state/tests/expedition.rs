@@ -282,6 +282,58 @@ fn expedition_entry_stake_pays_ante_and_multiplies_rewards() {
 }
 
 #[test]
+fn unaffordable_selected_stake_blocks_expedition_start() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    let stake = data
+        .stakes_ordered()
+        .into_iter()
+        .find(|stake| stake.cost > session.campaign.gold)
+        .unwrap();
+    session.campaign.selected_stake_id = stake.id.clone();
+    let starts_before = session.campaign.expedition_records.runs_started;
+
+    assert!(!session.can_start_journey(&data));
+    assert!(!session.start_journey(&data, 99));
+    assert!(session.journey.is_none());
+    assert_eq!(
+        session.campaign.expedition_records.runs_started,
+        starts_before
+    );
+    assert_eq!(session.campaign.gold, data.config.starting_gold);
+}
+
+#[test]
+fn only_two_selected_permanent_relics_start_an_expedition() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    session.campaign.expedition_unlocks = data
+        .relics_ordered()
+        .into_iter()
+        .map(|relic| relic.id.clone())
+        .collect();
+    session.campaign.selected_starting_relic_ids = session
+        .campaign
+        .expedition_unlocks
+        .iter()
+        .take(Journey::STARTING_RELIC_SLOTS)
+        .cloned()
+        .collect();
+
+    assert!(session.start_journey(&data, 17));
+    assert_eq!(
+        session.journey.as_ref().unwrap().relics,
+        session.campaign.selected_starting_relic_ids
+    );
+    assert_eq!(
+        session.journey.as_ref().unwrap().relics.len(),
+        Journey::STARTING_RELIC_SLOTS
+    );
+}
+
+#[test]
 fn expedition_records_track_bests_and_history() {
     let data = GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

@@ -66,6 +66,7 @@ pub struct MissionReport {
     pub stars: u8,
     pub score: i64,
     pub reward: i64,
+    pub reward_breakdown: RewardBreakdown,
     /// Gold lost to repairs and spoiled cargo when a run fails (0 on success).
     pub gold_penalty: i64,
     pub elapsed: f32,
@@ -209,6 +210,22 @@ pub struct MissionRun {
     /// Princess-comfort missions only: the smoothed "ride smoothness" multiplier
     /// (0..1). 1.0 = gliding clean; drops as you swerve. Drives comfort + score.
     pub(super) ride_smoothness: f32,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RewardBreakdown {
+    pub contract: i64,
+    pub stars: i64,
+    pub cargo: i64,
+    pub special: i64,
+    pub threats: i64,
+    pub bonus_objective: i64,
+}
+
+impl RewardBreakdown {
+    pub fn total(self) -> i64 {
+        self.contract + self.stars + self.cargo + self.special + self.threats + self.bonus_objective
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

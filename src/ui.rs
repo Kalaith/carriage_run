@@ -593,7 +593,18 @@ fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let mut stats = vec![
         ("Route".to_owned(), result.route_name.clone()),
         ("Score".to_owned(), result.score.to_string()),
-        ("Reward".to_owned(), format!("{} gold", result.reward)),
+        (
+            "Contract + Performance".to_owned(),
+            format!(
+                "{} gold",
+                result.reward - result.reward_breakdown.bonus_objective
+            ),
+        ),
+        (
+            "Bonus Objective".to_owned(),
+            format!("+{} gold", result.reward_breakdown.bonus_objective),
+        ),
+        ("Total Reward".to_owned(), format!("{} gold", result.reward)),
     ];
     if result.gold_penalty > 0 {
         stats.push((

@@ -70,6 +70,12 @@ impl Game {
                     stars: 2,
                     score: 742,
                     reward: 214,
+                    reward_breakdown: crate::state::RewardBreakdown {
+                        contract: 140,
+                        stars: 64,
+                        bonus_objective: 10,
+                        ..crate::state::RewardBreakdown::default()
+                    },
                     gold_penalty: 0,
                     elapsed: 63.0,
                     time_limit: Some(86.0),

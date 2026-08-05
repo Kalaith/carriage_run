@@ -39,6 +39,7 @@ fn test_report(success: bool, injured_guard_ids: Vec<String>) -> MissionReport {
         stars: if success { 1 } else { 0 },
         score: 0,
         reward: 0,
+        reward_breakdown: RewardBreakdown::default(),
         gold_penalty: 0,
         elapsed: 0.0,
         time_limit: None,

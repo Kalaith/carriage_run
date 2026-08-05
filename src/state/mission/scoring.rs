@@ -39,17 +39,41 @@ impl MissionRun {
         } else {
             1
         };
-        let reward = if success {
-            self.base_reward
-                + stars as i64 * 32
-                + (cargo_ratio * 42.0).round() as i64
-                + special_ratio
+        // Evaluate the authored objective before reward assembly. Meeting it on
+        // a successful run pays 15% of the effective route contract.
+        let bonus_met = mission.bonus.map(|bonus| {
+            success
+                && bonus.is_met(
+                    cargo_ratio,
+                    health_ratio,
+                    special_ratio,
+                    self.enemies_defeated,
+                    self.time_limit.map(|limit| limit - self.elapsed),
+                )
+        });
+        let reward_breakdown = if success {
+            RewardBreakdown {
+                contract: self.base_reward,
+                stars: stars as i64 * 32,
+                cargo: (cargo_ratio * 42.0).round() as i64,
+                special: special_ratio
                     .map(|ratio| (ratio * 28.0).round() as i64)
-                    .unwrap_or(0)
-                + self.enemies_defeated as i64 * 4
+                    .unwrap_or(0),
+                threats: self.enemies_defeated as i64 * 4,
+                bonus_objective: if bonus_met == Some(true) {
+                    (self.base_reward as f32 * 0.15).round() as i64
+                } else {
+                    0
+                },
+            }
         } else {
-            (self.base_reward as f32 * 0.12).round() as i64 + self.enemies_defeated as i64 * 2
+            RewardBreakdown {
+                contract: (self.base_reward as f32 * 0.12).round() as i64,
+                threats: self.enemies_defeated as i64 * 2,
+                ..RewardBreakdown::default()
+            }
         };
+        let reward = reward_breakdown.total();
         // A failed run costs gold: emergency repairs scale with carriage
         // damage, and spoiled/looted cargo scales with cargo lost. The worse
         // the run went, the more it stings.
@@ -61,19 +85,6 @@ impl MissionRun {
             (repairs + lost_cargo).round() as i64
         };
 
-        // The bonus objective only counts on a successful run; a failed
-        // delivery misses it regardless of intermediate numbers.
-        let bonus_met = mission.bonus.map(|bonus| {
-            success
-                && bonus.is_met(
-                    cargo_ratio,
-                    health_ratio,
-                    special_ratio,
-                    self.enemies_defeated,
-                    self.time_limit.map(|limit| limit - self.elapsed),
-                )
-        });
-
         MissionReport {
             mission_id: mission.id.clone(),
             mission_name: mission.name.clone(),
@@ -83,6 +94,7 @@ impl MissionRun {
             stars,
             score,
             reward,
+            reward_breakdown,
             gold_penalty,
             elapsed: self.elapsed,
             time_limit: self.time_limit,
@@ -107,4 +119,45 @@ fn injured_guard_ids(guards: &[Guard]) -> Vec<String> {
         }
     }
     ids
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::data::GameData;
+
+    #[test]
+    fn bonus_objective_adds_fifteen_percent_and_breakdown_reconciles() {
+        let data = GameData::load().unwrap();
+        let campaign = CampaignState::new(&data.config, Some("muddy_road"));
+        let mut met_mission = data.missions.get("muddy_road").unwrap().clone();
+        let mut missed_mission = met_mission.clone();
+        met_mission.bonus.as_mut().unwrap().threshold = 0.5;
+        missed_mission.bonus.as_mut().unwrap().threshold = 1.1;
+        let run = MissionRun::new(&met_mission, &campaign);
+
+        let met = run.make_report(&met_mission, true, "done");
+        let missed = run.make_report(&missed_mission, true, "done");
+        let expected_bonus = (run.base_reward as f32 * 0.15).round() as i64;
+
+        assert_eq!(met.bonus_met, Some(true));
+        assert_eq!(missed.bonus_met, Some(false));
+        assert_eq!(met.reward - missed.reward, expected_bonus);
+        assert_eq!(met.reward_breakdown.bonus_objective, expected_bonus);
+        assert_eq!(met.reward, met.reward_breakdown.total());
+    }
+
+    #[test]
+    fn failed_mission_never_receives_bonus_gold() {
+        let data = GameData::load().unwrap();
+        let mission = data.missions.get("muddy_road").unwrap();
+        let campaign = CampaignState::new(&data.config, Some("muddy_road"));
+        let run = MissionRun::new(mission, &campaign);
+
+        let report = run.make_report(mission, false, "failed");
+
+        assert_eq!(report.bonus_met, Some(false));
+        assert_eq!(report.reward_breakdown.bonus_objective, 0);
+        assert_eq!(report.reward, report.reward_breakdown.total());
+    }
 }

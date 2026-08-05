@@ -14,7 +14,7 @@ mod validation;
 pub use entities::*;
 pub use equipment::*;
 pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegOption, LegReward};
-pub use mission::{MissionInput, MissionReport, MissionRun};
+pub use mission::{MissionInput, MissionReport, MissionRun, RewardBreakdown};
 pub use save::{migrate_save_value, SaveData};
 pub use session::GameSession;
 #[cfg(any(debug_assertions, test))]

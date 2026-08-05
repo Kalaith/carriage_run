@@ -47,6 +47,34 @@ fn alpha_wolf_outclasses_a_common_wolf() {
 }
 
 #[test]
+fn spearman_braces_against_every_charger() {
+    for charger in [EnemyKind::Wolf, EnemyKind::AlphaWolf] {
+        assert!(charger.is_charger());
+        assert!(melee_bonus(GuardKind::Spearman, 1, charger) > 1.0);
+        assert!(melee_bonus(GuardKind::Spearman, 3, charger) > 1.0);
+    }
+    assert_eq!(melee_bonus(GuardKind::Spearman, 3, EnemyKind::Bandit), 1.0);
+}
+
+#[test]
+fn mud_jostles_less_when_braking_and_more_when_boosting() {
+    let cargo_after_mud = |throttle: f32| {
+        let mut run = test_run();
+        run.throttle = throttle;
+        run.hazards
+            .push(Hazard::new(HazardKind::Mud, run.carriage.pos));
+        run.handle_hazard_collisions(1.0 / 60.0);
+        run.carriage.cargo
+    };
+
+    let braking = cargo_after_mud(0.72);
+    let cruising = cargo_after_mud(1.0);
+    let boosting = cargo_after_mud(1.32);
+    assert!(braking > cruising, "braking should preserve more cargo");
+    assert!(cruising > boosting, "boosting should jostle more cargo");
+}
+
+#[test]
 fn live_enemies_are_hard_capped() {
     let mut run = test_run();
     // Far more spawn attempts than the cap; count must never exceed it.
@@ -153,4 +181,113 @@ fn killing_fleeing_thief_recovers_cargo() {
     run.enemies[0].health = 0.0;
     run.cleanup_entities();
     assert!((run.carriage.cargo - full_cargo).abs() < 0.001);
+}
+
+fn apply_test_hit(run: &mut MissionRun, kind: GuardKind, stars: u8, enemy_id: u32) {
+    let target = run
+        .enemies
+        .iter()
+        .find(|enemy| enemy.id == enemy_id)
+        .unwrap()
+        .pos;
+    run.apply_guard_hit(PendingGuardHit {
+        kind,
+        stars,
+        enemy_id,
+        enemy_kind: run
+            .enemies
+            .iter()
+            .find(|enemy| enemy.id == enemy_id)
+            .unwrap()
+            .kind,
+        damage: 10.0,
+        origin: run.carriage.pos,
+        target,
+    });
+}
+
+#[test]
+fn three_star_cleave_and_piercing_shot_damage_a_second_target() {
+    for kind in [GuardKind::Swordsman, GuardKind::Archer] {
+        let mut run = test_run();
+        let pos = run.carriage.pos;
+        run.enemies.push(Enemy::new(1, EnemyKind::Bandit, pos, 1.0));
+        run.enemies
+            .push(Enemy::new(2, EnemyKind::Bandit, pos + vec2(20.0, 0.0), 1.0));
+        let second_before = run.enemies[1].health;
+
+        apply_test_hit(&mut run, kind, 3, 1);
+
+        assert!(run.enemies[1].health < second_before, "{:?}", kind);
+    }
+}
+
+#[test]
+fn crossbow_bonus_and_pin_apply_to_armored_bandits() {
+    let mut one_star = test_run();
+    one_star.enemies.push(Enemy::new(
+        1,
+        EnemyKind::ArmoredBandit,
+        one_star.carriage.pos,
+        1.0,
+    ));
+    let mut three_star = one_star.clone();
+
+    apply_test_hit(&mut one_star, GuardKind::CrossbowGuard, 1, 1);
+    apply_test_hit(&mut three_star, GuardKind::CrossbowGuard, 3, 1);
+
+    assert!(three_star.enemies[0].health < one_star.enemies[0].health);
+    assert!(three_star.enemies[0].slow_timer > 0.0);
+}
+
+#[test]
+fn mage_stars_add_splash_and_guard_healing() {
+    let mut run = test_run();
+    run.guards[0].health -= 20.0;
+    let guard_before = run.guards[0].health;
+    let pos = run.carriage.pos;
+    run.enemies.push(Enemy::new(1, EnemyKind::Bandit, pos, 1.0));
+    run.enemies
+        .push(Enemy::new(2, EnemyKind::Bandit, pos + vec2(20.0, 0.0), 1.0));
+    let second_before = run.enemies[1].health;
+
+    apply_test_hit(&mut run, GuardKind::Mage, 3, 1);
+
+    assert!(run.enemies[1].health < second_before);
+    assert!(run.guards[0].health > guard_before);
+}
+
+#[test]
+fn three_star_shield_wall_reduces_nearby_carriage_damage() {
+    let mut plain = test_run();
+    plain.guards.clear();
+    let mut shielded = plain.clone();
+    shielded.guards.push(Guard::new(
+        9,
+        GuardKind::ShieldGuard,
+        shielded.carriage.pos,
+        1,
+        1,
+        3,
+        None,
+    ));
+
+    plain.damage_carriage(10.0, 0.0, "hit");
+    shielded.damage_carriage(10.0, 0.0, "hit");
+
+    assert!(shielded.damage_taken < plain.damage_taken);
+}
+
+#[test]
+fn two_star_profiles_exercise_authored_stat_progression() {
+    for kind in GuardKind::all() {
+        let one = GuardProfile::new(kind, 1, 1, 1);
+        let two = GuardProfile::new(kind, 1, 1, 2);
+        assert!(two.attack > one.attack, "{:?} attack", kind);
+        assert!(two.max_health > one.max_health, "{:?} health", kind);
+        assert!(!kind.ability_summary(1).is_empty());
+        assert!(!kind.ability_summary(2).is_empty());
+        assert!(!kind.ability_summary(3).is_empty());
+    }
+    assert!(GuardKind::ShieldGuard.threat_bonus(2) > GuardKind::ShieldGuard.threat_bonus(1));
 }

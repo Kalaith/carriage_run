@@ -12,8 +12,8 @@ pub enum EnemyKind {
     Necromancer,
     /// Elite pack leader: a bigger, tougher, faster charging wolf.
     AlphaWolf,
-    /// Elite raider: a heavily armored bruiser that soaks hits and does not
-    /// flee. Countered by the crossbow's armor-piercing bolts.
+    /// Elite raider: a high-durability bruiser that soaks hits and does not
+    /// flee. Crossbow guards deal an authored bonus against it.
     ArmoredBandit,
 }
 
@@ -65,7 +65,7 @@ impl EnemyKind {
             Self::Skeleton => "Undead melee",
             Self::Necromancer => "Summoner",
             Self::AlphaWolf => "Elite charger",
-            Self::ArmoredBandit => "Armored bruiser",
+            Self::ArmoredBandit => "High-durability bruiser",
         }
     }
 
@@ -91,7 +91,7 @@ impl EnemyKind {
                 "A pack leader — bigger, faster, and far tougher than a lone wolf. Gang up on it before it reaches the carriage."
             }
             Self::ArmoredBandit => {
-                "A heavily armored raider that soaks damage and grinds toward the carriage without fleeing. Focus it down, or let a crossbow guard punch through the plate."
+                "A high-health raider that grinds toward the carriage without fleeing. A 2-star Crossbow Guard deals 35% bonus damage to it."
             }
         }
     }
@@ -125,6 +125,10 @@ impl EnemyKind {
             Self::AlphaWolf => 2.05,
             _ => 1.0,
         }
+    }
+
+    pub(in crate::state) fn is_charger(self) -> bool {
+        matches!(self, Self::Wolf | Self::AlphaWolf)
     }
 
     /// Bandits grab cargo and run for the map edge; killing a fleeing thief

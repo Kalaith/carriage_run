@@ -336,7 +336,11 @@ impl MissionRun {
                         self.carriage.slow_timer = 1.25;
                         if !hazard.triggered {
                             hazard.triggered = true;
-                            impacts.push((0.0, 1.5, "Mud slowed the wheels"));
+                            impacts.push((
+                                0.0,
+                                mud_cargo_loss(self.throttle),
+                                "Mud slowed the wheels",
+                            ));
                         }
                     }
                 }
@@ -470,7 +474,7 @@ fn nearest_enemy_in_range(
 }
 
 fn melee_bonus(kind: GuardKind, stars: u8, enemy_kind: EnemyKind) -> f32 {
-    if kind == GuardKind::Spearman && enemy_kind == EnemyKind::Wolf {
+    if kind == GuardKind::Spearman && enemy_kind.is_charger() {
         if stars >= 3 {
             1.8
         } else {
@@ -479,6 +483,10 @@ fn melee_bonus(kind: GuardKind, stars: u8, enemy_kind: EnemyKind) -> f32 {
     } else {
         1.0
     }
+}
+
+fn mud_cargo_loss(throttle: f32) -> f32 {
+    1.5 * throttle.clamp(0.65, 1.4).powi(2)
 }
 
 fn auto_attack_range(guard: &Guard) -> f32 {

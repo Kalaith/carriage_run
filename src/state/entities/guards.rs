@@ -70,7 +70,7 @@ impl GuardKind {
         match self {
             Self::Swordsman => "Balanced melee guard with reliable damage and speed.",
             Self::ShieldGuard => "Tough defender that pulls enemies off the carriage.",
-            Self::Spearman => "Longer reach and extra damage against charging wolves.",
+            Self::Spearman => "Longer reach and extra damage against every charging enemy.",
             Self::Archer => {
                 "Fast ranged guard that can mount the carriage and pick off weak enemies."
             }
@@ -130,7 +130,7 @@ impl GuardKind {
     pub fn ability_summary(self, stars: u8) -> &'static str {
         match (self, stars) {
             (Self::Swordsman, 1) => "1*: Reliable melee attacks.",
-            (Self::Swordsman, 2) => "2*: Faster sword recovery.",
+            (Self::Swordsman, 2) => "2*: Stronger sword attacks.",
             (Self::Swordsman, _) => "3*: Cleave damages a second nearby enemy.",
             (Self::ShieldGuard, 1) => "1*: High armor and threat.",
             (Self::ShieldGuard, 2) => "2*: Stronger threat pull.",
@@ -142,9 +142,9 @@ impl GuardKind {
             (Self::Archer, 2) => "2*: Quicker reload.",
             (Self::Archer, _) => "3*: Piercing shot can hit a second target.",
             (Self::CrossbowGuard, 1) => "1*: Slow heavy bolts.",
-            (Self::CrossbowGuard, 2) => "2*: Armor-piercing undead bolts.",
+            (Self::CrossbowGuard, 2) => "2*: +35% vs undead and armored bandits.",
             (Self::CrossbowGuard, _) => "3*: Pinning shots slow targets.",
-            (Self::Mage, 1) => "1*: Magic bolts ignore some armor.",
+            (Self::Mage, 1) => "1*: Reliable ranged magic bolts.",
             (Self::Mage, 2) => "2*: Splash damage around the target.",
             (Self::Mage, _) => "3*: Healing charm restores an injured guard.",
         }

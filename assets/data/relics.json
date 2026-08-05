@@ -2,18 +2,18 @@
   {
     "id": "ghost_wheels",
     "name": "Ghost Wheels",
-    "description": "+18% speed, thinner hide.",
+    "description": "+18% speed, -0.6 flat armor.",
     "order": 1,
     "speed_mult": 1.18,
-    "armor_add": -0.06
+    "flat_armor_add": -0.6
   },
   {
     "id": "iron_barding",
     "name": "Iron Barding",
-    "description": "+armor, a touch slower.",
+    "description": "+1.2 flat armor, a touch slower.",
     "order": 2,
     "speed_mult": 0.92,
-    "armor_add": 0.12
+    "flat_armor_add": 1.2
   },
   {
     "id": "merchants_ledger",
@@ -39,9 +39,9 @@
   {
     "id": "war_banner",
     "name": "War Banner",
-    "description": "+armor and a little speed.",
+    "description": "+0.5 flat armor and a little speed.",
     "order": 6,
     "speed_mult": 1.06,
-    "armor_add": 0.05
+    "flat_armor_add": 0.5
   }
 ]

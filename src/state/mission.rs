@@ -432,7 +432,7 @@ impl MissionRun {
     /// leg on top of chassis/equipment stats (see `GameSession::begin_journey_leg`).
     pub fn apply_relic(&mut self, relic: &crate::data::RelicDef) {
         self.chassis_speed_mult *= relic.speed_mult;
-        self.armor_reduction = (self.armor_reduction + relic.armor_add).clamp(0.0, 0.9);
+        self.armor_reduction = (self.armor_reduction + relic.flat_armor_add).max(0.0);
         self.wheel_bonus += relic.wheel_bonus_add;
         self.hub_damage += relic.hub_damage_add;
     }

@@ -19,6 +19,48 @@ fn idle_input() -> MissionInput {
 }
 
 #[test]
+fn relics_apply_authored_flat_armor_without_clamping_campaign_armor() {
+    let data = GameData::load().unwrap();
+    let mission = data.missions.get("muddy_road").unwrap();
+    let config = test_config();
+    let mut campaign = CampaignState::new(&config, Some("muddy_road"));
+    campaign.carriage_level = 3;
+
+    let base = MissionRun::new(mission, &campaign);
+    assert!(base.armor_reduction > 0.9, "fixture needs upgraded armor");
+
+    for relic_id in ["merchants_ledger", "greased_axles"] {
+        let mut run = base.clone();
+        run.apply_relic(data.relics.get(relic_id).unwrap());
+        assert_eq!(run.armor_reduction, base.armor_reduction, "{relic_id}");
+    }
+
+    for relic_id in ["iron_barding", "war_banner", "ghost_wheels"] {
+        let relic = data.relics.get(relic_id).unwrap();
+        let mut run = base.clone();
+        run.apply_relic(relic);
+        let expected = (base.armor_reduction + relic.flat_armor_add).max(0.0);
+        assert!((run.armor_reduction - expected).abs() < f32::EPSILON);
+    }
+}
+
+#[test]
+fn maximum_flat_armor_keeps_carriage_damage_bounded_and_non_negative() {
+    let data = GameData::load().unwrap();
+    let mission = data.missions.get("muddy_road").unwrap();
+    let config = test_config();
+    let campaign = CampaignState::new(&config, Some("muddy_road"));
+    let mut run = MissionRun::new(mission, &campaign);
+    run.armor_reduction = f32::MAX;
+    let before = run.carriage.health;
+
+    run.debug_damage_carriage(10.0, 0.0);
+
+    assert_eq!(before - run.carriage.health, 3.5);
+    assert!(run.carriage.health <= before);
+}
+
+#[test]
 fn siege_run_sim_stays_bounded_and_terminates() {
     let data = GameData::load().unwrap();
     let config = test_config();

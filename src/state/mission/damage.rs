@@ -179,6 +179,11 @@ impl MissionRun {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn debug_damage_carriage(&mut self, damage: f32, cargo_loss: f32) {
+        self.damage_carriage(damage, cargo_loss, "test");
+    }
+
     /// Each mission kind converts a hit into its own bespoke objective pressure:
     /// a princess loses composure, medicine loses potency, gold gets stolen.
     fn apply_special_meter_pressure(&mut self, damage: f32, cargo_loss: f32, label: &str) {

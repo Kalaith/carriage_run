@@ -169,9 +169,9 @@ pub struct RelicDef {
     /// Multiplies carriage speed (1.0 = no change).
     #[serde(default = "one")]
     pub speed_mult: f32,
-    /// Added to the carriage's damage-reduction fraction (can be negative).
+    /// Flat damage points removed from each carriage hit (can be negative).
     #[serde(default)]
-    pub armor_add: f32,
+    pub flat_armor_add: f32,
     /// Added to the wheel bonus (faster cruise + hazard slow resistance).
     #[serde(default)]
     pub wheel_bonus_add: f32,
@@ -222,7 +222,7 @@ pub struct RunEventOptionDef {
     pub label: String,
     /// One-line outcome shown after the choice is made.
     pub result: String,
-    /// Banked-gold delta (can be negative; the run never goes below zero gold).
+    /// Run-banked-gold delta. Negative costs must be affordable in full.
     #[serde(default)]
     pub gold: i64,
     /// Carriage-health-ratio delta (clamped into a survivable range).

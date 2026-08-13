@@ -2,25 +2,27 @@
 
 use super::upgrade_visuals::{draw_panel_with_fill, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED};
 use crate::data::MissionDef;
+use super::sprites::{draw_atlas_sprite, draw_character, draw_world};
 use macroquad::prelude::*;
+use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
 
-pub(super) fn draw_mission_thumbnail(rect: Rect, mission: &MissionDef) {
+pub(super) fn draw_mission_thumbnail(assets: &AssetManager, rect: Rect, mission: &MissionDef) {
     draw_panel_with_fill(rect, thumbnail_background(&mission.mission_type), false);
-    let inner = rect.inset(7.0);
-    match mission.mission_type.as_str() {
-        "time_delivery" => draw_hourglass(inner),
-        "prisoner_escort" => draw_prison_wagon(inner),
-        "medicine_run" => draw_medicine_bottle(inner),
-        "gold_shipment" => draw_gold_stacks(inner),
-        "monster_egg_transport" => draw_monster_egg(inner),
-        "refugee_escort" => draw_refugee_wagon(inner),
-        "princess_escort" => draw_crown(inner),
-        "royal_banquet_supplies" => draw_banquet(inner),
-        "siege_supply_run" => draw_catapult(inner),
-        _ => draw_forest_track(inner, mission.order),
-    }
+    let index = match mission.mission_type.as_str() {
+        "time_delivery" => 0,
+        "prisoner_escort" => 1,
+        "medicine_run" => 2,
+        "gold_shipment" => 3,
+        "monster_egg_transport" => 4,
+        "refugee_escort" => 5,
+        "princess_escort" => 6,
+        "royal_banquet_supplies" => 7,
+        "siege_supply_run" => 8,
+        _ => 9,
+    };
+    draw_atlas_sprite(assets, "missions_atlas", 4, 3, index, rect.inset(4.0), WHITE);
 }
 
 pub(super) fn draw_type_badge(rect: Rect, mission_type: &str) {
@@ -143,11 +145,11 @@ pub(super) fn draw_cargo_icon(pos: Vec2) {
     );
 }
 
-pub(super) fn draw_mini_icon(pos: Vec2, value: &str, hazard: bool) {
+pub(super) fn draw_mini_icon(assets: &AssetManager, pos: Vec2, value: &str, hazard: bool) {
     if hazard {
-        draw_hazard_icon(pos, value);
+        draw_world(assets, value, pos, vec2(32.0, 28.0), WHITE);
     } else {
-        draw_threat_icon(pos, value);
+        draw_character(assets, value, pos, vec2(34.0, 34.0), WHITE);
     }
 }
 
@@ -191,6 +193,7 @@ fn mission_type_style(mission_type: &str) -> (&'static str, Color) {
     }
 }
 
+/* Retired procedural mission artwork (replaced by `missions_atlas`).
 fn draw_forest_track(rect: Rect, order: u32) {
     draw_rectangle(
         rect.x,
@@ -573,6 +576,7 @@ fn draw_threat_icon(pos: Vec2, value: &str) {
     }
 }
 
+*/
 fn draw_check(pos: Vec2) {
     draw_circle_lines(pos.x, pos.y, 7.0, 2.0, Color::new(0.46, 0.78, 0.28, 1.0));
     draw_line(

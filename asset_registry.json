@@ -1,6 +1,9 @@
 {
   "version": 1,
   "assets": [
-    "assets/images/carriage_run_title.png"
+    "assets/images/carriage_run_title.png",
+    "assets/images/characters_atlas.png",
+    "assets/images/world_atlas.png",
+    "assets/images/missions_atlas.png"
   ]
 }

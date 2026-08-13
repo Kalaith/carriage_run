@@ -1,6 +1,8 @@
 //! Decorative drawing helpers for the carriage upgrade screen.
 
 use crate::state::CarriageEquipment;
+use super::sprites::{draw_character, draw_world};
+use macroquad_toolkit::assets::AssetManager;
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 
@@ -286,31 +288,19 @@ pub(super) fn draw_panel_with_fill(rect: Rect, fill: Color, strong: bool) {
     draw_corner_marks(rect, border);
 }
 
-pub(super) fn draw_upgrade_icon(id: &str, pos: Vec2, scale: f32) {
-    match id {
-        "carriage_armor" => draw_shield_icon(pos, scale),
-        "reinforced_wheels" => draw_wheel_icon(pos, scale),
-        "cargo_straps" => draw_straps_icon(pos, scale),
-        "mounted_archer" => draw_quiver_icon(pos, scale),
-        "guard_training" => draw_helmet_icon(pos, scale),
-        "repair_kit" => draw_hammer_icon(pos, scale),
-        "spiked_hubs" => draw_spikes_icon(pos, scale),
-        "warding_lantern" => draw_lantern_icon(pos, scale),
-        _ => draw_box_icon(pos, scale),
+pub(super) fn draw_upgrade_icon(assets: &AssetManager, id: &str, pos: Vec2, scale: f32) {
+    if id == "mounted_archer" || id == "guard_training" {
+        draw_character(assets, if id == "mounted_archer" { "archer" } else { "swordsman" }, pos, vec2(72.0 * scale, 72.0 * scale), WHITE);
+    } else {
+        draw_world(assets, id, pos, vec2(66.0 * scale, 58.0 * scale), WHITE);
     }
 }
 
-pub(super) fn draw_equipment_icon(equipment: CarriageEquipment, pos: Vec2, scale: f32) {
-    match equipment {
-        CarriageEquipment::IronPlating => draw_shield_icon(pos, scale),
-        CarriageEquipment::ReinforcedWheels => draw_wheel_icon(pos, scale),
-        CarriageEquipment::CargoStraps => draw_straps_icon(pos, scale),
-        CarriageEquipment::RepairKit => draw_hammer_icon(pos, scale),
-        CarriageEquipment::SpikedHubs => draw_spikes_icon(pos, scale),
-        CarriageEquipment::WardingLantern => draw_lantern_icon(pos, scale),
-    }
+pub(super) fn draw_equipment_icon(assets: &AssetManager, equipment: CarriageEquipment, pos: Vec2, scale: f32) {
+    draw_world(assets, equipment.id(), pos, vec2(62.0 * scale, 56.0 * scale), WHITE);
 }
 
+/* Retired procedural upgrade artwork (replaced by `world_atlas`).
 fn draw_spikes_icon(pos: Vec2, scale: f32) {
     let hub = Color::new(0.22, 0.14, 0.08, 1.0);
     let spike = Color::new(0.82, 0.84, 0.80, 1.0);
@@ -360,6 +350,7 @@ fn draw_lantern_icon(pos: Vec2, scale: f32) {
     );
 }
 
+*/
 fn draw_corner_marks(rect: Rect, color: Color) {
     let len = 14.0;
     draw_line(rect.x, rect.y + len, rect.x + len, rect.y, 1.0, color);
@@ -557,6 +548,7 @@ fn draw_shield_icon(pos: Vec2, scale: f32) {
     );
 }
 
+/* Retired procedural equipment artwork (replaced by `world_atlas`).
 fn draw_wheel_icon(pos: Vec2, scale: f32) {
     let r = 26.0 * scale;
     draw_circle_lines(
@@ -704,6 +696,7 @@ fn draw_box_icon(pos: Vec2, scale: f32) {
     );
 }
 
+*/
 fn draw_coin_stack(pos: Vec2, scale: f32) {
     let w = 24.0 * scale;
     let h = 7.0 * scale;

@@ -3,5 +3,20 @@
     "key": "title_screen",
     "path": "assets/images/carriage_run_title.png",
     "filter": "linear"
+  },
+  {
+    "key": "characters_atlas",
+    "path": "assets/images/characters_atlas.png",
+    "filter": "linear"
+  },
+  {
+    "key": "world_atlas",
+    "path": "assets/images/world_atlas.png",
+    "filter": "linear"
+  },
+  {
+    "key": "missions_atlas",
+    "path": "assets/images/missions_atlas.png",
+    "filter": "linear"
   }
 ]

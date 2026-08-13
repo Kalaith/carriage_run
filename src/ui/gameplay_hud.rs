@@ -2,7 +2,7 @@
 
 use super::upgrade_visuals::{draw_panel_with_fill, GOLD, GOLD_SOFT, INK, MUTED, PANEL};
 use super::{UiAction, UiContext, LOGICAL_WIDTH};
-use crate::state::{Guard, GuardKind, MissionRun};
+use crate::state::{Guard, MissionRun};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
@@ -18,7 +18,7 @@ pub(super) fn draw_gameplay_hud(
     actions: &mut Vec<UiAction>,
 ) {
     draw_top_hud(run, mouse, actions);
-    draw_bottom_hud(run);
+    draw_bottom_hud(ctx.assets, run);
     draw_speed_gauge(run);
 
     if let Some(journey) = &ctx.session.journey {
@@ -206,14 +206,14 @@ fn draw_wave_telegraph(wave: u32) {
     );
 }
 
-fn draw_bottom_hud(run: &MissionRun) {
+fn draw_bottom_hud(assets: &macroquad_toolkit::assets::AssetManager, run: &MissionRun) {
     let deck = Rect::new(8.0, 598.0, LOGICAL_WIDTH - 16.0, 114.0);
     draw_panel_with_fill(deck, Color::new(0.045, 0.036, 0.026, 0.98), true);
     draw_ornate_frame(deck);
 
     let mut card_x = deck.x + 20.0;
     for guard in run.guards.iter().take(2) {
-        draw_guard_card(Rect::new(card_x, deck.y + 16.0, 244.0, 82.0), guard);
+        draw_guard_card(assets, Rect::new(card_x, deck.y + 16.0, 244.0, 82.0), guard);
         card_x += 260.0;
     }
 
@@ -319,7 +319,7 @@ fn hud_button(rect: Rect, label: &str, icon: &str, enabled: bool, mouse: Vec2) -
     hovered && is_mouse_button_released(MouseButton::Left)
 }
 
-fn draw_guard_card(rect: Rect, guard: &Guard) {
+fn draw_guard_card(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, guard: &Guard) {
     let active = guard.is_active();
     let fill = if active {
         Color::new(0.055, 0.064, 0.058, 0.98)
@@ -327,7 +327,7 @@ fn draw_guard_card(rect: Rect, guard: &Guard) {
         Color::new(0.050, 0.048, 0.046, 0.84)
     };
     draw_panel_with_fill(rect, fill, active);
-    draw_guard_portrait(Rect::new(rect.x + 12.0, rect.y + 12.0, 58.0, 58.0), guard);
+    draw_guard_portrait(assets, Rect::new(rect.x + 12.0, rect.y + 12.0, 58.0, 58.0), guard);
 
     draw_ui_text_ex(
         &format!("{} {}", guard.kind.label(), guard.star_level),
@@ -444,7 +444,9 @@ fn objective_text(run: &MissionRun) -> String {
     }
 }
 
-fn draw_guard_portrait(rect: Rect, guard: &Guard) {
+fn draw_guard_portrait(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, guard: &Guard) {
+    super::sprites::draw_character(assets, guard.kind.id(), rect.center(), vec2(rect.w, rect.h), WHITE);
+    /*
     draw_rectangle(
         rect.x,
         rect.y,
@@ -487,8 +489,10 @@ fn draw_guard_portrait(rect: Rect, guard: &Guard) {
         ),
     }
     draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 1.0, GOLD_SOFT);
+    */
 }
 
+/* Retired procedural portrait palette.
 fn guard_color(kind: GuardKind) -> Color {
     match kind {
         GuardKind::Swordsman => Color::new(0.14, 0.32, 0.58, 1.0),
@@ -500,6 +504,7 @@ fn guard_color(kind: GuardKind) -> Color {
     }
 }
 
+*/
 fn draw_meter_bar(rect: Rect, ratio: f32, fill: Color, label: &str) {
     let ratio = ratio.clamp(0.0, 1.0);
     draw_rectangle(rect.x, rect.y, rect.w, rect.h, BAR_BG);

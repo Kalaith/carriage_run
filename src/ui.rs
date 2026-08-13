@@ -14,6 +14,7 @@ mod mission_map;
 mod mission_map_art;
 mod outfitter;
 mod records;
+mod sprites;
 mod upgrade_visuals;
 mod upgrades;
 mod widgets;
@@ -280,7 +281,7 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
             for (index, kind) in EnemyKind::all().into_iter().enumerate() {
                 let row = codex_row_rect(panel, content_top, row_h, index);
                 upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
-                gameplay_actors::draw_enemy_icon(
+                gameplay_actors::draw_enemy_icon(ctx.assets,
                     kind,
                     vec2(row.x + 52.0, row.y + row.h * 0.5 + 2.0),
                 );
@@ -291,7 +292,7 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
             for (index, kind) in GuardKind::all().into_iter().enumerate() {
                 let row = codex_row_rect(panel, content_top, row_h, index);
                 upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
-                management::draw_guard_portrait(
+                management::draw_guard_portrait(ctx.assets,
                     vec2(row.x + 52.0, row.y + row.h * 0.5 + 4.0),
                     kind,
                     true,
@@ -308,7 +309,7 @@ fn draw_codex(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
             for (index, kind) in HazardKind::all().into_iter().enumerate() {
                 let row = codex_row_rect(panel, content_top, row_h, index);
                 upgrade_visuals::draw_panel_with_fill(row, upgrade_visuals::PANEL_ALT, false);
-                gameplay_hazards::draw_hazard_icon(
+                gameplay_hazards::draw_hazard_icon(ctx.assets,
                     kind,
                     vec2(row.x + 52.0, row.y + row.h * 0.5 + 2.0),
                 );

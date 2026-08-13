@@ -6,8 +6,10 @@ use crate::state::{
     ROAD_WIDTH,
 };
 use macroquad::prelude::*;
+use macroquad_toolkit::assets::AssetManager;
+use super::sprites::draw_world;
 
-pub(super) fn draw_road(run: &MissionRun, route_motion_enabled: bool) {
+pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_enabled: bool) {
     let road_scroll = if route_motion_enabled {
         run.road_scroll
     } else {
@@ -94,11 +96,11 @@ pub(super) fn draw_road(run: &MissionRun, route_motion_enabled: bool) {
         let left_x = 48.0 + (i % 5) as f32 * 38.0;
         let right_x = 1058.0 + (i % 6) as f32 * 28.0;
         if i % 3 == 0 {
-            draw_tree_cluster(vec2(left_x + 22.0, y), 0.88 + (i % 4) as f32 * 0.09);
-            draw_tree_cluster(vec2(right_x + 8.0, y + 26.0), 0.82 + (i % 3) as f32 * 0.12);
+            draw_tree_cluster(assets, vec2(left_x + 22.0, y), 0.88 + (i % 4) as f32 * 0.09);
+            draw_tree_cluster(assets, vec2(right_x + 8.0, y + 26.0), 0.82 + (i % 3) as f32 * 0.12);
         } else {
-            draw_bush(vec2(left_x, y));
-            draw_bush(vec2(right_x, y + 18.0));
+            draw_bush(assets, vec2(left_x, y));
+            draw_bush(assets, vec2(right_x, y + 18.0));
         }
         draw_grass_tuft(vec2(left_x + 70.0, y + 30.0), 0.7);
         draw_grass_tuft(vec2(right_x - 46.0, y + 8.0), 0.62);
@@ -200,50 +202,12 @@ fn draw_winding_road_edges(progress: f32, half_width: f32, thickness: f32, color
     }
 }
 
-fn draw_bush(pos: Vec2) {
-    draw_circle(pos.x, pos.y, 13.0, Color::new(0.08, 0.25, 0.13, 1.0));
-    draw_circle(
-        pos.x + 12.0,
-        pos.y + 3.0,
-        10.0,
-        Color::new(0.10, 0.31, 0.17, 1.0),
-    );
-    draw_circle(
-        pos.x - 8.0,
-        pos.y + 6.0,
-        8.0,
-        Color::new(0.07, 0.22, 0.12, 1.0),
-    );
+fn draw_bush(assets: &AssetManager, pos: Vec2) {
+    draw_world(assets, "bush", pos, vec2(54.0, 38.0), WHITE);
 }
 
-fn draw_tree_cluster(pos: Vec2, scale: f32) {
-    draw_circle(
-        pos.x + 8.0 * scale,
-        pos.y + 16.0 * scale,
-        9.0 * scale,
-        Color::new(0.06, 0.07, 0.04, 0.34),
-    );
-    draw_rectangle(
-        pos.x - 4.0 * scale,
-        pos.y + 10.0 * scale,
-        8.0 * scale,
-        18.0 * scale,
-        Color::new(0.18, 0.10, 0.045, 1.0),
-    );
-    for (dx, dy, r, color) in [
-        (-14.0, -6.0, 18.0, Color::new(0.10, 0.30, 0.14, 1.0)),
-        (2.0, -14.0, 22.0, Color::new(0.13, 0.36, 0.15, 1.0)),
-        (16.0, -2.0, 17.0, Color::new(0.08, 0.25, 0.12, 1.0)),
-        (-2.0, 6.0, 20.0, Color::new(0.12, 0.33, 0.15, 1.0)),
-    ] {
-        draw_circle(pos.x + dx * scale, pos.y + dy * scale, r * scale, color);
-    }
-    draw_circle(
-        pos.x - 6.0 * scale,
-        pos.y - 13.0 * scale,
-        8.0 * scale,
-        Color::new(0.22, 0.44, 0.16, 0.70),
-    );
+fn draw_tree_cluster(assets: &AssetManager, pos: Vec2, scale: f32) {
+    draw_world(assets, "tree", pos, vec2(76.0 * scale, 68.0 * scale), WHITE);
 }
 
 fn draw_far_silhouette(pos: Vec2, scale: f32) {

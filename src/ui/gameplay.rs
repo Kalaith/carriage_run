@@ -15,33 +15,33 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
         return;
     };
 
-    draw_road(run, ctx.session.campaign.route_motion_enabled);
+    draw_road(ctx.assets, run, ctx.session.campaign.route_motion_enabled);
     for hazard in &run.hazards {
-        draw_hazard(hazard);
+        draw_hazard(ctx.assets, hazard);
     }
     for shot in &run.shots {
-        draw_shot(shot);
+        draw_shot(ctx.assets, shot);
     }
     for enemy in &run.enemies {
-        draw_enemy(enemy);
+        draw_enemy(ctx.assets, enemy);
     }
     for guard in run
         .guards
         .iter()
         .filter(|guard| guard.mounted_slot.is_none())
     {
-        draw_guard(guard);
+        draw_guard(ctx.assets, guard);
     }
     if ctx.session.campaign.route_motion_enabled {
         draw_wheel_dust(run);
     }
-    carriage::draw_carriage(run);
+    carriage::draw_carriage(ctx.assets, run);
     for guard in run
         .guards
         .iter()
         .filter(|guard| guard.mounted_slot.is_some())
     {
-        draw_guard(guard);
+        draw_guard(ctx.assets, guard);
     }
     draw_particles(run);
     draw_float_texts(run);

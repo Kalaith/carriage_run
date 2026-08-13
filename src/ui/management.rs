@@ -98,7 +98,7 @@ pub(super) fn draw_guards(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<Ui
         .unwrap_or_else(|| ctx.session.campaign.selected_guard_kind());
     let detail = Rect::new(84.0, 122.0, 1112.0, 128.0);
     draw_panel(detail, true);
-    draw_guard_portrait(vec2(detail.x + 62.0, detail.y + 66.0), active, true);
+    draw_guard_portrait(ctx.assets, vec2(detail.x + 62.0, detail.y + 66.0), active, true);
     draw_ui_text_ex(
         active.label(),
         detail.x + 120.0,
@@ -300,7 +300,7 @@ fn draw_shop_guard_card(
     let stars = campaign.guard_star_level(kind);
 
     draw_guard_card_shell(rect, selected, hired, unlocked);
-    draw_guard_portrait(vec2(rect.x + 46.0, rect.y + 50.0), kind, hired);
+    draw_guard_portrait(ctx.assets, vec2(rect.x + 46.0, rect.y + 50.0), kind, hired);
     draw_ui_text_ex(
         kind.label(),
         rect.x + 92.0,
@@ -390,7 +390,7 @@ fn draw_roster_guard_card(
     let recovery = campaign.guard_recovery_missions(kind);
 
     draw_guard_card_shell(rect, selected, hired, unlocked);
-    draw_guard_portrait(vec2(rect.x + 44.0, rect.y + 48.0), kind, hired);
+    draw_guard_portrait(ctx.assets, vec2(rect.x + 44.0, rect.y + 48.0), kind, hired);
     draw_ui_text_ex(
         kind.label(),
         rect.x + 90.0,
@@ -504,109 +504,13 @@ fn draw_guard_card_shell(rect: Rect, selected: bool, hired: bool, unlocked: bool
     draw_rectangle(rect.x, rect.y + 16.0, 4.0, rect.h - 32.0, accent);
 }
 
-pub(super) fn draw_guard_portrait(pos: Vec2, kind: GuardKind, enabled: bool) {
-    let body = match kind {
-        GuardKind::Swordsman => Color::new(0.18, 0.42, 0.64, 1.0),
-        GuardKind::ShieldGuard => Color::new(0.20, 0.46, 0.36, 1.0),
-        GuardKind::Spearman => Color::new(0.42, 0.34, 0.64, 1.0),
-        GuardKind::Archer => Color::new(0.18, 0.46, 0.28, 1.0),
-        GuardKind::CrossbowGuard => Color::new(0.42, 0.38, 0.32, 1.0),
-        GuardKind::Mage => Color::new(0.26, 0.34, 0.68, 1.0),
-    };
-    let alpha = if enabled { 1.0 } else { 0.42 };
-    draw_circle(
-        pos.x + 4.0,
-        pos.y + 6.0,
-        29.0,
-        Color::new(0.0, 0.0, 0.0, 0.22),
-    );
-    draw_circle(
-        pos.x,
-        pos.y,
-        26.0,
-        Color::new(body.r, body.g, body.b, alpha),
-    );
-    draw_rectangle(
-        pos.x - 7.0,
-        pos.y - 34.0,
-        14.0,
-        20.0,
-        Color::new(0.76, 0.66, 0.45, alpha),
-    );
-    match kind {
-        GuardKind::Swordsman => draw_line(
-            pos.x + 18.0,
-            pos.y - 4.0,
-            pos.x + 40.0,
-            pos.y - 28.0,
-            4.0,
-            Color::new(0.86, 0.88, 0.82, alpha),
-        ),
-        GuardKind::ShieldGuard => {
-            draw_circle(
-                pos.x + 26.0,
-                pos.y + 2.0,
-                15.0,
-                Color::new(0.64, 0.70, 0.64, alpha),
-            );
-            draw_circle_lines(
-                pos.x + 26.0,
-                pos.y + 2.0,
-                15.0,
-                2.0,
-                Color::new(0.22, 0.26, 0.22, alpha),
-            );
-        }
-        GuardKind::Spearman => draw_line(
-            pos.x - 22.0,
-            pos.y + 15.0,
-            pos.x + 44.0,
-            pos.y - 34.0,
-            4.0,
-            Color::new(0.82, 0.72, 0.45, alpha),
-        ),
-        GuardKind::Archer => draw_line(
-            pos.x - 16.0,
-            pos.y - 2.0,
-            pos.x + 23.0,
-            pos.y - 18.0,
-            3.0,
-            Color::new(0.95, 0.80, 0.38, alpha),
-        ),
-        GuardKind::CrossbowGuard => {
-            draw_rectangle(
-                pos.x + 14.0,
-                pos.y - 12.0,
-                28.0,
-                8.0,
-                Color::new(0.75, 0.70, 0.58, alpha),
-            );
-            draw_line(
-                pos.x + 18.0,
-                pos.y - 22.0,
-                pos.x + 37.0,
-                pos.y + 5.0,
-                2.0,
-                Color::new(0.86, 0.82, 0.70, alpha),
-            );
-        }
-        GuardKind::Mage => {
-            draw_circle(
-                pos.x + 24.0,
-                pos.y - 20.0,
-                8.0,
-                Color::new(0.58, 0.86, 1.0, alpha),
-            );
-            draw_line(
-                pos.x + 16.0,
-                pos.y - 4.0,
-                pos.x + 28.0,
-                pos.y - 28.0,
-                3.0,
-                Color::new(0.68, 0.52, 0.30, alpha),
-            );
-        }
-    }
+pub(super) fn draw_guard_portrait(
+    assets: &macroquad_toolkit::assets::AssetManager,
+    pos: Vec2,
+    kind: GuardKind,
+    enabled: bool,
+) {
+    super::gameplay_actors::draw_guard_icon(assets, kind, pos, enabled);
 }
 
 fn draw_settings_panel(

@@ -181,7 +181,7 @@ fn draw_mission_card(ctx: &UiContext<'_>, mission: &MissionDef, rect: Rect, mous
         draw_selected_tab(rect);
     }
 
-    draw_mission_thumbnail(Rect::new(rect.x + 13.0, rect.y + 12.0, 66.0, 68.0), mission);
+    draw_mission_thumbnail(ctx.assets, Rect::new(rect.x + 13.0, rect.y + 12.0, 66.0, 68.0), mission);
     draw_text_block(
         &mission.name,
         rect.x + 94.0,
@@ -291,7 +291,7 @@ fn draw_selected_route(
     let panel = layout.panel;
     draw_panel_with_fill(panel, Color::new(0.035, 0.050, 0.044, 0.98), true);
 
-    draw_mission_thumbnail(
+    draw_mission_thumbnail(ctx.assets,
         Rect::new(panel.x + 30.0, panel.y + 30.0, 138.0, 170.0),
         mission,
     );
@@ -306,8 +306,8 @@ fn draw_selected_route(
     draw_divider(layout.route_divider, panel);
 
     let (enemy_mix, hazard_mix) = effective_mixes(ctx, mission);
-    draw_mix_tiles(layout.threats, "Threats", &enemy_mix, false);
-    draw_mix_tiles(layout.hazards, "Hazards", &hazard_mix, true);
+    draw_mix_tiles(ctx.assets, layout.threats, "Threats", &enemy_mix, false);
+    draw_mix_tiles(ctx.assets, layout.hazards, "Hazards", &hazard_mix, true);
     draw_divider(layout.cta_divider, panel);
 
     if prepare_loadout_button(
@@ -599,7 +599,7 @@ fn draw_stat_text(rect: Rect, label: &str, value: &str) {
     );
 }
 
-fn draw_mix_tiles(rect: Rect, title: &str, values: &[String], hazard: bool) {
+fn draw_mix_tiles(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, title: &str, values: &[String], hazard: bool) {
     draw_text_centered_in_box(title, rect.x, rect.y, rect.w, 20.0, 16.0, UI_GOLD);
     for (index, value) in compact_mix(values.to_vec(), 4).iter().enumerate() {
         let tile = Rect::new(rect.x, rect.y + 32.0 + index as f32 * 35.0, rect.w, 29.0);
@@ -609,7 +609,7 @@ fn draw_mix_tiles(rect: Rect, title: &str, values: &[String], hazard: bool) {
             Color::new(0.23, 0.085, 0.060, 0.94)
         };
         draw_panel_with_fill(tile, color, false);
-        draw_mini_icon(vec2(tile.x + 22.0, tile.y + 16.0), value, hazard);
+        draw_mini_icon(assets, vec2(tile.x + 22.0, tile.y + 16.0), value, hazard);
         draw_text_centered_in_box(
             &display_name(value),
             tile.x + 42.0,

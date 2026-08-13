@@ -1,7 +1,7 @@
 //! Carriage chassis shop: buy and switch between wagons that trade slots,
 //! speed, and hull strength.
 
-use super::upgrade_visuals::{draw_panel, draw_panel_with_fill, GOLD_SOFT, INK, MUTED, PANEL_ALT};
+use super::upgrade_visuals::{draw_panel, draw_panel_with_fill, INK, MUTED, PANEL_ALT};
 use super::widgets::{draw_menu_backdrop, draw_top_nav, virtual_button};
 use super::{UiAction, UiContext};
 use crate::data::ChassisDef;
@@ -132,7 +132,7 @@ fn draw_chassis_card(
         );
     }
 
-    draw_wagon_preview(
+    draw_wagon_preview(ctx.assets,
         Rect::new(rect.x + 22.0, rect.y + 52.0, rect.w - 44.0, 96.0),
         def.slots,
     );
@@ -204,7 +204,10 @@ fn hull_label(mult: f32) -> String {
 }
 
 /// A simple schematic wagon whose width and roof grow with the slot count.
-fn draw_wagon_preview(rect: Rect, slots: usize) {
+fn draw_wagon_preview(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, slots: usize) {
+    let id = if slots <= 2 { "scout_cart" } else if slots == 3 { "merchant_wagon" } else { "heavy_wagon" };
+    super::sprites::draw_world(assets, id, rect.center(), vec2(rect.w, rect.h), WHITE);
+    /*
     let width = 72.0 + slots as f32 * 22.0;
     let height = 52.0;
     let body = Rect::new(
@@ -244,4 +247,5 @@ fn draw_wagon_preview(rect: Rect, slots: usize) {
         draw_circle(wx, body.bottom(), 9.0, wheel);
         draw_circle_lines(wx, body.bottom(), 11.0, 2.0, GOLD_SOFT);
     }
+    */
 }

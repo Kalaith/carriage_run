@@ -16,11 +16,6 @@ use macroquad_toolkit::notifications::{
 use macroquad_toolkit::prelude::{begin_virtual_ui_frame, dark, end_virtual_ui_frame};
 use macroquad_toolkit::ui::virtual_mouse_position;
 
-#[cfg(target_arch = "wasm32")]
-const ASSET_PACK_PATH: &str = "assets.zip?v=20260615-title-art";
-#[cfg(not(target_arch = "wasm32"))]
-const ASSET_PACK_PATH: &str = "assets.zip";
-
 pub struct Game {
     data: GameData,
     session: GameSession,
@@ -52,7 +47,6 @@ impl Game {
         let mut assets = AssetManager::new();
         let placeholder = Image::gen_image_color(16, 16, Color::new(0.8, 0.2, 0.5, 1.0));
         assets.set_placeholder_texture_direct(Texture2D::from_image(&placeholder));
-        let _ = assets.load_asset_pack(ASSET_PACK_PATH).await;
         let loaded_assets = assets.load_texture_configs(&data.texture_manifest).await;
 
         let mut notifications = NotificationManager::new();

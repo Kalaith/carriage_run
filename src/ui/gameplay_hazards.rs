@@ -20,7 +20,11 @@ pub(super) fn draw_hazard_icon(assets: &AssetManager, kind: HazardKind, pos: Vec
 }
 
 pub(super) fn draw_hazard(assets: &AssetManager, hazard: &Hazard) {
-    let tint = if hazard.active { WHITE } else { Color::new(0.55, 0.55, 0.55, 0.58) };
+    let tint = if hazard.active {
+        WHITE
+    } else {
+        Color::new(0.55, 0.55, 0.55, 0.58)
+    };
     let size = match hazard.kind {
         HazardKind::FallenTree | HazardKind::RiverFord => vec2(150.0, 82.0),
         _ => vec2(hazard.radius * 3.2, hazard.radius * 2.7),

@@ -132,7 +132,8 @@ fn draw_chassis_card(
         );
     }
 
-    draw_wagon_preview(ctx.assets,
+    draw_wagon_preview(
+        ctx.assets,
         Rect::new(rect.x + 22.0, rect.y + 52.0, rect.w - 44.0, 96.0),
         def.slots,
     );
@@ -205,7 +206,13 @@ fn hull_label(mult: f32) -> String {
 
 /// A simple schematic wagon whose width and roof grow with the slot count.
 fn draw_wagon_preview(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, slots: usize) {
-    let id = if slots <= 2 { "scout_cart" } else if slots == 3 { "merchant_wagon" } else { "heavy_wagon" };
+    let id = if slots <= 2 {
+        "scout_cart"
+    } else if slots == 3 {
+        "merchant_wagon"
+    } else {
+        "heavy_wagon"
+    };
     super::sprites::draw_world(assets, id, rect.center(), vec2(rect.w, rect.h), WHITE);
     /*
     let width = 72.0 + slots as f32 * 22.0;

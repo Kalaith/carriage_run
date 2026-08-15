@@ -1,9 +1,9 @@
 //! Decorative drawing helpers for the carriage upgrade screen.
 
-use crate::state::CarriageEquipment;
 use super::sprites::{draw_character, draw_world};
-use macroquad_toolkit::assets::AssetManager;
+use crate::state::CarriageEquipment;
 use macroquad::prelude::*;
+use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
 
 pub(super) const GOLD: Color = Color::new(0.92, 0.66, 0.24, 1.0);
@@ -290,14 +290,35 @@ pub(super) fn draw_panel_with_fill(rect: Rect, fill: Color, strong: bool) {
 
 pub(super) fn draw_upgrade_icon(assets: &AssetManager, id: &str, pos: Vec2, scale: f32) {
     if id == "mounted_archer" || id == "guard_training" {
-        draw_character(assets, if id == "mounted_archer" { "archer" } else { "swordsman" }, pos, vec2(72.0 * scale, 72.0 * scale), WHITE);
+        draw_character(
+            assets,
+            if id == "mounted_archer" {
+                "archer"
+            } else {
+                "swordsman"
+            },
+            pos,
+            vec2(72.0 * scale, 72.0 * scale),
+            WHITE,
+        );
     } else {
         draw_world(assets, id, pos, vec2(66.0 * scale, 58.0 * scale), WHITE);
     }
 }
 
-pub(super) fn draw_equipment_icon(assets: &AssetManager, equipment: CarriageEquipment, pos: Vec2, scale: f32) {
-    draw_world(assets, equipment.id(), pos, vec2(62.0 * scale, 56.0 * scale), WHITE);
+pub(super) fn draw_equipment_icon(
+    assets: &AssetManager,
+    equipment: CarriageEquipment,
+    pos: Vec2,
+    scale: f32,
+) {
+    draw_world(
+        assets,
+        equipment.id(),
+        pos,
+        vec2(62.0 * scale, 56.0 * scale),
+        WHITE,
+    );
 }
 
 /* Retired procedural upgrade artwork (replaced by `world_atlas`).

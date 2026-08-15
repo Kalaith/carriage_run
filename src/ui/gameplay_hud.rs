@@ -327,7 +327,11 @@ fn draw_guard_card(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect,
         Color::new(0.050, 0.048, 0.046, 0.84)
     };
     draw_panel_with_fill(rect, fill, active);
-    draw_guard_portrait(assets, Rect::new(rect.x + 12.0, rect.y + 12.0, 58.0, 58.0), guard);
+    draw_guard_portrait(
+        assets,
+        Rect::new(rect.x + 12.0, rect.y + 12.0, 58.0, 58.0),
+        guard,
+    );
 
     draw_ui_text_ex(
         &format!("{} {}", guard.kind.label(), guard.star_level),
@@ -444,8 +448,18 @@ fn objective_text(run: &MissionRun) -> String {
     }
 }
 
-fn draw_guard_portrait(assets: &macroquad_toolkit::assets::AssetManager, rect: Rect, guard: &Guard) {
-    super::sprites::draw_character(assets, guard.kind.id(), rect.center(), vec2(rect.w, rect.h), WHITE);
+fn draw_guard_portrait(
+    assets: &macroquad_toolkit::assets::AssetManager,
+    rect: Rect,
+    guard: &Guard,
+) {
+    super::sprites::draw_character(
+        assets,
+        guard.kind.id(),
+        rect.center(),
+        vec2(rect.w, rect.h),
+        WHITE,
+    );
     /*
     draw_rectangle(
         rect.x,

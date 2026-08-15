@@ -98,7 +98,12 @@ pub(super) fn draw_guards(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<Ui
         .unwrap_or_else(|| ctx.session.campaign.selected_guard_kind());
     let detail = Rect::new(84.0, 122.0, 1112.0, 128.0);
     draw_panel(detail, true);
-    draw_guard_portrait(ctx.assets, vec2(detail.x + 62.0, detail.y + 66.0), active, true);
+    draw_guard_portrait(
+        ctx.assets,
+        vec2(detail.x + 62.0, detail.y + 66.0),
+        active,
+        true,
+    );
     draw_ui_text_ex(
         active.label(),
         detail.x + 120.0,

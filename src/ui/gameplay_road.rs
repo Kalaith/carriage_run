@@ -1,5 +1,6 @@
 //! The winding road, its roadside terrain, and wheel dust.
 
+use super::sprites::draw_world;
 use super::LOGICAL_WIDTH;
 use crate::state::{
     road_center_at_y, road_left_at_y, road_right_at_y, MissionRun, PLAY_BOTTOM, PLAY_TOP,
@@ -7,7 +8,6 @@ use crate::state::{
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
-use super::sprites::draw_world;
 
 pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_enabled: bool) {
     let road_scroll = if route_motion_enabled {
@@ -97,7 +97,11 @@ pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_en
         let right_x = 1058.0 + (i % 6) as f32 * 28.0;
         if i % 3 == 0 {
             draw_tree_cluster(assets, vec2(left_x + 22.0, y), 0.88 + (i % 4) as f32 * 0.09);
-            draw_tree_cluster(assets, vec2(right_x + 8.0, y + 26.0), 0.82 + (i % 3) as f32 * 0.12);
+            draw_tree_cluster(
+                assets,
+                vec2(right_x + 8.0, y + 26.0),
+                0.82 + (i % 3) as f32 * 0.12,
+            );
         } else {
             draw_bush(assets, vec2(left_x, y));
             draw_bush(assets, vec2(right_x, y + 18.0));

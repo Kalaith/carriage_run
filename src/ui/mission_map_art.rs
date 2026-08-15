@@ -1,8 +1,8 @@
 //! Thumbnail, badge, and small icon drawing for the routes screen.
 
+use super::sprites::{draw_atlas_sprite, draw_character, draw_world};
 use super::upgrade_visuals::{draw_panel_with_fill, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED};
 use crate::data::MissionDef;
-use super::sprites::{draw_atlas_sprite, draw_character, draw_world};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
@@ -22,7 +22,15 @@ pub(super) fn draw_mission_thumbnail(assets: &AssetManager, rect: Rect, mission:
         "siege_supply_run" => 8,
         _ => 9,
     };
-    draw_atlas_sprite(assets, "missions_atlas", 4, 3, index, rect.inset(4.0), WHITE);
+    draw_atlas_sprite(
+        assets,
+        "missions_atlas",
+        4,
+        3,
+        index,
+        rect.inset(4.0),
+        WHITE,
+    );
 }
 
 pub(super) fn draw_type_badge(rect: Rect, mission_type: &str) {

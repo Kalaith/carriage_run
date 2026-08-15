@@ -12,7 +12,9 @@ pub(super) fn draw_atlas_sprite(
     rect: Rect,
     tint: Color,
 ) {
-    let Some(texture) = assets.get_texture(atlas) else { return };
+    let Some(texture) = assets.get_texture(atlas) else {
+        return;
+    };
     let cell_w = texture.width() / columns as f32;
     let cell_h = texture.height() / rows as f32;
     let column = index % columns;
@@ -73,7 +75,12 @@ pub(super) fn draw_character(
         4,
         4,
         character_index(id),
-        Rect::new(center.x - size.x * 0.5, center.y - size.y * 0.5, size.x, size.y),
+        Rect::new(
+            center.x - size.x * 0.5,
+            center.y - size.y * 0.5,
+            size.x,
+            size.y,
+        ),
         tint,
     );
 }
@@ -100,20 +107,19 @@ pub(super) fn world_index(id: &str) -> usize {
     }
 }
 
-pub(super) fn draw_world(
-    assets: &AssetManager,
-    id: &str,
-    center: Vec2,
-    size: Vec2,
-    tint: Color,
-) {
+pub(super) fn draw_world(assets: &AssetManager, id: &str, center: Vec2, size: Vec2, tint: Color) {
     draw_atlas_sprite(
         assets,
         "world_atlas",
         4,
         4,
         world_index(id),
-        Rect::new(center.x - size.x * 0.5, center.y - size.y * 0.5, size.x, size.y),
+        Rect::new(
+            center.x - size.x * 0.5,
+            center.y - size.y * 0.5,
+            size.x,
+            size.y,
+        ),
         tint,
     );
 }

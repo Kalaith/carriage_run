@@ -169,7 +169,12 @@ fn draw_upgrade_card(
         Color::new(0.018, 0.020, 0.018, 0.92),
     );
     draw_circle_lines(rect.x + rect.w * 0.5, rect.y + 58.0, 40.0, 2.0, GOLD_SOFT);
-    draw_upgrade_icon(ctx.assets, &upgrade.id, vec2(rect.x + rect.w * 0.5, rect.y + 58.0), 1.0);
+    draw_upgrade_icon(
+        ctx.assets,
+        &upgrade.id,
+        vec2(rect.x + rect.w * 0.5, rect.y + 58.0),
+        1.0,
+    );
     draw_text_centered_in_box(
         &upgrade.name,
         rect.x + 14.0,
@@ -300,7 +305,12 @@ fn draw_slot_card(
             Color::new(0.015, 0.017, 0.014, 0.92),
         );
         draw_circle_lines(rect.x + rect.w * 0.5, rect.y + 55.0, 32.0, 2.0, GOLD_SOFT);
-        draw_equipment_icon(ctx.assets, equipment, vec2(rect.x + rect.w * 0.5, rect.y + 55.0), 0.78);
+        draw_equipment_icon(
+            ctx.assets,
+            equipment,
+            vec2(rect.x + rect.w * 0.5, rect.y + 55.0),
+            0.78,
+        );
         draw_text_centered_in_box(
             equipment.label(),
             rect.x + 8.0,
@@ -419,7 +429,8 @@ fn draw_owned_card(
         Color::new(0.015, 0.017, 0.014, 0.92),
     );
     draw_circle_lines(rect.x + rect.w * 0.5, rect.y + 34.0, 25.0, 2.0, GOLD_SOFT);
-    draw_upgrade_icon(ctx.assets,
+    draw_upgrade_icon(
+        ctx.assets,
         &upgrade.id,
         vec2(rect.x + rect.w * 0.5, rect.y + 34.0),
         0.62,

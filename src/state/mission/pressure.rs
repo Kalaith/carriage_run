@@ -9,21 +9,47 @@ impl MissionRun {
         match self.mission_kind {
             MissionKind::CargoTransfer | MissionKind::TimeDelivery => {}
             MissionKind::PrisonerEscort => {
-                let nearby_bandits = self
-                    .enemies
-                    .iter()
-                    .filter(|enemy| {
-                        matches!(enemy.kind, EnemyKind::Bandit | EnemyKind::BanditArcher)
-                            && enemy.pos.distance(self.carriage.pos) < 145.0
-                    })
-                    .count() as f32;
-                let rough_road_relief = if self.carriage.slow_timer > 0.0 {
-                    2.4
-                } else {
-                    0.0
-                };
-                self.special_meter += dt * (1.1 + nearby_bandits * 2.1 - rough_road_relief);
-                self.special_meter = self.special_meter.clamp(0.0, 100.0);
+                // Security is no longer a passive meter. Every attempt starts
+                // with a visible telegraph, then advances until the player
+                // brakes and/or keeps a guard by the wagon to counter it.
+                self.breakout_timer -= dt;
+                if self.breakout_timer <= 0.0 && self.breakout_progress <= 0.0 {
+                    self.breakout_progress = 0.16;
+                    self.breakout_attempts += 1;
+                    self.breakout_timer = 8.5;
+                    self.alert
+                        .set("Breakout attempt — brake and guard the wagon!");
+                }
+
+                if self.breakout_progress > 0.0 {
+                    let guard_cover = self
+                        .guards
+                        .iter()
+                        .filter(|guard| {
+                            guard.is_active() && guard.pos.distance(self.carriage.pos) < 142.0
+                        })
+                        .count() as f32;
+                    let nearby_bandits = self
+                        .enemies
+                        .iter()
+                        .filter(|enemy| {
+                            matches!(enemy.kind, EnemyKind::Bandit | EnemyKind::BanditArcher)
+                                && enemy.pos.distance(self.carriage.pos) < 145.0
+                        })
+                        .count() as f32;
+                    let counter = if self.is_braking() { 0.24 } else { 0.0 } + guard_cover * 0.16;
+                    let pressure = 0.075 + nearby_bandits * 0.035;
+                    self.breakout_progress =
+                        (self.breakout_progress + dt * (pressure - counter)).clamp(0.0, 1.0);
+                    if self.breakout_progress <= 0.0 {
+                        self.alert.set("Breakout stopped — prisoner secured");
+                        self.breakout_timer = 8.5;
+                    } else if self.breakout_progress >= 1.0 {
+                        self.special_meter = 100.0;
+                        self.alert.set("The prisoner has escaped!");
+                    }
+                }
+                self.special_meter = self.breakout_progress * 100.0;
             }
             MissionKind::PrincessEscort => {
                 // A "drive clean" challenge: comfort is driven by how smoothly you
@@ -163,3 +189,6 @@ impl MissionRun {
         }
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -58,6 +58,14 @@ pub(super) fn character_index(id: &str) -> usize {
         "princess" => 13,
         "arrow" => 14,
         "magic_bolt" => 15,
+        // The shipped atlas has sixteen authored cells. These four extended
+        // threats reuse the closest silhouette until the final art pass adds
+        // dedicated cells; their palette and motion still remain distinct.
+        "ogre" => 6,
+        "warg_rider" => 1,
+        "cultist" => 5,
+        "ember_hound" => 0,
+        "frost_wraith" => 5,
         _ => 7,
     }
 }

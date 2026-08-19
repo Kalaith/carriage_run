@@ -10,6 +10,7 @@ use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 
 pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_enabled: bool) {
+    let palette = road_palette(run);
     let road_scroll = if route_motion_enabled {
         run.road_scroll
     } else {
@@ -29,31 +30,19 @@ pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_en
         PLAY_TOP,
         LOGICAL_WIDTH,
         PLAY_BOTTOM - PLAY_TOP,
-        Color::new(0.07, 0.24, 0.13, 1.0),
+        palette.ground,
     );
     draw_rectangle(
         0.0,
         PLAY_TOP,
         LOGICAL_WIDTH,
         PLAY_BOTTOM - PLAY_TOP,
-        Color::new(0.05, 0.12, 0.08, 0.18),
+        palette.shadow,
     );
     let progress = run.progress;
-    draw_winding_road_band(
-        progress,
-        ROAD_WIDTH * 0.5 + 54.0,
-        Color::new(0.16, 0.12, 0.08, 1.0),
-    );
-    draw_winding_road_band(
-        progress,
-        ROAD_WIDTH * 0.5,
-        Color::new(0.43, 0.32, 0.19, 1.0),
-    );
-    draw_winding_road_band(
-        progress,
-        ROAD_WIDTH * 0.5 - 10.0,
-        Color::new(0.54, 0.41, 0.24, 0.28),
-    );
+    draw_winding_road_band(progress, ROAD_WIDTH * 0.5 + 54.0, palette.road_edge);
+    draw_winding_road_band(progress, ROAD_WIDTH * 0.5, palette.road);
+    draw_winding_road_band(progress, ROAD_WIDTH * 0.5 - 10.0, palette.road_highlight);
     draw_winding_road_edges(
         progress,
         ROAD_WIDTH * 0.5,
@@ -70,13 +59,7 @@ pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_en
     for i in -1..8 {
         let y = PLAY_TOP + i as f32 * 104.0 + road_scroll;
         let lane_x = road_center_at_y(y, progress);
-        draw_rectangle(
-            lane_x - 4.0,
-            y,
-            8.0,
-            48.0,
-            Color::new(0.76, 0.66, 0.42, 0.62),
-        );
+        draw_rectangle(lane_x - 4.0, y, 8.0, 48.0, palette.lane);
     }
 
     let play_h = PLAY_BOTTOM - PLAY_TOP;
@@ -130,6 +113,64 @@ pub(super) fn draw_road(assets: &AssetManager, run: &MissionRun, route_motion_en
             Color::new(0.92, 0.86, 0.55, finish_alpha.min(1.0)),
         );
     }
+}
+
+#[derive(Clone, Copy)]
+struct RoadPalette {
+    ground: Color,
+    shadow: Color,
+    road_edge: Color,
+    road: Color,
+    road_highlight: Color,
+    lane: Color,
+}
+
+fn road_palette(run: &MissionRun) -> RoadPalette {
+    let mut palette = match run.biome.as_str() {
+        "ashen_march" => RoadPalette {
+            ground: Color::new(0.24, 0.10, 0.06, 1.0),
+            shadow: Color::new(0.12, 0.04, 0.03, 0.26),
+            road_edge: Color::new(0.18, 0.10, 0.08, 1.0),
+            road: Color::new(0.34, 0.24, 0.20, 1.0),
+            road_highlight: Color::new(0.62, 0.32, 0.20, 0.30),
+            lane: Color::new(0.96, 0.60, 0.30, 0.68),
+        },
+        "moonlit_frontier" => RoadPalette {
+            ground: Color::new(0.06, 0.11, 0.24, 1.0),
+            shadow: Color::new(0.02, 0.04, 0.12, 0.24),
+            road_edge: Color::new(0.12, 0.16, 0.26, 1.0),
+            road: Color::new(0.27, 0.29, 0.39, 1.0),
+            road_highlight: Color::new(0.46, 0.62, 0.82, 0.28),
+            lane: Color::new(0.72, 0.82, 1.0, 0.66),
+        },
+        _ => RoadPalette {
+            ground: Color::new(0.07, 0.24, 0.13, 1.0),
+            shadow: Color::new(0.05, 0.12, 0.08, 0.18),
+            road_edge: Color::new(0.16, 0.12, 0.08, 1.0),
+            road: Color::new(0.43, 0.32, 0.19, 1.0),
+            road_highlight: Color::new(0.54, 0.41, 0.24, 0.28),
+            lane: Color::new(0.76, 0.66, 0.42, 0.62),
+        },
+    };
+    if run
+        .hazard_palette
+        .iter()
+        .any(|hazard| hazard == "night_stretch")
+    {
+        palette.ground = Color::new(
+            palette.ground.r * 0.62,
+            palette.ground.g * 0.62,
+            (palette.ground.b + 0.08).min(1.0),
+            palette.ground.a,
+        );
+        palette.lane = Color::new(
+            (palette.lane.r + 0.10).min(1.0),
+            (palette.lane.g + 0.12).min(1.0),
+            1.0,
+            palette.lane.a,
+        );
+    }
+    palette
 }
 
 pub(super) fn draw_wheel_dust(run: &MissionRun) {

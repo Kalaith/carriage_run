@@ -27,6 +27,9 @@ pub fn validate_mission_content(missions: &[&MissionDef]) -> Result<(), String> 
         for id in &mission.hazard_mix {
             check_hazard(&mut unknown, &mission.id, id);
         }
+        for id in &mission.hazard_palette {
+            check_hazard(&mut unknown, &format!("{}/palette", mission.id), id);
+        }
         for choice in &mission.route_choices {
             let where_ = format!("{}/{}", mission.id, choice.id);
             for id in &choice.enemy_add {
@@ -42,6 +45,46 @@ pub fn validate_mission_content(missions: &[&MissionDef]) -> Result<(), String> 
         Ok(())
     } else {
         Err(format!("unknown content ids -> {}", unknown.join(", ")))
+    }
+}
+
+/// Validate the authored act/biome contract used by the route map. Every new
+/// act needs a minimum hazard vocabulary of its own so content additions do
+/// not silently become reskinned copies of Act I.
+pub fn validate_campaign_metadata(missions: &[&MissionDef]) -> Result<(), String> {
+    use std::collections::{HashMap, HashSet};
+
+    let mut errors = Vec::new();
+    let mut palettes: HashMap<&str, HashSet<&str>> = HashMap::new();
+    for mission in missions {
+        let act = mission.authored_act();
+        if !(1..=3).contains(&act) {
+            errors.push(format!("{}: invalid act {}", mission.id, act));
+        }
+        if act >= 2 && mission.hazard_palette.len() < 2 {
+            errors.push(format!(
+                "{}: authored acts need two hazard palette entries",
+                mission.id
+            ));
+        }
+        let palette = palettes.entry(mission.authored_biome()).or_default();
+        palette.extend(mission.hazard_palette.iter().map(String::as_str));
+    }
+    let biome_palettes: Vec<_> = palettes.values().collect();
+    for left in 0..biome_palettes.len() {
+        for right in left + 1..biome_palettes.len() {
+            if biome_palettes[left] == biome_palettes[right] {
+                errors.push("two biomes share an identical hazard palette".to_owned());
+            }
+        }
+    }
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "campaign metadata invalid -> {}",
+            errors.join("; ")
+        ))
     }
 }
 

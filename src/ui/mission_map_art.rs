@@ -8,6 +8,39 @@ use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
 
+pub(super) fn draw_region_backdrop(missions: &[&MissionDef]) {
+    let mut acts = [0_u32; 4];
+    for mission in missions {
+        let act = mission.authored_act().clamp(1, 3) as usize - 1;
+        acts[act] += 1;
+    }
+    let regions = [
+        ("I · Greenway", Color::new(0.08, 0.20, 0.13, 0.22)),
+        ("II · Ashen March", Color::new(0.28, 0.12, 0.08, 0.22)),
+        ("III · Moonlit Frontier", Color::new(0.10, 0.14, 0.30, 0.22)),
+    ];
+    let mut x = 48.0;
+    for (index, (label, color)) in regions.into_iter().enumerate() {
+        let width = 1184.0 * (acts[index].max(1) as f32 / missions.len().max(1) as f32);
+        draw_rectangle(x, 104.0, width.max(190.0), 588.0, color);
+        draw_line(
+            x,
+            112.0,
+            x + width.max(190.0),
+            112.0,
+            2.0,
+            with_alpha(color, 0.8),
+        );
+        draw_ui_text_ex(
+            label,
+            x + 16.0,
+            132.0,
+            TextStyle::new(15.0, with_alpha(color, 0.95)).params(),
+        );
+        x += width.max(190.0) + 8.0;
+    }
+}
+
 pub(super) fn draw_mission_thumbnail(assets: &AssetManager, rect: Rect, mission: &MissionDef) {
     draw_panel_with_fill(rect, thumbnail_background(&mission.mission_type), false);
     let index = match mission.mission_type.as_str() {

@@ -53,6 +53,14 @@ pub(super) fn draw_top_nav(
     ) {
         actions.push(UiAction::Save);
     }
+    if Rect::new(rect.x + 570.0, rect.y + 34.0, 54.0, 28.0).contains_point(mouse) {
+        ctx.tooltip.borrow_mut().hover(
+            "nav-save",
+            "Write a recovery-safe save to the active slot",
+            vec2(rect.x + 570.0, rect.bottom()),
+            macroquad::time::get_time(),
+        );
+    }
     if footer_button(
         Rect::new(rect.x + 632.0, rect.y + 34.0, 54.0, 28.0),
         "Load",
@@ -60,6 +68,14 @@ pub(super) fn draw_top_nav(
     ) && ctx.save_exists
     {
         actions.push(UiAction::Load);
+    }
+    if Rect::new(rect.x + 632.0, rect.y + 34.0, 54.0, 28.0).contains_point(mouse) {
+        ctx.tooltip.borrow_mut().hover(
+            "nav-load",
+            "Load the active slot and migrate older versions",
+            vec2(rect.x + 632.0, rect.bottom()),
+            macroquad::time::get_time(),
+        );
     }
     if footer_button(
         Rect::new(rect.x + 694.0, rect.y + 34.0, 54.0, 28.0),
@@ -218,6 +234,17 @@ pub(super) fn virtual_button(
         ),
     );
     activated
+}
+
+pub(super) fn hover_tooltip(ctx: &UiContext<'_>, id: &str, text: &str, rect: Rect, mouse: Vec2) {
+    if rect.contains_point(mouse) {
+        ctx.tooltip.borrow_mut().hover(
+            id,
+            text,
+            vec2(rect.x, rect.bottom()),
+            macroquad::time::get_time(),
+        );
+    }
 }
 
 pub(super) fn star_label(stars: u8) -> String {

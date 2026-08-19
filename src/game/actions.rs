@@ -6,6 +6,8 @@ use crate::ui::UiAction;
 
 impl Game {
     pub(super) fn apply_action(&mut self, action: UiAction) {
+        self.audio
+            .ui(crate::audio::AudioCue::UiConfirm, &self.settings);
         match action {
             UiAction::RequestNewCampaign => {
                 // Only overwrite an existing save behind a confirmation prompt.
@@ -18,6 +20,21 @@ impl Game {
                 self.start_new_campaign();
             }
             UiAction::DismissConfirm => self.session.cancel_confirm(),
+            UiAction::ConfirmBuyChassis(id) => {
+                self.session.cancel_confirm();
+                if self.session.buy_chassis(&self.data, &id) {
+                    self.notifications.success("Chassis purchased");
+                    self.auto_save();
+                }
+            }
+            UiAction::RequestAbandonExpedition => self.session.request_abandon_expedition(),
+            UiAction::AbandonExpedition => {
+                if self.session.abandon_expedition() {
+                    self.notifications
+                        .info("Expedition abandoned; campaign gold is safe");
+                    self.auto_save();
+                }
+            }
             UiAction::ContinueCampaign => {
                 if self.save_exists {
                     self.load_game();
@@ -33,6 +50,8 @@ impl Game {
             UiAction::OpenUpgrades => self.session.open_upgrades(),
             UiAction::OpenSettings => self.session.open_settings(),
             UiAction::OpenCodex => self.session.open_codex(),
+            UiAction::OpenCosmetics => self.session.open_cosmetics(),
+            UiAction::OpenCredits => self.session.open_credits(),
             UiAction::SetCodexTab(tab) => self.session.set_codex_tab(tab),
             UiAction::ReturnTitle => self.session.return_title(),
             UiAction::PauseGame => self.session.pause_play(),
@@ -105,6 +124,30 @@ impl Game {
                     self.notifications.warning("Not enough gold");
                 }
             }
+            UiAction::PurchaseGuardSpecialization(id) => {
+                if self.session.purchase_guard_specialization(&self.data, &id) {
+                    self.notifications.success("Guard specialization learned");
+                    self.auto_save();
+                } else {
+                    self.notifications
+                        .warning("Requires a 3-star guard and enough gold");
+                }
+            }
+            UiAction::BuyCosmetic(id) => {
+                if self.session.buy_cosmetic(&self.data, &id) {
+                    self.notifications.success("Cosmetic unlocked");
+                    self.auto_save();
+                } else {
+                    self.notifications
+                        .warning("Not enough gold or already owned");
+                }
+            }
+            UiAction::SelectCosmetic(id) => {
+                if self.session.select_cosmetic(&self.data, &id) {
+                    self.notifications.info("Convoy colors updated");
+                    self.auto_save();
+                }
+            }
             UiAction::TreatGuard(id) => {
                 let kind = GuardKind::from_id(&id);
                 if self.session.treat_guard(&id) {
@@ -138,6 +181,138 @@ impl Game {
                         self.notifications
                             .warning(format!("Settings save failed: {}", err));
                     }
+                }
+            }
+            UiAction::ToggleRuntimeSetting(id) => {
+                match id.as_str() {
+                    "fullscreen" => {
+                        self.settings.display.fullscreen = !self.settings.display.fullscreen
+                    }
+                    "vsync" => self.settings.vsync = !self.settings.vsync,
+                    "colorblind_safe" => {
+                        self.settings.colorblind_safe = !self.settings.colorblind_safe
+                    }
+                    "reduced_motion" => {
+                        self.settings.reduced_motion = !self.settings.reduced_motion
+                    }
+                    "drag_toggle" => {
+                        self.settings.drag_preference = match self.settings.drag_preference {
+                            crate::settings::DragPreference::Hold => {
+                                crate::settings::DragPreference::Toggle
+                            }
+                            crate::settings::DragPreference::Toggle => {
+                                crate::settings::DragPreference::Hold
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                self.settings.apply();
+                if let Err(err) = self.settings.save(&self.data.config.game_name) {
+                    self.notifications
+                        .warning(format!("Preferences save failed: {err}"));
+                }
+            }
+            UiAction::CycleRuntimeSetting(id) => {
+                match id.as_str() {
+                    "resolution" => {
+                        self.settings.resolution = match self.settings.resolution.as_str() {
+                            "960x540" => "1280x720",
+                            "1280x720" => "1600x900",
+                            "1600x900" => "1920x1080",
+                            _ => "960x540",
+                        }
+                        .to_owned();
+                    }
+                    "fps" => {
+                        self.settings.fps_cap = match self.settings.fps_cap {
+                            30 => 60,
+                            60 => 120,
+                            120 => 240,
+                            _ => 30,
+                        };
+                    }
+                    "text_size" => {
+                        self.settings.text_size = if self.settings.text_size >= 1.5 {
+                            0.8
+                        } else {
+                            self.settings.text_size + 0.2
+                        };
+                    }
+                    "master_volume" => {
+                        self.settings.display.master_volume =
+                            if self.settings.display.master_volume <= 0.0 {
+                                1.0
+                            } else {
+                                (self.settings.display.master_volume - 0.2).max(0.0)
+                            };
+                    }
+                    "sfx_volume" => {
+                        self.settings.display.sfx_volume =
+                            if self.settings.display.sfx_volume <= 0.0 {
+                                1.0
+                            } else {
+                                (self.settings.display.sfx_volume - 0.2).max(0.0)
+                            };
+                    }
+                    "music_volume" => {
+                        self.settings.display.music_volume =
+                            if self.settings.display.music_volume <= 0.0 {
+                                1.0
+                            } else {
+                                (self.settings.display.music_volume - 0.2).max(0.0)
+                            };
+                    }
+                    "steering" => {
+                        let left = self.settings.bindings.steer_left == "A";
+                        let _ = self
+                            .settings
+                            .bindings
+                            .set("steer_left", if left { "Left" } else { "A" });
+                        let _ = self
+                            .settings
+                            .bindings
+                            .set("steer_right", if left { "Right" } else { "D" });
+                    }
+                    "recovery" => {
+                        let repair = if self.settings.bindings.repair == "R" {
+                            "F"
+                        } else {
+                            "R"
+                        };
+                        let save = if self.settings.bindings.save == "S" {
+                            "F5"
+                        } else {
+                            "S"
+                        };
+                        let load = if self.settings.bindings.load == "L" {
+                            "F9"
+                        } else {
+                            "L"
+                        };
+                        let _ = self.settings.bindings.set("repair", repair);
+                        let _ = self.settings.bindings.set("save", save);
+                        let _ = self.settings.bindings.set("load", load);
+                    }
+                    "language" => {
+                        self.settings.language = match self.settings.language.as_str() {
+                            "en" => "de",
+                            "de" => "fr",
+                            _ => "en",
+                        }
+                        .to_owned();
+                        self.localizer
+                            .set_language(crate::localization::Language::from_id(
+                                &self.settings.language,
+                            ));
+                    }
+                    _ => {}
+                }
+                self.settings.sanitize();
+                self.settings.apply();
+                if let Err(err) = self.settings.save(&self.data.config.game_name) {
+                    self.notifications
+                        .warning(format!("Preferences save failed: {err}"));
                 }
             }
             UiAction::BeginMission => {
@@ -290,18 +465,7 @@ impl Game {
                 }
             }
             UiAction::BuyChassis(id) => {
-                if self.session.buy_chassis(&self.data, &id) {
-                    let name = self
-                        .data
-                        .chassis
-                        .get(&id)
-                        .map(|chassis| chassis.name.clone())
-                        .unwrap_or(id);
-                    self.notifications.success(format!("Bought {}", name));
-                    self.auto_save();
-                } else {
-                    self.notifications.warning("Cannot buy that carriage");
-                }
+                let _ = self.session.request_buy_chassis(&self.data, &id);
             }
             UiAction::SelectChassis(id) => {
                 if self.session.select_chassis(&self.data, &id) {
@@ -340,6 +504,34 @@ impl Game {
             }
             UiAction::Save => self.save_game(),
             UiAction::Load => self.load_game(),
+            UiAction::SelectSaveSlot(slot) => match self.select_save_slot(&slot) {
+                Ok(()) => self.notifications.info(format!("Active save slot: {slot}")),
+                Err(err) => self
+                    .notifications
+                    .warning(format!("Slot load failed: {err}")),
+            },
+            UiAction::CreateSaveSlot(slot) => match self.create_save_slot(&slot) {
+                Ok(()) => self
+                    .notifications
+                    .success(format!("Created save slot: {slot}")),
+                Err(err) => self
+                    .notifications
+                    .warning(format!("Slot create failed: {err}")),
+            },
+            UiAction::RenameSaveSlot(slot) => match self.rename_active_save_slot(&slot) {
+                Ok(()) => self
+                    .notifications
+                    .success(format!("Save slot renamed to {slot}")),
+                Err(err) => self
+                    .notifications
+                    .warning(format!("Slot rename failed: {err}")),
+            },
+            UiAction::DeleteSaveSlot => match self.delete_active_save_slot() {
+                Ok(()) => self.notifications.info("Save slot deleted"),
+                Err(err) => self
+                    .notifications
+                    .warning(format!("Slot delete failed: {err}")),
+            },
             UiAction::ExitGame => macroquad::miniquad::window::quit(),
         }
     }

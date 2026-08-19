@@ -95,6 +95,56 @@ fn upgrading_guard_star_spends_gold() {
 }
 
 #[test]
+fn three_star_guards_can_buy_and_persist_a_specialization() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.campaign.gold = 1_000;
+    assert!(session.upgrade_guard_star("swordsman"));
+    assert!(session.upgrade_guard_star("swordsman"));
+    assert_eq!(session.campaign.guard_star_level(GuardKind::Swordsman), 3);
+    assert!(session.purchase_guard_specialization(&data, "swordsman_blademaster"));
+    assert_eq!(
+        session.campaign.guard_specialization(GuardKind::Swordsman),
+        Some("swordsman_blademaster")
+    );
+    let save = session.to_save(&data.config.version);
+    let restored = GameSession::from_save(save, data.first_mission_id());
+    assert_eq!(
+        restored.campaign.guard_specialization(GuardKind::Swordsman),
+        Some("swordsman_blademaster")
+    );
+}
+
+#[test]
+fn cosmetic_unlocks_use_gold_and_survive_a_round_trip() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.campaign.gold = 500;
+    assert!(session.buy_cosmetic(&data, "livery_roadwarden"));
+    assert!(session.select_cosmetic(&data, "livery_roadwarden"));
+    assert_eq!(session.campaign.livery_id, "livery_roadwarden");
+    assert!(session.buy_cosmetic(&data, "guard_color_verdant"));
+    let restored = GameSession::from_save(
+        session.to_save(&data.config.version),
+        data.first_mission_id(),
+    );
+    assert!(restored.campaign.is_livery_owned("livery_roadwarden"));
+    assert!(restored
+        .campaign
+        .is_guard_color_owned("guard_color_verdant"));
+}
+
+#[test]
+fn new_save_payload_contains_an_iso_timestamp() {
+    let config = test_config();
+    let session = GameSession::new(&config, Some("muddy_road"));
+    let saved_at = session.to_save(&config.version).saved_at;
+    assert!(saved_at.ends_with('Z'));
+    assert_eq!(saved_at.len(), 20);
+    assert_ne!(saved_at, "Unknown");
+}
+
+#[test]
 fn set_difficulty_changes_preset_and_reports_change() {
     let config = test_config();
     let mut session = GameSession::new(&config, Some("muddy_road"));

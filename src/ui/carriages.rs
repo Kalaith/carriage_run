@@ -90,6 +90,15 @@ pub(super) fn draw_carriages(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec
     ) {
         actions.push(UiAction::OpenMap);
     }
+    if virtual_button(
+        Rect::new(440.0, 648.0, 160.0, 42.0),
+        "Paintshop",
+        true,
+        ButtonTone::Positive,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenCosmetics);
+    }
 }
 
 fn draw_chassis_card(

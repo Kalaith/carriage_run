@@ -81,6 +81,29 @@ impl GameSession {
         }
         self.campaign.refresh_chassis_stats(data);
         self.campaign.refresh_frame_stats(data);
+        self.campaign.owned_livery_ids.retain(|id| {
+            id == "default_livery"
+                || data
+                    .cosmetics
+                    .get(id)
+                    .is_some_and(|cosmetic| cosmetic.kind == "livery")
+        });
+        self.campaign.owned_guard_color_ids.retain(|id| {
+            id == "default_guard_color"
+                || data
+                    .cosmetics
+                    .get(id)
+                    .is_some_and(|cosmetic| cosmetic.kind == "guard_color")
+        });
+        if !self.campaign.is_livery_owned(&self.campaign.livery_id) {
+            self.campaign.livery_id = "default_livery".to_owned();
+        }
+        if !self
+            .campaign
+            .is_guard_color_owned(&self.campaign.guard_color_id)
+        {
+            self.campaign.guard_color_id = "default_guard_color".to_owned();
+        }
     }
 
     pub fn buy_chassis(&mut self, data: &GameData, id: &str) -> bool {

@@ -5,7 +5,7 @@ use super::upgrade_visuals::{
     draw_section_title, draw_stat_icon, draw_upgrade_backdrop, draw_upgrade_icon, footer_button,
     gold_button, nav_tile, small_close, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED, PANEL_ALT,
 };
-use super::widgets::virtual_button;
+use super::widgets::{hover_tooltip, virtual_button};
 use super::{UiAction, UiContext};
 use crate::data::UpgradeDef;
 use crate::state::CarriageEquipment;
@@ -479,6 +479,13 @@ fn draw_owned_card(
             MUTED,
         );
     }
+    hover_tooltip(
+        ctx,
+        &format!("upgrade-{}", upgrade.id),
+        &format!("{} — {}", upgrade.name, upgrade.description),
+        rect,
+        mouse,
+    );
 }
 
 fn first_open_equipment_slot(ctx: &UiContext<'_>) -> Option<usize> {

@@ -7,10 +7,10 @@ mod pressure;
 mod scoring;
 
 use super::entities::*;
-use super::{CampaignState, CarriageEquipment, CarriageVisual};
+use super::{BossState, CampaignState, CarriageEquipment, CarriageVisual};
 use crate::data::MissionDef;
 use macroquad::prelude::*;
-use macroquad_toolkit::fx::{FloatingTextLayer, ParticleSystem};
+use macroquad_toolkit::fx::{FloatingTextLayer, ParticleSystem, ScreenShake};
 use macroquad_toolkit::rng::SeededRng;
 use macroquad_toolkit::timing::Timer;
 
@@ -147,16 +147,23 @@ pub struct MissionRun {
     pub mission_id: String,
     pub mission_name: String,
     pub route_name: String,
+    pub biome: String,
+    pub hazard_palette: Vec<String>,
     pub mission_kind: MissionKind,
     pub carriage: Carriage,
     pub guards: Vec<Guard>,
     pub enemies: Vec<Enemy>,
     pub hazards: Vec<Hazard>,
+    /// Optional finale encounter. The same state machine serves campaign and
+    /// expedition finales.
+    pub boss: Option<BossState>,
     pub shots: Vec<Shot>,
     /// Floating combat numbers (juice); short-lived, purely visual.
     pub float_texts: FloatingTextLayer,
     /// Burst particles (juice); short-lived, purely visual.
     pub particles: ParticleSystem,
+    pub screen_shake: ScreenShake,
+    pub hit_stop: f32,
     pub drag: DragState,
     pub alert: Alert,
     pub progress: f32,
@@ -208,6 +215,11 @@ pub struct MissionRun {
     /// Monster-egg missions only: the egg has hatched — the brood erupted and the
     /// stability meter is spent. Set once.
     pub(super) egg_hatched: bool,
+    /// Prisoner-escort breakout state: security attempts are telegraphed and
+    /// can be interrupted by braking or a nearby guard.
+    pub(super) breakout_timer: f32,
+    pub(super) breakout_progress: f32,
+    pub(super) breakout_attempts: u32,
     /// Princess-comfort missions only: the carriage's lateral offset from the
     /// road centre last frame, used to measure steering smoothness.
     pub(super) last_lateral: f32,
@@ -297,11 +309,17 @@ impl MissionRun {
             .map(|choice| mission.distance + choice.distance_delta)
             .unwrap_or(mission.distance)
             .max(420.0);
+        let authored_content_scale = if mission.authored_act() > 1 {
+            0.72
+        } else {
+            1.0
+        };
         let difficulty = (route_choice
             .map(|choice| mission.difficulty + choice.difficulty_delta)
             .unwrap_or(mission.difficulty)
             .max(0.6)
             * campaign.difficulty_preset.difficulty_scale())
+            * authored_content_scale
             * if mission_kind == MissionKind::SiegeSupplyRun {
                 0.60
             } else {
@@ -360,6 +378,9 @@ impl MissionRun {
                 Some(index),
             ));
         }
+        for guard in &mut guards {
+            guard.specialized = campaign.guard_specialization(guard.kind).is_some();
+        }
 
         let armor_equipped = campaign.is_equipment_equipped(CarriageEquipment::IronPlating);
         let wheels_equipped = campaign.is_equipment_equipped(CarriageEquipment::ReinforcedWheels);
@@ -374,11 +395,14 @@ impl MissionRun {
             route_name: route_choice
                 .map(|choice| choice.name.clone())
                 .unwrap_or_else(|| mission.route.clone()),
+            biome: mission.authored_biome().to_owned(),
+            hazard_palette: mission.palette().to_owned(),
             mission_kind,
             carriage: Carriage::new(max_health, cargo_max),
             guards,
             enemies: Vec::new(),
             hazards: Vec::new(),
+            boss: mission.boss_id.as_deref().map(BossState::new),
             shots: Vec::new(),
             float_texts: {
                 let mut layer = FloatingTextLayer::new();
@@ -388,6 +412,8 @@ impl MissionRun {
                 layer
             },
             particles: ParticleSystem::new(),
+            screen_shake: ScreenShake::new(8.0),
+            hit_stop: 0.0,
             drag: DragState::None,
             alert: Alert::default(),
             progress: 0.0,
@@ -464,6 +490,9 @@ impl MissionRun {
             wave_pace,
             egg_cracked: false,
             egg_hatched: false,
+            breakout_timer: 6.0,
+            breakout_progress: 0.0,
+            breakout_attempts: 0,
             last_lateral: 0.0,
             ride_smoothness: 1.0,
         }
@@ -500,7 +529,9 @@ impl MissionRun {
     }
 
     pub fn speed_factor(&self) -> f32 {
-        if self.carriage.slow_timer > 0.0 {
+        if self.carriage.night_timer > 0.0 {
+            (0.78 + self.wheel_bonus * 0.04).min(0.92)
+        } else if self.carriage.slow_timer > 0.0 {
             (0.60 + self.wheel_bonus * 0.06).min(0.9)
         } else {
             1.0
@@ -538,6 +569,31 @@ impl MissionRun {
     /// True while the player is actively holding the brake (not mud-slowed).
     pub fn is_braking(&self) -> bool {
         !self.is_slowed() && self.throttle < 0.98
+    }
+
+    pub fn is_in_night_stretch(&self) -> bool {
+        self.carriage.night_timer > 0.0
+    }
+
+    pub fn boss_status(&self) -> Option<(&str, &str, f32)> {
+        self.boss.as_ref().map(|boss| {
+            (
+                boss.definition.name,
+                boss.phase.label(),
+                boss.health_ratio(),
+            )
+        })
+    }
+
+    pub fn breakout_status(&self) -> Option<(f32, bool)> {
+        (self.mission_kind == MissionKind::PrisonerEscort).then_some((
+            self.breakout_progress.clamp(0.0, 1.0),
+            self.breakout_progress > 0.0,
+        ))
+    }
+
+    pub fn screen_shake_offset(&self) -> Vec2 {
+        self.screen_shake.offset()
     }
 
     /// The wave number being telegraphed, if a warning is currently showing.

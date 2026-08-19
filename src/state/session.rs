@@ -1,5 +1,6 @@
 //! Live game session: screen navigation, roster edits, and mission dispatch.
 
+use super::save::save_timestamp;
 use super::{
     default_guard_id, CampaignState, CodexTab, ConfirmPrompt, DifficultyPreset, GuardKind, Journey,
     MissionInput, MissionRecord, MissionReport, MissionRun, SaveData, Screen, REINFORCED_KIT_COST,
@@ -66,10 +67,38 @@ impl GameSession {
         self.pending_confirm = None;
     }
 
+    pub fn request_buy_chassis(&mut self, data: &GameData, id: &str) -> bool {
+        let Some(chassis) = data.chassis.get(id) else {
+            return false;
+        };
+        if self.campaign.is_chassis_owned(id) || self.campaign.gold < chassis.cost {
+            return false;
+        }
+        self.pending_confirm = Some(ConfirmPrompt::BuyChassis(id.to_owned()));
+        false
+    }
+
+    pub fn request_abandon_expedition(&mut self) {
+        self.pending_confirm = Some(ConfirmPrompt::AbandonExpedition);
+    }
+
+    pub fn abandon_expedition(&mut self) -> bool {
+        if self.journey.is_none() {
+            return false;
+        }
+        self.pending_confirm = None;
+        self.journey = None;
+        self.mission = None;
+        self.result = None;
+        self.screen = Screen::MissionMap;
+        true
+    }
+
     pub fn to_save(&self, version: &str) -> SaveData {
         SaveData {
             version: version.to_owned(),
             campaign: self.campaign.clone(),
+            saved_at: save_timestamp(),
         }
     }
 
@@ -118,6 +147,16 @@ impl GameSession {
     pub fn open_codex(&mut self) {
         self.screen = Screen::Codex;
         self.codex_tab = CodexTab::Threats;
+    }
+
+    pub fn open_cosmetics(&mut self) {
+        self.screen = Screen::Cosmetics;
+        self.mission = None;
+    }
+
+    pub fn open_credits(&mut self) {
+        self.screen = Screen::Credits;
+        self.mission = None;
     }
 
     pub fn set_codex_tab(&mut self, tab: CodexTab) {
@@ -267,6 +306,32 @@ impl GameSession {
             .guard_stars
             .insert(kind.id().to_owned(), next.min(3));
         true
+    }
+
+    pub fn purchase_guard_specialization(
+        &mut self,
+        data: &GameData,
+        specialization_id: &str,
+    ) -> bool {
+        let Some(definition) = data.guard_specializations.get(specialization_id) else {
+            return false;
+        };
+        let kind = GuardKind::from_id(&definition.guard_id);
+        if kind == GuardKind::Swordsman || kind == GuardKind::Mage {
+            if self.campaign.guard_star_level(kind) < 3
+                || self.campaign.guard_specialization(kind).is_some()
+                || self.campaign.gold < definition.cost
+            {
+                return false;
+            }
+            self.campaign.gold -= definition.cost;
+            self.campaign
+                .guard_specializations
+                .insert(kind.id().to_owned(), specialization_id.to_owned());
+            true
+        } else {
+            false
+        }
     }
 
     /// Pay to clear an injured guard's recovery time immediately.

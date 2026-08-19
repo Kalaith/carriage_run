@@ -4,6 +4,7 @@ use super::sprites::draw_character;
 use crate::state::{Enemy, EnemyKind, Guard, GuardKind, Shot};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
+use macroquad_toolkit::math::bob;
 
 fn enemy_id(kind: EnemyKind) -> &'static str {
     match kind {
@@ -14,6 +15,11 @@ fn enemy_id(kind: EnemyKind) -> &'static str {
         EnemyKind::Necromancer => "necromancer",
         EnemyKind::AlphaWolf => "alpha_wolf",
         EnemyKind::ArmoredBandit => "armored_bandit",
+        EnemyKind::Ogre => "ogre",
+        EnemyKind::WargRider => "warg_rider",
+        EnemyKind::Cultist => "cultist",
+        EnemyKind::EmberHound => "ember_hound",
+        EnemyKind::FrostWraith => "frost_wraith",
     }
 }
 
@@ -23,15 +29,19 @@ pub(super) fn draw_enemy(assets: &AssetManager, enemy: &Enemy) {
     } else {
         Color::new(1.0, 0.72, 0.72, 1.0)
     };
-    let size = if matches!(enemy.kind, EnemyKind::AlphaWolf | EnemyKind::ArmoredBandit) {
+    let size = if matches!(
+        enemy.kind,
+        EnemyKind::AlphaWolf | EnemyKind::ArmoredBandit | EnemyKind::Ogre | EnemyKind::WargRider
+    ) {
         94.0
     } else {
         82.0
     };
+    let bob_amount = bob(4.0, 2.0) + (enemy.animation_time * 9.0).sin() * 1.5;
     draw_character(
         assets,
         enemy_id(enemy.kind),
-        enemy.pos,
+        enemy.pos + vec2(0.0, bob_amount),
         vec2(size, size),
         tint,
     );
@@ -48,15 +58,23 @@ pub(super) fn draw_enemy_icon(assets: &AssetManager, kind: EnemyKind, pos: Vec2)
     draw_character(assets, enemy_id(kind), pos, vec2(70.0, 70.0), WHITE);
 }
 
-pub(super) fn draw_guard(assets: &AssetManager, guard: &Guard) {
+pub(super) fn draw_guard(assets: &AssetManager, guard: &Guard, color: [f32; 3]) {
+    let base = Color::new(color[0], color[1], color[2], 1.0);
     let tint = if !guard.is_active() {
         Color::new(0.45, 0.48, 0.50, 0.62)
     } else if !guard.hit_flash.finished() {
         Color::new(0.76, 0.90, 1.0, 1.0)
     } else {
-        WHITE
+        base
     };
-    draw_character(assets, guard.kind.id(), guard.pos, vec2(82.0, 82.0), tint);
+    let bob_amount = (guard.animation_time * 5.0).sin() * 1.5;
+    draw_character(
+        assets,
+        guard.kind.id(),
+        guard.pos + vec2(0.0, bob_amount),
+        vec2(82.0, 82.0),
+        tint,
+    );
     draw_health_bar(
         vec2(guard.pos.x - 28.0, guard.pos.y + 30.0),
         56.0,

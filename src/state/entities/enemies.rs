@@ -15,10 +15,20 @@ pub enum EnemyKind {
     /// Elite raider: a high-durability bruiser that soaks hits and does not
     /// flee. Crossbow guards deal an authored bonus against it.
     ArmoredBandit,
+    /// Act II bruiser that pounds the carriage instead of fleeing.
+    Ogre,
+    /// Act II mounted charger that can bypass a distracted escort.
+    WargRider,
+    /// Act II/III support caster that weakens guard armor nearby.
+    Cultist,
+    /// Act II/III fast threat that leaves a burning trail.
+    EmberHound,
+    /// Act III ranged spirit that phases through the first order it sees.
+    FrostWraith,
 }
 
 impl EnemyKind {
-    pub fn all() -> [Self; 7] {
+    pub fn all() -> [Self; 12] {
         [
             Self::Wolf,
             Self::Bandit,
@@ -27,6 +37,11 @@ impl EnemyKind {
             Self::Necromancer,
             Self::AlphaWolf,
             Self::ArmoredBandit,
+            Self::Ogre,
+            Self::WargRider,
+            Self::Cultist,
+            Self::EmberHound,
+            Self::FrostWraith,
         ]
     }
 
@@ -39,6 +54,11 @@ impl EnemyKind {
             "necromancer" => Some(Self::Necromancer),
             "alpha_wolf" => Some(Self::AlphaWolf),
             "armored_bandit" => Some(Self::ArmoredBandit),
+            "ogre" => Some(Self::Ogre),
+            "warg_rider" => Some(Self::WargRider),
+            "cultist" => Some(Self::Cultist),
+            "ember_hound" => Some(Self::EmberHound),
+            "frost_wraith" => Some(Self::FrostWraith),
             _ => None,
         }
     }
@@ -53,6 +73,11 @@ impl EnemyKind {
             Self::Necromancer => "Necromancer",
             Self::AlphaWolf => "Alpha Wolf",
             Self::ArmoredBandit => "Armored Bandit",
+            Self::Ogre => "Ogre",
+            Self::WargRider => "Warg Rider",
+            Self::Cultist => "Cultist",
+            Self::EmberHound => "Ember Hound",
+            Self::FrostWraith => "Frost Wraith",
         }
     }
 
@@ -66,6 +91,11 @@ impl EnemyKind {
             Self::Necromancer => "Summoner",
             Self::AlphaWolf => "Elite charger",
             Self::ArmoredBandit => "High-durability bruiser",
+            Self::Ogre => "Siege bruiser",
+            Self::WargRider => "Mounted charger",
+            Self::Cultist => "Hex support",
+            Self::EmberHound => "Burning runner",
+            Self::FrostWraith => "Phasing skirmisher",
         }
     }
 
@@ -93,6 +123,21 @@ impl EnemyKind {
             Self::ArmoredBandit => {
                 "A high-health raider that grinds toward the carriage without fleeing. A 2-star Crossbow Guard deals 35% bonus damage to it."
             }
+            Self::Ogre => {
+                "A huge bruiser that ignores panic and batters the carriage. Keep it away from the hull with Shield Guards and focused fire."
+            }
+            Self::WargRider => {
+                "A mounted charger that accelerates hard on the final approach. Spearmen and early drag orders are its counter."
+            }
+            Self::Cultist => {
+                "A hexer that makes nearby enemies harder to stop. Break its support circle before the next wave lands."
+            }
+            Self::EmberHound => {
+                "A fast hound that burns the road behind it. Brake through the fire and let mounted guards take the chase."
+            }
+            Self::FrostWraith => {
+                "A cold spirit that phases past the first command it sees. Reissue the order and keep it out of the carriage shadow."
+            }
         }
     }
 
@@ -105,6 +150,11 @@ impl EnemyKind {
             Self::Necromancer => "Dark bolt",
             Self::AlphaWolf => "Alpha wolf maul",
             Self::ArmoredBandit => "Armored bandit strike",
+            Self::Ogre => "Ogre smash",
+            Self::WargRider => "Warg rider charge",
+            Self::Cultist => "Cultist hex",
+            Self::EmberHound => "Ember hound bite",
+            Self::FrostWraith => "Frost wraith touch",
         }
     }
 
@@ -114,6 +164,7 @@ impl EnemyKind {
         match self {
             Self::BanditArcher => Some(150.0),
             Self::Necromancer => Some(168.0),
+            Self::Cultist | Self::FrostWraith => Some(154.0),
             _ => None,
         }
     }
@@ -123,12 +174,17 @@ impl EnemyKind {
         match self {
             Self::Wolf => 1.85,
             Self::AlphaWolf => 2.05,
+            Self::WargRider => 2.2,
+            Self::EmberHound => 2.35,
             _ => 1.0,
         }
     }
 
     pub(in crate::state) fn is_charger(self) -> bool {
-        matches!(self, Self::Wolf | Self::AlphaWolf)
+        matches!(
+            self,
+            Self::Wolf | Self::AlphaWolf | Self::WargRider | Self::EmberHound
+        )
     }
 
     /// Bandits grab cargo and run for the map edge; killing a fleeing thief
@@ -158,6 +214,7 @@ pub struct Enemy {
     pub carried_cargo: f32,
     /// True once a thief has stolen cargo and is running for the map edge.
     pub retreating: bool,
+    pub animation_time: f32,
 }
 
 impl Enemy {
@@ -170,6 +227,11 @@ impl Enemy {
             EnemyKind::Necromancer => (74.0, 48.0, 9.0, 22.0, 1.75),
             EnemyKind::AlphaWolf => (78.0, 138.0, 12.0, 24.0, 0.8),
             EnemyKind::ArmoredBandit => (96.0, 78.0, 8.0, 22.0, 1.2),
+            EnemyKind::Ogre => (150.0, 52.0, 2.0, 32.0, 1.55),
+            EnemyKind::WargRider => (82.0, 132.0, 2.0, 24.0, 0.88),
+            EnemyKind::Cultist => (58.0, 56.0, 1.0, 19.0, 1.55),
+            EnemyKind::EmberHound => (44.0, 154.0, 1.5, 19.0, 0.72),
+            EnemyKind::FrostWraith => (76.0, 70.0, 2.0, 21.0, 1.28),
         };
         let scale = 0.9 + difficulty * 0.16;
 
@@ -185,6 +247,7 @@ impl Enemy {
             attack_range: match kind {
                 EnemyKind::BanditArcher => 235.0,
                 EnemyKind::Necromancer => 205.0,
+                EnemyKind::Cultist | EnemyKind::FrostWraith => 190.0,
                 _ => radius + 32.0,
             },
             attack_cooldown: cooldown,
@@ -194,6 +257,7 @@ impl Enemy {
             hit_flash: Timer::new(0.0),
             carried_cargo: 0.0,
             retreating: false,
+            animation_time: 0.0,
         }
     }
 
@@ -210,6 +274,11 @@ impl Enemy {
             EnemyKind::Necromancer => 150.0,
             EnemyKind::AlphaWolf => 122.0,
             EnemyKind::ArmoredBandit => 72.0,
+            EnemyKind::Ogre => 110.0,
+            EnemyKind::WargRider => 126.0,
+            EnemyKind::Cultist => 146.0,
+            EnemyKind::EmberHound => 112.0,
+            EnemyKind::FrostWraith => 142.0,
         }
     }
 }

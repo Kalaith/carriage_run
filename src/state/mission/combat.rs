@@ -31,6 +31,7 @@ impl MissionRun {
             guard.cooldown = (guard.cooldown - dt).max(0.0);
             guard.hit_flash.tick(dt);
             guard.attack_flash = (guard.attack_flash - dt).max(0.0);
+            guard.animation_time += dt;
 
             if !guard.is_active() {
                 continue;
@@ -188,9 +189,16 @@ impl MissionRun {
         let cargo_protection = self.cargo_protection;
         let hub_damage = self.hub_damage;
         let ward_radius = self.ward_radius;
+        let cultist_positions: Vec<Vec2> = self
+            .enemies
+            .iter()
+            .filter(|enemy| enemy.is_active() && enemy.kind == EnemyKind::Cultist)
+            .map(|enemy| enemy.pos)
+            .collect();
         let mut pending_guard_damage = Vec::new();
         let mut pending_carriage_damage = Vec::new();
         let mut pending_summons = Vec::new();
+        let mut pending_fire = Vec::new();
 
         for enemy in &mut self.enemies {
             if !enemy.is_active() {
@@ -201,6 +209,7 @@ impl MissionRun {
             enemy.special_timer = (enemy.special_timer - dt).max(0.0);
             enemy.slow_timer = (enemy.slow_timer - dt).max(0.0);
             enemy.hit_flash.tick(dt);
+            enemy.animation_time += dt;
 
             // Warding Lantern: keep nearby enemies slowed while they linger.
             if ward_radius > 0.0 && enemy.pos.distance(carriage_pos) < ward_radius {
@@ -274,8 +283,13 @@ impl MissionRun {
 
             if in_attack_range && enemy.cooldown <= 0.0 {
                 enemy.cooldown = enemy.attack_cooldown;
+                let hexes = cultist_positions
+                    .iter()
+                    .filter(|pos| pos.distance(enemy.pos) < 170.0)
+                    .count() as f32;
+                let attack_damage = enemy.damage * (1.0 + hexes * 0.12);
                 if let Some(guard_id) = target_guard {
-                    pending_guard_damage.push((guard_id, enemy.damage));
+                    pending_guard_damage.push((guard_id, attack_damage));
                 } else {
                     let cargo_loss = if enemy.kind.steals_and_flees() {
                         enemy.carried_cargo += 6.0 * (1.0 - cargo_protection);
@@ -284,8 +298,11 @@ impl MissionRun {
                     } else {
                         0.0
                     };
+                    if enemy.kind == EnemyKind::EmberHound {
+                        pending_fire.push(enemy.pos);
+                    }
                     pending_carriage_damage.push((
-                        enemy.damage,
+                        attack_damage,
                         cargo_loss,
                         enemy.kind.attack_label(),
                     ));
@@ -311,6 +328,11 @@ impl MissionRun {
             ));
             self.next_enemy_id += 1;
             self.alert.set("Skeletons raised");
+        }
+        for pos in pending_fire {
+            if self.hazards.len() < 24 {
+                self.hazards.push(Hazard::new(HazardKind::FirePatch, pos));
+            }
         }
     }
 
@@ -371,6 +393,30 @@ impl MissionRun {
                         if !hazard.triggered {
                             hazard.triggered = true;
                             impacts.push((0.0, 2.0, "River ford slowed the wheels"));
+                        }
+                    }
+                }
+                HazardKind::Rockslide => {
+                    if hazard.rect().overlaps(&carriage_rect) {
+                        hazard.active = false;
+                        impacts.push((12.0, 5.0, "Rockslide impact"));
+                    }
+                }
+                HazardKind::CursedFog => {
+                    if hazard.pos.distance(self.carriage.pos) <= hazard.radius + 38.0 {
+                        self.carriage.slow_timer = self.carriage.slow_timer.max(1.6);
+                        if !hazard.triggered {
+                            hazard.triggered = true;
+                            impacts.push((3.0, 4.0, "Cursed fog"));
+                        }
+                    }
+                }
+                HazardKind::NightStretch => {
+                    if hazard.pos.distance(self.carriage.pos) <= hazard.radius + 42.0 {
+                        self.carriage.night_timer = self.carriage.night_timer.max(3.8);
+                        if !hazard.triggered {
+                            hazard.triggered = true;
+                            impacts.push((0.0, 1.0, "Night stretch"));
                         }
                     }
                 }
@@ -514,6 +560,11 @@ fn death_color(kind: EnemyKind) -> Color {
         EnemyKind::BanditArcher => Color::new(0.66, 0.42, 0.24, 1.0),
         EnemyKind::Skeleton => Color::new(0.86, 0.87, 0.83, 1.0),
         EnemyKind::Necromancer => Color::new(0.56, 0.30, 0.68, 1.0),
+        EnemyKind::Ogre => Color::new(0.44, 0.38, 0.32, 1.0),
+        EnemyKind::WargRider => Color::new(0.48, 0.28, 0.20, 1.0),
+        EnemyKind::Cultist => Color::new(0.30, 0.18, 0.42, 1.0),
+        EnemyKind::EmberHound => Color::new(0.96, 0.34, 0.12, 1.0),
+        EnemyKind::FrostWraith => Color::new(0.52, 0.80, 0.92, 1.0),
     }
 }
 

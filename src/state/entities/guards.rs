@@ -81,6 +81,28 @@ impl GuardKind {
         }
     }
 
+    pub fn hire_quote(self) -> &'static str {
+        match self {
+            Self::Swordsman => "Point me at the trouble and keep the wheels turning.",
+            Self::ShieldGuard => "Nothing reaches the wagon while I still have a shield.",
+            Self::Spearman => "Give me a straight road and I will make it longer.",
+            Self::Archer => "I can see the ambush before it sees the cargo.",
+            Self::CrossbowGuard => "One bolt, one target, one less problem.",
+            Self::Mage => "The road has old magic. I know how to answer it.",
+        }
+    }
+
+    pub fn combat_bark(self) -> &'static str {
+        match self {
+            Self::Swordsman => "Steel up!",
+            Self::ShieldGuard => "Behind me!",
+            Self::Spearman => "Hold the line!",
+            Self::Archer => "Loose!",
+            Self::CrossbowGuard => "Heavy shot!",
+            Self::Mage => "By the road stars!",
+        }
+    }
+
     pub fn unlock_level(self) -> u32 {
         match self {
             Self::Swordsman => 1,
@@ -277,10 +299,12 @@ pub struct Guard {
     pub armor: f32,
     pub order: GuardOrder,
     pub star_level: u8,
+    pub specialized: bool,
     pub mounted_slot: Option<usize>,
     pub cooldown: f32,
     pub hit_flash: Timer,
     pub attack_flash: f32,
+    pub animation_time: f32,
 }
 
 impl Guard {
@@ -308,10 +332,12 @@ impl Guard {
             armor: profile.armor,
             order: default_stance(kind),
             star_level,
+            specialized: false,
             mounted_slot,
             cooldown: 0.0,
             hit_flash: Timer::new(0.0),
             attack_flash: 0.0,
+            animation_time: 0.0,
         }
     }
 

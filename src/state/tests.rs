@@ -18,6 +18,7 @@ fn test_config() -> GameConfig {
         display_name: "Carriage Run".to_owned(),
         save_slot: "campaign".to_owned(),
         version: "0.1.0".to_owned(),
+        toolkit_revision: String::new(),
         starting_gold: 120,
     }
 }
@@ -101,5 +102,11 @@ fn test_mission(
             .map(|id| (*id).to_owned())
             .collect(),
         time_limit: None,
+        act: 1,
+        biome: "test_biome".to_owned(),
+        boss_id: None,
+        side_mission: false,
+        hazard_palette: Vec::new(),
+        reward_note: String::new(),
     }
 }

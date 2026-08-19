@@ -3,5 +3,6 @@
   "display_name": "Carriage Run",
   "save_slot": "campaign",
   "version": "0.1.0",
+  "toolkit_revision": "cdc4d9957f496a4e330f250106f7bec9d2ed3769",
   "starting_gold": 125
 }

@@ -2,7 +2,7 @@
 
 use super::mission_map_art::{
     draw_cargo_icon, draw_meter_bar, draw_mini_icon, draw_mission_status, draw_mission_thumbnail,
-    draw_reward, draw_route_icon, draw_star, draw_type_badge,
+    draw_region_backdrop, draw_reward, draw_route_icon, draw_star, draw_type_badge,
 };
 use super::upgrade_visuals::{
     draw_crest, draw_panel_with_fill, draw_stat_icon, nav_tile, GOLD as UI_GOLD, GOLD_SOFT, INK,
@@ -20,6 +20,7 @@ pub(super) fn draw_mission_map(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut V
     draw_routes_header(ctx, mouse, actions);
 
     let missions = ctx.data.missions_ordered();
+    draw_region_backdrop(&missions);
     let campaign = &ctx.session.campaign;
     let visible: Vec<&MissionDef> = missions
         .iter()
@@ -383,59 +384,68 @@ fn draw_divider(x: f32, panel: Rect) {
 }
 
 fn draw_route_detail_text(ctx: &UiContext<'_>, mission: &MissionDef, rect: Rect) {
+    let route_label = format!(
+        "{} / A{} {}",
+        mission.route,
+        mission.authored_act(),
+        mission
+            .authored_biome()
+            .replace('_', " ")
+            .to_ascii_uppercase()
+    );
     draw_ui_text_ex(
         &mission.name,
         rect.x,
-        rect.y + 27.0,
-        TextStyle::new(28.0, INK).params(),
+        rect.y + 25.0,
+        TextStyle::new(24.0, INK).params(),
     );
     draw_type_badge(
-        Rect::new(rect.x, rect.y + 43.0, 74.0, 27.0),
+        Rect::new(rect.x, rect.y + 37.0, 74.0, 23.0),
         &mission.mission_type,
     );
     draw_ui_text_ex(
-        &mission.route,
+        &route_label,
         rect.x + 88.0,
-        rect.y + 63.0,
-        TextStyle::new(17.0, Color::new(0.58, 0.82, 0.36, 1.0)).params(),
+        rect.y + 55.0,
+        TextStyle::new(12.0, Color::new(0.58, 0.82, 0.36, 1.0)).params(),
     );
     draw_ui_text_ex(
         &mission.cargo,
         rect.x,
-        rect.y + 92.0,
-        TextStyle::new(26.0, UI_GOLD).params(),
+        rect.y + 89.0,
+        TextStyle::new(18.0, UI_GOLD).params(),
     );
     draw_text_block(
         &mission.objective,
         rect.x,
-        rect.y + 102.0,
+        rect.y + 101.0,
         rect.w,
-        38.0,
-        17.0,
-        3.0,
+        31.0,
+        14.0,
+        2.0,
         MUTED,
     );
     draw_line(
         rect.x,
-        rect.y + 144.0,
+        rect.y + 143.0,
         rect.x + rect.w,
-        rect.y + 144.0,
+        rect.y + 143.0,
         1.0,
         GOLD_SOFT,
     );
     draw_ui_text_ex(
         "Bonus:",
         rect.x,
-        rect.y + 162.0,
-        TextStyle::new(15.0, UI_GOLD).params(),
+        rect.y + 157.0,
+        TextStyle::new(12.0, UI_GOLD).params(),
     );
     draw_text_block(
         &mission.bonus_objective,
-        rect.x + 58.0,
-        rect.y + 148.0,
-        rect.w - 58.0,
-        22.0,
-        14.0,
+        rect.x + 50.0,
+        rect.y + 145.0,
+        rect.w - 50.0,
+        27.0,
+        12.0,
         2.0,
         MUTED,
     );

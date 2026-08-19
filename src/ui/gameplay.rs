@@ -4,7 +4,7 @@ use super::gameplay_actors::{draw_enemy, draw_guard, draw_shot};
 use super::gameplay_hazards::draw_hazard;
 use super::gameplay_hud::draw_gameplay_hud;
 use super::gameplay_road::{draw_road, draw_wheel_dust};
-use super::{carriage, UiAction, UiContext};
+use super::{carriage, UiAction, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
 use crate::state::{DragState, MissionRun};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::TextStyle;
@@ -14,6 +14,11 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
     let Some(run) = &ctx.session.mission else {
         return;
     };
+
+    let shake = run.screen_shake_offset();
+    let camera =
+        Camera2D::from_display_rect(Rect::new(-shake.x, -shake.y, LOGICAL_WIDTH, LOGICAL_HEIGHT));
+    set_camera(&camera);
 
     draw_road(ctx.assets, run, ctx.session.campaign.route_motion_enabled);
     for hazard in &run.hazards {
@@ -30,7 +35,7 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
         .iter()
         .filter(|guard| guard.mounted_slot.is_none())
     {
-        draw_guard(ctx.assets, guard);
+        draw_guard(ctx.assets, guard, run.carriage_visual.guard_color_tint);
     }
     if ctx.session.campaign.route_motion_enabled {
         draw_wheel_dust(run);
@@ -41,11 +46,12 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
         .iter()
         .filter(|guard| guard.mounted_slot.is_some())
     {
-        draw_guard(ctx.assets, guard);
+        draw_guard(ctx.assets, guard, run.carriage_visual.guard_color_tint);
     }
     draw_particles(run);
     draw_float_texts(run);
     draw_drag_feedback(run, mouse);
+    set_default_camera();
     draw_gameplay_hud(ctx, run, mouse, actions);
 }
 

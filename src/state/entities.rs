@@ -54,7 +54,10 @@ pub struct Carriage {
     pub cargo: f32,
     pub max_cargo: f32,
     pub slow_timer: f32,
+    pub night_timer: f32,
     pub hit_flash: Timer,
+    pub animation_time: f32,
+    pub wheel_rotation: f32,
 }
 
 impl Carriage {
@@ -67,7 +70,10 @@ impl Carriage {
             cargo: max_cargo,
             max_cargo,
             slow_timer: 0.0,
+            night_timer: 0.0,
             hit_flash: Timer::new(0.0),
+            animation_time: 0.0,
+            wheel_rotation: 0.0,
         }
     }
 
@@ -77,8 +83,32 @@ impl Carriage {
 
     pub(super) fn update_timers(&mut self, dt: f32) {
         self.slow_timer = (self.slow_timer - dt).max(0.0);
+        self.night_timer = (self.night_timer - dt).max(0.0);
         self.hit_flash.tick(dt);
+        self.animation_time += dt;
+        self.wheel_rotation = (self.wheel_rotation + dt * 7.0).rem_euclid(std::f32::consts::TAU);
     }
+
+    pub fn damage_state(&self) -> CarriageDamageState {
+        let ratio = self.health / self.max_health.max(1.0);
+        if ratio <= 0.25 {
+            CarriageDamageState::Critical
+        } else if ratio <= 0.55 {
+            CarriageDamageState::Damaged
+        } else if ratio <= 0.80 {
+            CarriageDamageState::Worn
+        } else {
+            CarriageDamageState::Pristine
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CarriageDamageState {
+    Pristine,
+    Worn,
+    Damaged,
+    Critical,
 }
 
 #[derive(Debug, Clone)]

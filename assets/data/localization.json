@@ -1,0 +1,53 @@
+{
+  "en": {
+    "menu.new_campaign": "New Campaign",
+    "menu.continue": "Continue",
+    "menu.settings": "Settings",
+    "menu.field_guide": "Field Guide",
+    "settings.fullscreen": "Fullscreen",
+    "settings.resolution": "Resolution",
+    "settings.vsync": "VSync",
+    "settings.fps_cap": "FPS Cap",
+    "settings.text_size": "Text Size",
+    "settings.colorblind": "Colorblind-safe Palette",
+    "settings.reduced_motion": "Reduced Motion",
+    "settings.drag_mode": "Drag Orders",
+    "results.stars": "Stars explain contract quality, carriage health, and cargo kept.",
+    "results.reward": "Final reward is contract pay plus performance bonuses minus penalties.",
+    "tutorial.continue": "Tap CONTINUE to follow the road lesson."
+  },
+  "de": {
+    "menu.new_campaign": "Neue Kampagne",
+    "menu.continue": "Fortsetzen",
+    "menu.settings": "Einstellungen",
+    "menu.field_guide": "Feldhandbuch",
+    "settings.fullscreen": "Vollbild",
+    "settings.resolution": "Auflösung",
+    "settings.vsync": "VSync",
+    "settings.fps_cap": "FPS-Limit",
+    "settings.text_size": "Textgröße",
+    "settings.colorblind": "Farbblindesicheres Farbschema",
+    "settings.reduced_motion": "Weniger Bewegung",
+    "settings.drag_mode": "Zugbefehle",
+    "results.stars": "Sterne erklären Vertragsqualität, Gesundheit und erhaltene Fracht.",
+    "results.reward": "Die Belohnung ist Vertrag plus Boni minus Strafen.",
+    "tutorial.continue": "Tippe auf WEITER für die Straßenlektion."
+  },
+  "fr": {
+    "menu.new_campaign": "Nouvelle campagne",
+    "menu.continue": "Continuer",
+    "menu.settings": "Paramètres",
+    "menu.field_guide": "Guide de terrain",
+    "settings.fullscreen": "Plein écran",
+    "settings.resolution": "Résolution",
+    "settings.vsync": "VSync",
+    "settings.fps_cap": "Limite FPS",
+    "settings.text_size": "Taille du texte",
+    "settings.colorblind": "Palette adaptée au daltonisme",
+    "settings.reduced_motion": "Mouvement réduit",
+    "settings.drag_mode": "Ordres par glisser",
+    "results.stars": "Les étoiles expliquent la qualité, la santé et la cargaison conservée.",
+    "results.reward": "Récompense : contrat + bonus − pénalités.",
+    "tutorial.continue": "Touchez CONTINUER pour suivre la leçon de route."
+  }
+}

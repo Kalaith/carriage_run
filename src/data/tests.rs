@@ -29,6 +29,7 @@ fn embedded_data_loads() {
         .texture_manifest
         .iter()
         .any(|texture| texture.key == "title_screen"));
+    assert!(data.cosmetics.contains("livery_roadwarden"));
 }
 
 #[test]

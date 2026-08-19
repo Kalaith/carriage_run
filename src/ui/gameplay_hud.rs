@@ -1,9 +1,13 @@
 //! Active mission HUD chrome.
 
+use super::gameplay_feedback::{
+    draw_boss_and_breakout, draw_offscreen_threat_pips, draw_touch_controls,
+};
 use super::upgrade_visuals::{draw_panel_with_fill, GOLD, GOLD_SOFT, INK, MUTED, PANEL};
 use super::{UiAction, UiContext, LOGICAL_WIDTH};
 use crate::state::{Guard, MissionRun};
 use macroquad::prelude::*;
+use macroquad_toolkit::math::ease_out_cubic;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::draw_ui_text_ex;
 
@@ -17,7 +21,7 @@ pub(super) fn draw_gameplay_hud(
     mouse: Vec2,
     actions: &mut Vec<UiAction>,
 ) {
-    draw_top_hud(run, mouse, actions);
+    draw_top_hud(ctx, run, mouse, actions);
     draw_bottom_hud(ctx.assets, run);
     draw_speed_gauge(run);
 
@@ -28,6 +32,9 @@ pub(super) fn draw_gameplay_hud(
     if let Some(wave) = run.wave_telegraph() {
         draw_wave_telegraph(wave);
     }
+    draw_boss_and_breakout(run);
+    draw_offscreen_threat_pips(&run.enemies);
+    draw_touch_controls(run, ctx.settings.colorblind_safe);
 
     if ctx.session.campaign.alerts_enabled && run.alert.timer > 0.0 {
         let alpha = (run.alert.timer / 1.6).clamp(0.0, 1.0);
@@ -43,7 +50,7 @@ pub(super) fn draw_gameplay_hud(
     }
 }
 
-fn draw_top_hud(run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
+fn draw_top_hud(ctx: &UiContext<'_>, run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let rect = Rect::new(8.0, 8.0, LOGICAL_WIDTH - 16.0, 86.0);
     draw_panel_with_fill(rect, Color::new(0.060, 0.043, 0.027, 0.98), true);
     draw_ornate_frame(rect);
@@ -56,6 +63,13 @@ fn draw_top_hud(run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
         RED,
         "carriage",
     );
+    super::widgets::hover_tooltip(
+        ctx,
+        "hud-carriage-health",
+        "Hull health: impacts at zero end the route",
+        Rect::new(rect.x + 18.0, rect.y + 12.0, 260.0, 62.0),
+        mouse,
+    );
     draw_status_meter(
         Rect::new(rect.x + 290.0, rect.y + 12.0, 260.0, 62.0),
         "Cargo Integrity",
@@ -63,6 +77,13 @@ fn draw_top_hud(run: &MissionRun, mouse: Vec2, actions: &mut Vec<UiAction>) {
         run.carriage.max_cargo,
         Color::new(0.88, 0.60, 0.08, 1.0),
         "cargo",
+    );
+    super::widgets::hover_tooltip(
+        ctx,
+        "hud-cargo-integrity",
+        "Cargo integrity: protect the delivery to keep the reward",
+        Rect::new(rect.x + 290.0, rect.y + 12.0, 260.0, 62.0),
+        mouse,
     );
     draw_route_progress(Rect::new(rect.x + 562.0, rect.y + 14.0, 330.0, 58.0), run);
 
@@ -180,12 +201,13 @@ fn draw_expedition_tag(leg: u32, banked: i64) {
 
 fn draw_wave_telegraph(wave: u32) {
     let rect = Rect::new(LOGICAL_WIDTH * 0.5 - 150.0, 150.0, 300.0, 42.0);
+    let pulse = ease_out_cubic((get_time() as f32 * 2.0).fract());
     draw_rectangle(
         rect.x,
         rect.y,
         rect.w,
         rect.h,
-        Color::new(0.20, 0.04, 0.03, 0.82),
+        Color::new(0.20, 0.04, 0.03, 0.72 + pulse * 0.16),
     );
     draw_rectangle_lines(
         rect.x,

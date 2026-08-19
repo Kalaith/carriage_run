@@ -1,36 +1,31 @@
 # Carriage Run
 
-Carriage Run is a Rust + Macroquad escort strategy prototype based on the supplied game design document. The player steers a supply carriage through scrolling routes while hired melee and ranged guards protect it from wolves, bandits, and skeletons.
+Carriage Run is a Rust + Macroquad escort strategy game. Steer a supply
+carriage across dangerous roads while hired guards protect the cargo, rescue
+prisoners, and carry the campaign into its final acts.
 
 ## What's built
 
-- 12-mission campaign with route branches, including prisoner, princess, monster-egg, and
-  siege escort variants — each with its mission-type meter promoted to a real verb.
-- Expedition mode as a full roguelite: an 8-leg arc with FTL-style branching legs and
-  modifier twists, choice-of-3 leg rewards, run-scoped relics, between-legs run events,
-  entry stakes, seeded/daily runs, persistent tokens unlocking starting relics, and a
-  records screen.
-- Three purchasable chassis plus four mutually-exclusive carriage frame tunings.
-- Difficulty presets and three assist toggles; a help/bestiary codex screen.
-- Mission loadout screen with multiple melee slots and carriage ranged slots.
-- Shop screen for hiring permanent melee and ranged guard recruits.
-- Dedicated guard roster screen with guard star upgrades and unique 2-star/3-star ability text.
-- Settings screen with route motion, alert, and autosave toggles.
-- Pause menu during routes with resume, settings, save, and route-map options.
-- Carriage equipment slots for active armor, wheel, cargo, and repair systems.
-- Visual carriage changes for chassis level and equipped systems.
-- Carriage steering with weighted horizontal movement.
-- Drag orders for guards: attack enemies, move to ground, return to escort formation, or mount/dismount ranged guards on carriage slots.
-- Ranged guard choices: Archer, Crossbow Guard, and Mage.
-- Guard injury recovery after defeat.
-- Wolves, bandits, bandit archers, skeletons, and necromancers that can raise skeletons.
-- Mud, fallen trees, rocks, and fire patches.
-- Mission-specific security and comfort meters.
-- Mission scoring, star ratings, gold rewards, and campaign records.
-- Upgrade screen for carriage armor, guard training, mounted ranged slots, wheels, cargo straps, and repair kits.
-- Emergency repair kit upgrade with a once-per-route repair ability.
-- Melee guard choices: Swordsman, Shield Guard, and Spearman.
-- Toolkit-backed save, load, notifications, virtual UI, asset pack hook, and WebGL publishing path.
+- A 30-mission campaign spanning three acts, three authored biomes, route
+  branches, six side missions, two campaign bosses, and a designed finale.
+- An 8-leg expedition mode with branching legs, modifiers, relics, events,
+  entry stakes, seeded/daily runs, persistent tokens, records, and a finale
+  boss.
+- Carriage chassis, frame tunings, equipment, damage states, bobbing wheels,
+  guard and enemy animation, biome road art, particles, hit-stop, and screen
+  shake.
+- Swordsman and Mage 3-star specializations, guard barks and hire quotes,
+  cosmetic livery and guard-color unlocks, and roster flavor text.
+- Breakout attempts, Rockslide, Cursed Fog, and Night Stretch hazards with
+  authored balance coverage and counterplay feedback.
+- Touch-first route controls, visible tutorial guidance, controller actions,
+  keyboard rebinding, threat/off-screen indicators, tooltips, confirmations,
+  results explanations, credits, and screen transitions.
+- Settings for display, audio, text size, colorblind palette, reduced motion,
+  drag behavior, language, and recovery-safe multi-slot saves with rolling
+  backups and corruption quarantine.
+- English, German, and French localization with fallback diagnostics, bundled
+  font fallbacks, layout checks, generated audio, and page-focus mute support.
 
 ## Run
 
@@ -38,18 +33,25 @@ Carriage Run is a Rust + Macroquad escort strategy prototype based on the suppli
 cargo run
 ```
 
-## Validate
+## Validate and package
 
 ```powershell
 .\publish.ps1
 ```
 
-The workspace standard validation path is the project publisher, which builds and packages the Windows and WebGL targets.
+The publisher is the project validation path. It builds and packages the
+Windows and WebGL targets, checks release budgets, and deploys the result to
+the local WebHatchery game directory.
 
 ```powershell
-.\scripts\capture_ui.ps1 -Scenes map,loadout,journey   # headless UI screenshots
+.\scripts\browser_smoke.ps1
 ```
 
-## Open work
+Release budgets, dependency/version policy, license inventories, and the
+latest verification captures live under `docs/`.
 
-See `TODO.md` — the remaining gaps toward a commercial release, grouped by area.
+## Project status
+
+The release backlog in [TODO.md](TODO.md) is complete. Remaining work should
+be tracked as new issues or milestones rather than carried as unfinished
+prototype scope.

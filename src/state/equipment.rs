@@ -59,6 +59,8 @@ pub struct CarriageVisual {
     pub spiked_hubs: bool,
     pub warding_lantern: bool,
     pub ranged_slots: usize,
+    pub livery_tint: [f32; 3],
+    pub guard_color_tint: [f32; 3],
 }
 
 impl CarriageVisual {
@@ -73,6 +75,8 @@ impl CarriageVisual {
             spiked_hubs: campaign.is_equipment_equipped(CarriageEquipment::SpikedHubs),
             warding_lantern: campaign.is_equipment_equipped(CarriageEquipment::WardingLantern),
             ranged_slots: campaign.ranged_slot_count(),
+            livery_tint: campaign.livery_tint(),
+            guard_color_tint: campaign.guard_color_tint(),
         }
     }
 }

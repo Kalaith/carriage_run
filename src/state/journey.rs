@@ -462,6 +462,10 @@ impl GameSession {
         };
         let leg_seed = journey.seed ^ (journey.leg as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15);
         let mut run = MissionRun::new_for_expedition(mission, &self.campaign, leg_seed);
+        if Journey::is_final_leg(journey.leg) {
+            run.boss = Some(super::BossState::new("expedition_warden"));
+            run.alert.set("The Expedition Warden blocks the road home");
+        }
         run.scale_for_journey(journey.difficulty_scale(), journey.carriage_health_ratio);
         if let Some(option) = &journey.current_leg {
             if let Some(modifier) = data.leg_modifiers.get(&option.modifier_id) {

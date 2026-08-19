@@ -9,6 +9,39 @@ use serde_json::Value;
 pub struct SaveData {
     pub version: String,
     pub campaign: CampaignState,
+    #[serde(default = "unknown_save_timestamp")]
+    pub saved_at: String,
+}
+
+fn unknown_save_timestamp() -> String {
+    "1970-01-01T00:00:00Z".to_owned()
+}
+
+pub fn save_timestamp() -> String {
+    let seconds = macroquad::miniquad::date::now().max(0.0) as i64;
+    let days = seconds.div_euclid(86_400);
+    let seconds_today = seconds.rem_euclid(86_400);
+    let (year, month, day) = civil_from_days(days);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds_today / 3_600,
+        seconds_today / 60 % 60,
+        seconds_today % 60
+    )
+}
+
+fn civil_from_days(days: i64) -> (i64, i64, i64) {
+    let z = days + 719_468;
+    let era = if z >= 0 { z } else { z - 146_096 }.div_euclid(146_097);
+    let doe = z - era * 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096).div_euclid(365);
+    let year = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2).div_euclid(153);
+    let day = doy - (153 * mp + 2).div_euclid(5) + 1;
+    let month = mp + if mp < 10 { 3 } else { -9 };
+    let year = year + if month <= 2 { 1 } else { 0 };
+    (year, month, day)
 }
 
 #[derive(Debug, Deserialize)]
@@ -27,6 +60,9 @@ pub fn migrate_save_value(
 
     if let Ok(mut current) = serde_json::from_value::<SaveData>(payload.clone()) {
         current.version = config.version.clone();
+        if current.saved_at == unknown_save_timestamp() {
+            current.saved_at = save_timestamp();
+        }
         current.campaign.normalize(first_mission_id);
         return Ok(current);
     }
@@ -36,6 +72,7 @@ pub fn migrate_save_value(
         return Ok(SaveData {
             version: config.version.clone(),
             campaign,
+            saved_at: save_timestamp(),
         });
     }
 
@@ -49,6 +86,7 @@ pub fn migrate_save_value(
     Ok(SaveData {
         version: config.version.clone(),
         campaign,
+        saved_at: save_timestamp(),
     })
 }
 

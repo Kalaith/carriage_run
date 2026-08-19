@@ -5,7 +5,7 @@ use super::upgrade_visuals::{
     draw_panel, draw_panel_with_fill, draw_section_label, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED,
     PANEL, PANEL_ALT,
 };
-use super::widgets::{draw_menu_backdrop, draw_top_nav, virtual_button};
+use super::widgets::{draw_menu_backdrop, draw_top_nav, hover_tooltip, virtual_button};
 use super::{UiAction, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
 use crate::state::{DifficultyPreset, GuardKind};
 use macroquad::prelude::*;
@@ -35,6 +35,14 @@ pub(super) fn draw_shop(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAc
         2.0,
         MUTED,
     );
+    if ctx.session.campaign.campaign_rank <= 1 {
+        draw_ui_text_ex(
+            "Roadwarden recommendation: Reinforced Kit keeps the first route forgiving.",
+            banner.x + 24.0,
+            banner.y + 96.0,
+            TextStyle::new(13.0, UI_GOLD).params(),
+        );
+    }
     draw_badge(
         Rect::new(banner.right() - 192.0, banner.y + 31.0, 156.0, 28.0),
         &format!("Gold {}", ctx.session.campaign.gold),
@@ -168,6 +176,7 @@ pub(super) fn draw_settings(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
             Rect::new(360.0, 84.0, 560.0, 600.0),
             false,
         );
+        super::settings_aux::draw_settings_aux(ctx, mouse, actions);
     }
 }
 
@@ -284,6 +293,13 @@ fn draw_provisions_panel(
     ) {
         actions.push(UiAction::BuyReinforcedKit);
     }
+    hover_tooltip(
+        ctx,
+        "shop-reinforced-kit",
+        "Reinforced Kit: spend gold before a route for +55 carriage health",
+        Rect::new(rect.right() - 148.0, rect.y + 12.0, 132.0, 34.0),
+        mouse,
+    );
 }
 
 fn draw_shop_guard_card(
@@ -327,6 +343,12 @@ fn draw_shop_guard_card(
         rect.x + 22.0,
         rect.y + 116.0,
         TextStyle::new(14.0, MUTED).params(),
+    );
+    draw_ui_text_ex(
+        &format!("\"{}\"", kind.hire_quote()),
+        rect.x + 22.0,
+        rect.y + 139.0,
+        TextStyle::new(11.0, GOLD_SOFT).params(),
     );
 
     let status = if selected {
@@ -374,6 +396,13 @@ fn draw_shop_guard_card(
     ) {
         actions.push(action);
     }
+    hover_tooltip(
+        ctx,
+        &format!("shop-guard-{}", kind.id()),
+        &format!("{} — {}", kind.label(), kind.description()),
+        rect,
+        mouse,
+    );
 }
 
 fn draw_roster_guard_card(
@@ -418,6 +447,18 @@ fn draw_roster_guard_card(
         rect.y + 122.0,
         TextStyle::new(13.0, MUTED).params(),
     );
+    if let Some(specialization) = campaign.guard_specialization(kind) {
+        draw_badge(
+            Rect::new(rect.x + 22.0, rect.y + 142.0, 132.0, 22.0),
+            if specialization.contains("blademaster") {
+                "Blademaster"
+            } else {
+                "Ritualist"
+            },
+            Color::new(0.20, 0.15, 0.06, 1.0),
+            UI_GOLD,
+        );
+    }
 
     // When a guard is recovering, the primary action becomes paying the
     // infirmary to bring them back early.
@@ -461,6 +502,19 @@ fn draw_roster_guard_card(
         actions.push(action);
     }
 
+    hover_tooltip(
+        ctx,
+        &format!("roster-guard-{}", kind.id()),
+        &format!(
+            "{}: {}. {}",
+            kind.label(),
+            kind.description(),
+            kind.ability_summary(stars)
+        ),
+        rect,
+        mouse,
+    );
+
     let status = if recovery > 0 {
         format!("Rest {}", recovery)
     } else if hired {
@@ -491,6 +545,29 @@ fn draw_roster_guard_card(
         mouse,
     ) {
         actions.push(UiAction::UpgradeGuardStar(kind.id().to_owned()));
+    }
+
+    if stars >= 3
+        && campaign.guard_specialization(kind).is_none()
+        && matches!(kind, GuardKind::Swordsman | GuardKind::Mage)
+    {
+        if let Some(definition) = ctx
+            .data
+            .guard_specializations
+            .iter()
+            .map(|(_, definition)| definition)
+            .find(|definition| definition.guard_id == kind.id())
+        {
+            if virtual_button(
+                Rect::new(rect.x + 154.0, rect.y + 138.0, 150.0, 28.0),
+                &format!("{} {}g", definition.name, definition.cost),
+                campaign.gold >= definition.cost,
+                ButtonTone::Secondary,
+                mouse,
+            ) {
+                actions.push(UiAction::PurchaseGuardSpecialization(definition.id.clone()));
+            }
+        }
     }
 }
 

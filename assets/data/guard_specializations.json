@@ -1,0 +1,20 @@
+[
+  {
+    "id": "swordsman_blademaster",
+    "guard_id": "swordsman",
+    "name": "Blademaster",
+    "description": "A three-star swordsman learns to turn every opening into a second cut.",
+    "cost": 260,
+    "damage_mult": 1.12,
+    "ability": "Cleave reaches a third nearby target at 55% damage."
+  },
+  {
+    "id": "mage_ritualist",
+    "guard_id": "mage",
+    "name": "Ritualist",
+    "description": "A three-star mage binds a ward into every spell and steadies the whole roster.",
+    "cost": 290,
+    "damage_mult": 1.10,
+    "ability": "Splash damage grows to 52% and healing charms restore an extra 4 health."
+  }
+]

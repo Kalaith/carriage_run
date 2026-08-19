@@ -360,6 +360,15 @@ fn draw_hub(journey: &Journey, data: &GameData, mouse: Vec2, actions: &mut Vec<U
     ) {
         actions.push(UiAction::JourneyBank);
     }
+    if virtual_button(
+        Rect::new(panel.x + 50.0, panel.bottom() - 48.0, panel.w - 100.0, 32.0),
+        "Abandon Expedition",
+        true,
+        ButtonTone::Danger,
+        mouse,
+    ) {
+        actions.push(UiAction::RequestAbandonExpedition);
+    }
 }
 
 fn leg_effect_summary(option: &crate::state::LegOption, data: &GameData) -> String {

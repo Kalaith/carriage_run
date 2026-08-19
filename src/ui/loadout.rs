@@ -3,7 +3,9 @@
 use super::upgrade_visuals::{
     draw_panel, draw_panel_with_fill, draw_section_label, GOLD as UI_GOLD, INK, MUTED, PANEL_ALT,
 };
-use super::widgets::{draw_menu_backdrop, draw_mix_list, draw_top_nav, virtual_button};
+use super::widgets::{
+    draw_menu_backdrop, draw_mix_list, draw_top_nav, hover_tooltip, virtual_button,
+};
 use super::{UiAction, UiContext};
 use crate::state::{CarriageEquipment, GuardKind};
 use macroquad::prelude::*;
@@ -374,6 +376,13 @@ fn draw_pool_card(
             });
         }
     }
+    hover_tooltip(
+        ctx,
+        &format!("loadout-guard-{}", kind.id()),
+        &format!("{} — {}", kind.label(), kind.ability_summary(stars)),
+        rect,
+        mouse,
+    );
 }
 
 fn visible_slot_count(ctx: &UiContext<'_>, ranged: bool) -> usize {

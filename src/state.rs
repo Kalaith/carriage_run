@@ -1,7 +1,9 @@
 //! Persistent campaign state and the shared vocabulary of screens and presets.
 
+mod boss;
 mod campaign;
 mod chassis;
+mod cosmetics;
 mod entities;
 mod equipment;
 mod journey;
@@ -11,6 +13,7 @@ mod session;
 #[cfg(any(debug_assertions, test))]
 mod validation;
 
+pub use boss::{BossEvent, BossState};
 pub use entities::*;
 pub use equipment::*;
 pub use journey::{ExpeditionRecords, ExpeditionRunSummary, Journey, LegOption, LegReward};
@@ -18,7 +21,9 @@ pub use mission::{MissionInput, MissionReport, MissionRun, RewardBreakdown};
 pub use save::{migrate_save_value, SaveData};
 pub use session::GameSession;
 #[cfg(any(debug_assertions, test))]
-pub use validation::{validate_mission_content, validate_mission_reachability};
+pub use validation::{
+    validate_campaign_metadata, validate_mission_content, validate_mission_reachability,
+};
 
 use crate::data::{GameConfig, UpgradeDef};
 use serde::{Deserialize, Serialize};
@@ -41,14 +46,18 @@ pub enum Screen {
     Outfitter,
     Records,
     Codex,
+    Cosmetics,
+    Credits,
 }
 
 /// A destructive action awaiting explicit player confirmation. Session-only
 /// (never serialized) — it gates footguns like overwriting an existing save.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConfirmPrompt {
     /// Starting a new campaign would overwrite the current autosave.
     NewCampaign,
+    BuyChassis(String),
+    AbandonExpedition,
 }
 
 /// Gold cost of one Reinforced Kit consumable. A repeatable sink for gold that
@@ -169,6 +178,9 @@ pub struct CampaignState {
     pub guard_stars: HashMap<String, u8>,
     #[serde(default)]
     pub guard_recovery: HashMap<String, u32>,
+    /// Purchased three-star specialization branch per guard.
+    #[serde(default)]
+    pub guard_specializations: HashMap<String, String>,
     #[serde(default = "default_true")]
     pub route_motion_enabled: bool,
     #[serde(default = "default_true")]
@@ -210,6 +222,18 @@ pub struct CampaignState {
     /// choice sticks; defaults to the no-stake tier.
     #[serde(default = "default_stake_id")]
     pub selected_stake_id: String,
+    /// Active user save slot. Slot names are deliberately part of the campaign
+    /// payload so a renamed slot survives a reload.
+    #[serde(default = "default_save_slot")]
+    pub active_save_slot: String,
+    #[serde(default = "default_livery_id")]
+    pub livery_id: String,
+    #[serde(default = "default_guard_color_id")]
+    pub guard_color_id: String,
+    #[serde(default)]
+    pub owned_livery_ids: Vec<String>,
+    #[serde(default)]
+    pub owned_guard_color_ids: Vec<String>,
     /// Chosen mutually-exclusive carriage frame tuning id (Carriages screen).
     /// Exactly one is active; defaults to the balanced Standard Frame.
     #[serde(default = "default_frame_id")]
@@ -252,6 +276,7 @@ impl CampaignState {
             chassis_health_mult: 1.0,
             guard_stars: HashMap::new(),
             guard_recovery: HashMap::new(),
+            guard_specializations: HashMap::new(),
             route_motion_enabled: true,
             alerts_enabled: true,
             auto_save_enabled: true,
@@ -265,6 +290,11 @@ impl CampaignState {
             selected_starting_relic_ids: Vec::new(),
             expedition_records: ExpeditionRecords::default(),
             selected_stake_id: default_stake_id(),
+            active_save_slot: config.save_slot.clone(),
+            livery_id: default_livery_id(),
+            guard_color_id: default_guard_color_id(),
+            owned_livery_ids: vec![default_livery_id()],
+            owned_guard_color_ids: vec![default_guard_color_id()],
             carriage_frame_id: default_frame_id(),
             frame_speed_mult: 1.0,
             frame_health_mult: 1.0,
@@ -360,6 +390,12 @@ impl CampaignState {
         kind.star_upgrade_cost(self.guard_star_level(kind))
     }
 
+    pub fn guard_specialization(&self, kind: GuardKind) -> Option<&str> {
+        self.guard_specializations
+            .get(kind.id())
+            .map(String::as_str)
+    }
+
     pub fn guard_recovery_missions(&self, kind: GuardKind) -> u32 {
         self.guard_recovery.get(kind.id()).copied().unwrap_or(0)
     }
@@ -383,6 +419,9 @@ impl CampaignState {
         }
         self.selected_route_choices
             .retain(|mission_id, route_id| !mission_id.is_empty() && !route_id.is_empty());
+        if self.active_save_slot.is_empty() {
+            self.active_save_slot = default_save_slot();
+        }
         self.selected_starting_relic_ids.retain(|id| {
             self.expedition_unlocks
                 .iter()
@@ -469,6 +508,27 @@ impl CampaignState {
         }
         self.guard_recovery
             .retain(|id, turns| *turns > 0 && GuardKind::from_id(id).id() == id.as_str());
+        self.guard_specializations
+            .retain(|guard_id, specialization| {
+                matches!(guard_id.as_str(), "swordsman" | "mage") && !specialization.is_empty()
+            });
+        self.owned_livery_ids =
+            unique_owned(&self.owned_livery_ids, &self.livery_id, "default_livery");
+        self.owned_guard_color_ids = unique_owned(
+            &self.owned_guard_color_ids,
+            &self.guard_color_id,
+            "default_guard_color",
+        );
+        if !self.owned_livery_ids.iter().any(|id| id == &self.livery_id) {
+            self.livery_id = default_livery_id();
+        }
+        if !self
+            .owned_guard_color_ids
+            .iter()
+            .any(|id| id == &self.guard_color_id)
+        {
+            self.guard_color_id = default_guard_color_id();
+        }
         self.normalize_equipment();
     }
 
@@ -520,6 +580,28 @@ fn default_armor_level() -> u32 {
 
 fn default_stake_id() -> String {
     "none".to_owned()
+}
+
+fn default_save_slot() -> String {
+    "slot_1".to_owned()
+}
+
+fn default_livery_id() -> String {
+    "default_livery".to_owned()
+}
+
+fn default_guard_color_id() -> String {
+    "default_guard_color".to_owned()
+}
+
+fn unique_owned(current: &[String], active: &str, fallback: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    for id in current.iter().map(String::as_str).chain([active, fallback]) {
+        if !id.is_empty() && !values.iter().any(|owned: &String| owned == id) {
+            values.push(id.to_owned());
+        }
+    }
+    values
 }
 
 fn default_frame_id() -> String {

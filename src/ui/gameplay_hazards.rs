@@ -12,6 +12,9 @@ fn hazard_id(kind: HazardKind) -> &'static str {
         HazardKind::Rocks => "rocks",
         HazardKind::FirePatch => "fire_patch",
         HazardKind::RiverFord => "river_ford",
+        HazardKind::Rockslide => "rockslide",
+        HazardKind::CursedFog => "cursed_fog",
+        HazardKind::NightStretch => "night_stretch",
     }
 }
 
@@ -27,6 +30,9 @@ pub(super) fn draw_hazard(assets: &AssetManager, hazard: &Hazard) {
     };
     let size = match hazard.kind {
         HazardKind::FallenTree | HazardKind::RiverFord => vec2(150.0, 82.0),
+        HazardKind::Rockslide | HazardKind::CursedFog | HazardKind::NightStretch => {
+            vec2(hazard.size.x, hazard.size.y)
+        }
         _ => vec2(hazard.radius * 3.2, hazard.radius * 2.7),
     };
     draw_world(assets, hazard_id(hazard.kind), hazard.pos, size, tint);

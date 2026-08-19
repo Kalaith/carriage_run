@@ -1,0 +1,7 @@
+[
+  {"id":"livery_roadwarden","kind":"livery","name":"Roadwarden Blue","description":"A blue enamel stripe that marks a charter worth protecting.","cost":180,"order":1,"tint":[0.78,0.88,1.0]},
+  {"id":"livery_ember","kind":"livery","name":"Ember Lacquer","description":"Warm red lacquer for a convoy that refuses to slow down.","cost":320,"order":2,"tint":[1.0,0.78,0.68]},
+  {"id":"livery_moonlit","kind":"livery","name":"Moonlit Silver","description":"Pale trim cut for the last road beyond the frontier.","cost":480,"order":3,"tint":[0.78,0.88,1.0]},
+  {"id":"guard_color_verdant","kind":"guard_color","name":"Verdant Sashes","description":"Green guard sashes for a company that travels together.","cost":140,"order":4,"tint":[0.70,1.0,0.78]},
+  {"id":"guard_color_sunset","kind":"guard_color","name":"Sunset Sashes","description":"A bright orange-red accent visible through dust and rain.","cost":260,"order":5,"tint":[1.0,0.78,0.60]}
+]

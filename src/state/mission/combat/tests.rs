@@ -8,6 +8,7 @@ fn test_run() -> MissionRun {
         display_name: "Carriage Run".to_owned(),
         save_slot: "campaign".to_owned(),
         version: "0.1.0".to_owned(),
+        toolkit_revision: String::new(),
         starting_gold: 100,
     };
     let campaign = CampaignState::new(&config, Some("muddy_road"));
@@ -33,6 +34,12 @@ fn test_run() -> MissionRun {
         prerequisite_missions: Vec::new(),
         unlock_any_missions: Vec::new(),
         time_limit: None,
+        act: 1,
+        biome: "test_biome".to_owned(),
+        boss_id: None,
+        side_mission: false,
+        hazard_palette: Vec::new(),
+        reward_note: String::new(),
     };
     MissionRun::new(&mission, &campaign)
 }
@@ -72,6 +79,30 @@ fn mud_jostles_less_when_braking_and_more_when_boosting() {
     let boosting = cargo_after_mud(1.32);
     assert!(braking > cruising, "braking should preserve more cargo");
     assert!(cruising > boosting, "boosting should jostle more cargo");
+}
+
+#[test]
+fn authored_hazards_have_distinct_collision_effects() {
+    let mut rockslide = test_run();
+    let health = rockslide.carriage.health;
+    rockslide
+        .hazards
+        .push(Hazard::new(HazardKind::Rockslide, rockslide.carriage.pos));
+    rockslide.handle_hazard_collisions(1.0 / 60.0);
+    assert!(rockslide.carriage.health < health);
+
+    let mut fog = test_run();
+    fog.hazards
+        .push(Hazard::new(HazardKind::CursedFog, fog.carriage.pos));
+    fog.handle_hazard_collisions(1.0 / 60.0);
+    assert!(fog.carriage.slow_timer > 0.0);
+
+    let mut night = test_run();
+    night
+        .hazards
+        .push(Hazard::new(HazardKind::NightStretch, night.carriage.pos));
+    night.handle_hazard_collisions(1.0 / 60.0);
+    assert!(night.carriage.night_timer > 0.0);
 }
 
 #[test]

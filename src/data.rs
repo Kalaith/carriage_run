@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 const GAME_CONFIG_JSON: &str =
     macroquad_toolkit::include_json_str!("../assets/data/game_config.json");
 const MISSIONS_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/missions.json");
+const EXTENDED_MISSIONS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/missions_act2_act3.json");
 const UPGRADES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/upgrades.json");
 const CARRIAGES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/carriages.json");
 const TEXTURE_MANIFEST_JSON: &str =
@@ -21,6 +23,9 @@ const RUN_EVENTS_JSON: &str =
 const STAKES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/stakes.json");
 const CARRIAGE_FRAMES_JSON: &str =
     macroquad_toolkit::include_json_str!("../assets/data/carriage_frames.json");
+const GUARD_SPECIALIZATIONS_JSON: &str =
+    macroquad_toolkit::include_json_str!("../assets/data/guard_specializations.json");
+const COSMETICS_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/cosmetics.json");
 
 fn one() -> f32 {
     1.0
@@ -32,6 +37,8 @@ pub struct GameConfig {
     pub display_name: String,
     pub save_slot: String,
     pub version: String,
+    #[serde(default)]
+    pub toolkit_revision: String,
     pub starting_gold: i64,
 }
 
@@ -71,6 +78,52 @@ pub struct MissionDef {
     pub unlock_any_missions: Vec<String>,
     #[serde(default)]
     pub time_limit: Option<f32>,
+    /// Authored campaign act. Legacy missions derive this from their order.
+    #[serde(default)]
+    pub act: u8,
+    /// Authored biome used by the route map, hazards, and art palette.
+    #[serde(default)]
+    pub biome: String,
+    /// Optional reusable boss definition used by finale missions.
+    #[serde(default)]
+    pub boss_id: Option<String>,
+    /// Optional content that appears after the three core acts.
+    #[serde(default)]
+    pub side_mission: bool,
+    /// Explicit hazard palette for validation and route-map presentation.
+    #[serde(default)]
+    pub hazard_palette: Vec<String>,
+    /// Short reward rationale shown on the results breakdown.
+    #[serde(default)]
+    pub reward_note: String,
+}
+
+impl MissionDef {
+    pub fn authored_act(&self) -> u8 {
+        if self.act > 0 {
+            self.act
+        } else {
+            // The original twelve routes are the fully authored opening act;
+            // extended act metadata is explicit in the release content file.
+            1
+        }
+    }
+
+    pub fn authored_biome(&self) -> &str {
+        if self.biome.is_empty() {
+            match self.authored_act() {
+                1 => "greenwood",
+                2 => "ashen_march",
+                _ => "moonlit_frontier",
+            }
+        } else {
+            self.biome.as_str()
+        }
+    }
+
+    pub fn palette(&self) -> &[String] {
+        &self.hazard_palette
+    }
 }
 
 /// The measurable quantity a bonus objective is graded on, evaluated at
@@ -273,6 +326,29 @@ pub struct CarriageFrameDef {
     pub cargo_mult: f32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GuardSpecializationDef {
+    pub id: String,
+    pub guard_id: String,
+    pub name: String,
+    pub description: String,
+    pub cost: i64,
+    #[serde(default = "one")]
+    pub damage_mult: f32,
+    pub ability: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CosmeticDef {
+    pub id: String,
+    pub kind: String,
+    pub name: String,
+    pub description: String,
+    pub cost: i64,
+    pub order: u32,
+    pub tint: [f32; 3],
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -284,13 +360,44 @@ pub struct GameData {
     pub run_events: DataRegistry<RunEventDef>,
     pub stakes: DataRegistry<StakeDef>,
     pub carriage_frames: DataRegistry<CarriageFrameDef>,
+    pub guard_specializations: DataRegistry<GuardSpecializationDef>,
+    pub cosmetics: DataRegistry<CosmeticDef>,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
 impl GameData {
+    pub fn recovery(reason: &str) -> Self {
+        let _ = reason;
+        Self {
+            config: GameConfig {
+                game_name: "carriage_run".to_owned(),
+                display_name: "Carriage Run".to_owned(),
+                save_slot: "campaign".to_owned(),
+                version: "recovery".to_owned(),
+                toolkit_revision: String::new(),
+                starting_gold: 0,
+            },
+            missions: DataRegistry::new(),
+            upgrades: DataRegistry::new(),
+            chassis: DataRegistry::new(),
+            relics: DataRegistry::new(),
+            leg_modifiers: DataRegistry::new(),
+            run_events: DataRegistry::new(),
+            stakes: DataRegistry::new(),
+            carriage_frames: DataRegistry::new(),
+            guard_specializations: DataRegistry::new(),
+            cosmetics: DataRegistry::new(),
+            texture_manifest: Vec::new(),
+        }
+    }
+
     pub fn load() -> Result<Self, String> {
         let config = load_embedded_json_labeled("game_config", GAME_CONFIG_JSON)?;
-        let missions = DataRegistry::from_embedded_json(MISSIONS_JSON, "id")?;
+        let mut missions = DataRegistry::from_embedded_json(MISSIONS_JSON, "id")?;
+        missions.merge(DataRegistry::from_embedded_json(
+            EXTENDED_MISSIONS_JSON,
+            "id",
+        )?);
         let upgrades = DataRegistry::from_embedded_json(UPGRADES_JSON, "id")?;
         let chassis = DataRegistry::from_embedded_json(CARRIAGES_JSON, "id")?;
         let relics = DataRegistry::from_embedded_json(RELICS_JSON, "id")?;
@@ -298,6 +405,9 @@ impl GameData {
         let run_events = DataRegistry::from_embedded_json(RUN_EVENTS_JSON, "id")?;
         let stakes = DataRegistry::from_embedded_json(STAKES_JSON, "id")?;
         let carriage_frames = DataRegistry::from_embedded_json(CARRIAGE_FRAMES_JSON, "id")?;
+        let guard_specializations =
+            DataRegistry::from_embedded_json(GUARD_SPECIALIZATIONS_JSON, "id")?;
+        let cosmetics = DataRegistry::from_embedded_json(COSMETICS_JSON, "id")?;
         let texture_manifest = load_embedded_json(TEXTURE_MANIFEST_JSON)?;
 
         Ok(Self {
@@ -310,6 +420,8 @@ impl GameData {
             run_events,
             stakes,
             carriage_frames,
+            guard_specializations,
+            cosmetics,
             texture_manifest,
         })
     }
@@ -330,6 +442,16 @@ impl GameData {
         let mut frames: Vec<_> = self.carriage_frames.iter().map(|(_, f)| f).collect();
         frames.sort_by_key(|f| f.order);
         frames
+    }
+
+    pub fn cosmetics_ordered(&self) -> Vec<&CosmeticDef> {
+        let mut cosmetics: Vec<_> = self
+            .cosmetics
+            .iter()
+            .map(|(_, cosmetic)| cosmetic)
+            .collect();
+        cosmetics.sort_by_key(|cosmetic| cosmetic.order);
+        cosmetics
     }
 
     pub fn relics_ordered(&self) -> Vec<&RelicDef> {

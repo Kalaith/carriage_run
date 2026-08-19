@@ -121,7 +121,9 @@ pub(super) fn simulate(data: &GameData, case: SimCase<'_>) -> SimResult {
         );
     }
     let mut run = MissionRun::new(mission, &campaign);
-    let report = (0..4_000)
+    // Act II/III routes are longer than the original opening act; keep the
+    // headless budget generous enough to observe a natural arrival or failure.
+    let report = (0..6_000)
         .find_map(|_| {
             run.handle_input(input(case.policy, &run));
             run.update(mission, 0.05)

@@ -1,6 +1,7 @@
 //! Applying damage to enemies, guards, and the carriage, plus guard-hit perks.
 
 use super::*;
+use macroquad_toolkit::fx::BurstConfig;
 
 /// A guard's landed attack, resolved after the guard loop releases its borrow
 /// on `self.guards`.
@@ -31,6 +32,10 @@ impl MissionRun {
             return;
         };
 
+        if hit.stars >= 3 && self.alert.timer <= 0.0 {
+            self.alert.set(hit.kind.combat_bark());
+        }
+
         if hit.kind.is_ranged() {
             self.shots
                 .push(Shot::new(hit.origin, hit.target, hit.kind.shot_color()));
@@ -39,7 +44,20 @@ impl MissionRun {
         match hit.kind {
             GuardKind::Swordsman if hit.stars >= 3 => {
                 if let Some(extra_id) = self.nearby_enemy(hit.enemy_id, primary_pos, 48.0) {
-                    self.damage_enemy(extra_id, damage * 0.45);
+                    self.damage_enemy(
+                        extra_id,
+                        damage
+                            * if self.guard_is_specialized(hit.kind) {
+                                0.55
+                            } else {
+                                0.45
+                            },
+                    );
+                }
+                if self.guard_is_specialized(hit.kind) {
+                    if let Some(third_id) = self.nearby_enemy(hit.enemy_id, primary_pos, 72.0) {
+                        self.damage_enemy(third_id, damage * 0.55);
+                    }
                 }
             }
             GuardKind::Archer if hit.stars >= 3 => {
@@ -69,11 +87,26 @@ impl MissionRun {
                         .map(|enemy| enemy.id)
                         .collect();
                     for splash_id in splash_ids {
-                        self.damage_enemy(splash_id, damage * 0.38);
+                        self.damage_enemy(
+                            splash_id,
+                            damage
+                                * if self.guard_is_specialized(hit.kind) {
+                                    0.52
+                                } else {
+                                    0.38
+                                },
+                        );
                     }
                 }
                 if hit.stars >= 3 {
-                    self.heal_weak_guard(4.0 + damage * 0.08);
+                    self.heal_weak_guard(
+                        4.0 + damage * 0.08
+                            + if self.guard_is_specialized(hit.kind) {
+                                4.0
+                            } else {
+                                0.0
+                            },
+                    );
                 }
             }
             _ => {}
@@ -91,6 +124,22 @@ impl MissionRun {
             format!("{:.0}", damage.max(1.0)),
             vec2(pos.x, pos.y - 22.0),
             Color::new(0.98, 0.90, 0.52, 1.0),
+        );
+        self.hit_stop = self.hit_stop.max(0.018);
+        self.screen_shake.add_trauma(0.025);
+        self.particles.spawn_burst(
+            pos,
+            5,
+            &BurstConfig {
+                speed: (35.0, 90.0),
+                size: (1.5, 3.5),
+                life: (0.18, 0.35),
+                colors: vec![
+                    Color::new(1.0, 0.78, 0.28, 1.0),
+                    Color::new(0.92, 0.36, 0.18, 1.0),
+                ],
+                ..Default::default()
+            },
         );
         Some(pos)
     }
@@ -122,6 +171,12 @@ impl MissionRun {
         {
             guard.health = (guard.health + amount).min(guard.max_health);
         }
+    }
+
+    fn guard_is_specialized(&self, kind: GuardKind) -> bool {
+        self.guards
+            .iter()
+            .any(|guard| guard.kind == kind && guard.specialized)
     }
 
     pub(super) fn damage_guard(&mut self, guard_id: u32, damage: f32) {
@@ -174,6 +229,8 @@ impl MissionRun {
         self.damage_taken += final_damage;
         self.cargo_lost += final_cargo_loss;
         self.carriage.hit_flash = Timer::new(0.22);
+        self.hit_stop = self.hit_stop.max(0.035);
+        self.screen_shake.add_trauma(0.10);
         if !label.is_empty() {
             self.alert.set(label);
         }

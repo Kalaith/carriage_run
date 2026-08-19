@@ -2,8 +2,10 @@
 
 mod carriage;
 mod carriages;
+mod cosmetics;
 mod gameplay;
 mod gameplay_actors;
+mod gameplay_feedback;
 mod gameplay_hazards;
 mod gameplay_hud;
 mod gameplay_road;
@@ -14,17 +16,22 @@ mod mission_map;
 mod mission_map_art;
 mod outfitter;
 mod records;
+mod results;
+mod settings_aux;
 mod sprites;
 mod upgrade_visuals;
 mod upgrades;
 mod widgets;
 
 use crate::data::GameData;
+use crate::localization::Localizer;
+use crate::settings::RuntimeSettings;
 use crate::state::{Screen, PLAY_BOTTOM, PLAY_TOP};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::{draw_text_centered, draw_ui_text_ex};
+use std::cell::RefCell;
 use upgrade_visuals::{
     draw_crest, draw_panel, draw_section_label, GOLD as UI_GOLD, GOLD_SOFT, INK, MUTED,
 };
@@ -38,6 +45,9 @@ pub enum UiAction {
     NewCampaign,
     RequestNewCampaign,
     DismissConfirm,
+    ConfirmBuyChassis(String),
+    RequestAbandonExpedition,
+    AbandonExpedition,
     ContinueCampaign,
     OpenMap,
     OpenLoadout,
@@ -47,6 +57,8 @@ pub enum UiAction {
     OpenUpgrades,
     OpenSettings,
     OpenCodex,
+    OpenCosmetics,
+    OpenCredits,
     SetCodexTab(crate::state::CodexTab),
     ReturnTitle,
     PauseGame,
@@ -62,9 +74,14 @@ pub enum UiAction {
     ClearEquipmentSlot(usize),
     HireGuard(String),
     UpgradeGuardStar(String),
+    PurchaseGuardSpecialization(String),
+    BuyCosmetic(String),
+    SelectCosmetic(String),
     TreatGuard(String),
     ToggleSetting(String),
     SetDifficulty(String),
+    ToggleRuntimeSetting(String),
+    CycleRuntimeSetting(String),
     BeginMission,
     OpenOutfitter,
     OpenRecords,
@@ -88,6 +105,10 @@ pub enum UiAction {
     BuyReinforcedKit,
     Save,
     Load,
+    SelectSaveSlot(String),
+    CreateSaveSlot(String),
+    RenameSaveSlot(String),
+    DeleteSaveSlot,
     ExitGame,
 }
 
@@ -98,10 +119,32 @@ pub struct UiContext<'a> {
     pub save_exists: bool,
     pub loaded_assets: usize,
     pub ui: &'a VirtualUi,
+    pub settings: &'a RuntimeSettings,
+    pub localization: &'a Localizer,
+    pub save_slots: &'a [String],
+    pub active_save_slot: &'a str,
+    pub tooltip: &'a RefCell<macroquad_toolkit::ui::HoverTooltip>,
+    pub controller_connected: bool,
 }
 
 pub fn play_rect() -> Rect {
     Rect::new(0.0, PLAY_TOP, LOGICAL_WIDTH, PLAY_BOTTOM - PLAY_TOP)
+}
+
+pub fn touch_steer_left_rect() -> Rect {
+    Rect::new(186.0, 622.0, 92.0, 64.0)
+}
+
+pub fn touch_steer_right_rect() -> Rect {
+    Rect::new(286.0, 622.0, 92.0, 64.0)
+}
+
+pub fn touch_brake_rect() -> Rect {
+    Rect::new(946.0, 622.0, 106.0, 64.0)
+}
+
+pub fn touch_boost_rect() -> Rect {
+    Rect::new(1064.0, 622.0, 106.0, 64.0)
 }
 
 pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
@@ -124,17 +167,69 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         Screen::Outfitter => outfitter::draw_outfitter(&ctx, mouse, &mut actions),
         Screen::Records => records::draw_records(&ctx, mouse, &mut actions),
         Screen::Codex => draw_codex(&ctx, mouse, &mut actions),
+        Screen::Cosmetics => cosmetics::draw_cosmetics(&ctx, mouse, &mut actions),
+        Screen::Credits => draw_credits(&ctx, mouse, &mut actions),
+    }
+
+    if ctx.controller_connected {
+        draw_ui_text_ex(
+            "CONTROLLER  A: confirm  B: back  X: guard stance",
+            30.0,
+            LOGICAL_HEIGHT - 12.0,
+            TextStyle::new(12.0, MUTED).params(),
+        );
     }
 
     // A pending confirmation is a true modal: it draws over whatever screen is
     // active and swallows the frame's interactions so no click reaches the
     // screen beneath it.
-    if let Some(prompt) = ctx.session.pending_confirm {
+    if let Some(prompt) = ctx.session.pending_confirm.clone() {
         actions.clear();
         draw_confirm_dialog(prompt, mouse, &mut actions);
     }
 
     actions
+}
+
+pub fn draw_recovery_screen(error: &str) {
+    draw_menu_backdrop(0.0);
+    let panel = Rect::new(210.0, 150.0, 860.0, 410.0);
+    draw_panel(panel, true);
+    draw_section_label(
+        "Caravan Recovery",
+        panel.x + 36.0,
+        panel.y + 36.0,
+        panel.w - 72.0,
+    );
+    draw_text_block(
+        "The roadbook could not be opened. Your existing save was left untouched. Close and verify the installed data, then try again.",
+        panel.x + 48.0,
+        panel.y + 112.0,
+        panel.w - 96.0,
+        86.0,
+        22.0,
+        4.0,
+        INK,
+    );
+    draw_text_block(
+        error,
+        panel.x + 48.0,
+        panel.y + 230.0,
+        panel.w - 96.0,
+        80.0,
+        16.0,
+        4.0,
+        MUTED,
+    );
+    draw_text_centered_in_box(
+        "Native crash logging remains available for unrecoverable failures.",
+        panel.x + 48.0,
+        panel.bottom() - 58.0,
+        panel.w - 96.0,
+        24.0,
+        14.0,
+        GOLD_SOFT,
+    );
 }
 
 fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
@@ -168,7 +263,7 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     let mut y = panel.y + 58.0;
     if virtual_button(
         Rect::new(panel.x + 26.0, y, panel.w - 52.0, 44.0),
-        "New Campaign",
+        &ctx.localization.display("menu.new_campaign"),
         true,
         ButtonTone::Primary,
         mouse,
@@ -178,7 +273,7 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     y += 58.0;
     if virtual_button(
         Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
-        "Continue",
+        &ctx.localization.display("menu.continue"),
         ctx.save_exists,
         ButtonTone::Positive,
         mouse,
@@ -198,7 +293,7 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     y += 54.0;
     if virtual_button(
         Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
-        "Settings",
+        &ctx.localization.display("menu.settings"),
         true,
         ButtonTone::Secondary,
         mouse,
@@ -207,13 +302,27 @@ fn draw_title(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
     }
     y += 54.0;
     if virtual_button(
-        Rect::new(panel.x + 26.0, y, panel.w - 52.0, 42.0),
-        "Field Guide",
+        Rect::new(panel.x + 26.0, y, (panel.w - 64.0) * 0.5, 42.0),
+        &ctx.localization.display("menu.field_guide"),
         true,
         ButtonTone::Secondary,
         mouse,
     ) {
         actions.push(UiAction::OpenCodex);
+    }
+    if virtual_button(
+        Rect::new(
+            panel.x + 34.0 + (panel.w - 64.0) * 0.5,
+            y,
+            (panel.w - 64.0) * 0.5,
+            42.0,
+        ),
+        "Credits",
+        true,
+        ButtonTone::Secondary,
+        mouse,
+    ) {
+        actions.push(UiAction::OpenCredits);
     }
     y += 54.0;
     if virtual_button(
@@ -388,6 +497,24 @@ fn draw_confirm_dialog(
             "Overwrite Save",
             UiAction::NewCampaign,
         ),
+        ConfirmPrompt::BuyChassis(id) => (
+            "Buy this chassis?",
+            [
+                "This purchase spends campaign gold.",
+                "You can switch between owned chassis later.",
+            ],
+            "Buy Chassis",
+            UiAction::ConfirmBuyChassis(id),
+        ),
+        ConfirmPrompt::AbandonExpedition => (
+            "Abandon Expedition?",
+            [
+                "Unbanked expedition gold and progress will be lost.",
+                "Banking remains available as the safe return action.",
+            ],
+            "Abandon Run",
+            UiAction::AbandonExpedition,
+        ),
     };
 
     draw_rectangle(
@@ -483,231 +610,57 @@ fn draw_cover_texture(texture: &Texture2D, rect: Rect) {
 }
 
 fn draw_results(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
-    draw_menu_backdrop(110.0);
-    let Some(result) = &ctx.session.result else {
-        mission_map::draw_mission_map(ctx, mouse, actions);
-        return;
-    };
+    results::draw_results(ctx, mouse, actions);
+}
 
-    let panel = Rect::new(320.0, 82.0, 640.0, 526.0);
+fn draw_credits(_ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<UiAction>) {
+    draw_menu_backdrop(40.0);
+    let panel = Rect::new(300.0, 86.0, 680.0, 548.0);
     draw_panel(panel, true);
-
+    draw_section_label("Credits", panel.x + 42.0, panel.y + 34.0, panel.w - 84.0);
     draw_text_centered_in_box(
-        if result.success {
-            "Route Complete"
-        } else {
-            "Route Failed"
-        },
-        panel.x + 30.0,
-        panel.y + 24.0,
-        panel.w - 60.0,
-        46.0,
-        36.0,
+        "CARAVAN CREW",
+        panel.x + 40.0,
+        panel.y + 96.0,
+        panel.w - 80.0,
+        42.0,
+        30.0,
+        UI_GOLD,
+    );
+    draw_text_centered_in_box(
+        "A small road strategy game built with Rust, macroquad, and macroquad-toolkit.",
+        panel.x + 52.0,
+        panel.y + 164.0,
+        panel.w - 104.0,
+        50.0,
+        18.0,
         INK,
     );
     draw_text_centered_in_box(
-        &result.mission_name,
-        panel.x + 30.0,
-        panel.y + 72.0,
-        panel.w - 60.0,
+        "Design, code, art direction, and testing",
+        panel.x + 52.0,
+        panel.y + 260.0,
+        panel.w - 104.0,
         28.0,
-        22.0,
+        17.0,
         MUTED,
     );
     draw_text_centered_in_box(
-        &star_label(result.stars),
-        panel.x + 30.0,
-        panel.y + 106.0,
-        panel.w - 60.0,
-        32.0,
-        26.0,
+        "Thanks for keeping the lantern lit.",
+        panel.x + 52.0,
+        panel.y + 302.0,
+        panel.w - 104.0,
+        28.0,
+        19.0,
         UI_GOLD,
     );
-
-    // Bonus objective outcome: closes the loop on the goal shown at loadout.
-    if let Some(met) = result.bonus_met {
-        let bonus_text = ctx
-            .data
-            .missions
-            .get(&result.mission_id)
-            .map(|mission| mission.bonus_objective.as_str())
-            .unwrap_or("");
-        let row_y = panel.y + 158.0;
-        draw_ui_text_ex(
-            "Bonus",
-            panel.x + 64.0,
-            row_y,
-            TextStyle::new(16.0, UI_GOLD).params(),
-        );
-        draw_ui_text_ex(
-            bonus_text,
-            panel.x + 132.0,
-            row_y,
-            TextStyle::new(14.0, MUTED).params(),
-        );
-        let (badge_text, badge_bg, badge_fg) = if met {
-            (
-                "Met",
-                Color::new(0.08, 0.22, 0.12, 1.0),
-                Color::new(0.64, 0.92, 0.68, 1.0),
-            )
-        } else {
-            (
-                "Missed",
-                Color::new(0.24, 0.09, 0.08, 1.0),
-                Color::new(0.96, 0.66, 0.60, 1.0),
-            )
-        };
-        draw_badge(
-            Rect::new(panel.right() - 150.0, row_y - 16.0, 88.0, 24.0),
-            badge_text,
-            badge_bg,
-            badge_fg,
-        );
-        draw_line(
-            panel.x + 64.0,
-            row_y + 18.0,
-            panel.right() - 64.0,
-            row_y + 18.0,
-            1.0,
-            GOLD_SOFT,
-        );
-    }
-
-    // Full-width outcome line (its value is a full sentence, too wide to column).
-    let grid_top = panel.y
-        + if result.bonus_met.is_some() {
-            202.0
-        } else {
-            172.0
-        };
-    draw_ui_text_ex(
-        "Outcome",
-        panel.x + 64.0,
-        grid_top,
-        TextStyle::new(17.0, MUTED).params(),
-    );
-    draw_text_right(
-        &result.reason,
-        panel.right() - 64.0,
-        grid_top,
-        TextStyle::new(17.0, INK),
-    );
-
-    // Remaining stats in a two-column grid so nothing collides with the footer.
-    let mut stats = vec![
-        ("Route".to_owned(), result.route_name.clone()),
-        ("Score".to_owned(), result.score.to_string()),
-        (
-            "Contract + Performance".to_owned(),
-            format!(
-                "{} gold",
-                result.reward - result.reward_breakdown.bonus_objective
-            ),
-        ),
-        (
-            "Bonus Objective".to_owned(),
-            format!("+{} gold", result.reward_breakdown.bonus_objective),
-        ),
-        ("Total Reward".to_owned(), format!("{} gold", result.reward)),
-    ];
-    if result.gold_penalty > 0 {
-        stats.push((
-            "Losses".to_owned(),
-            format!("-{} gold", result.gold_penalty),
-        ));
-    }
-    stats.extend([
-        (
-            "Carriage".to_owned(),
-            format!("{:.0}%", result.carriage_health_ratio * 100.0),
-        ),
-        (
-            "Cargo".to_owned(),
-            format!("{:.0}%", result.cargo_ratio * 100.0),
-        ),
-    ]);
-    if let (Some(label), Some(ratio)) = (&result.special_label, result.special_ratio) {
-        stats.push((label.clone(), format!("{:.0}%", ratio * 100.0)));
-    }
-    stats.push(("Threats".to_owned(), result.enemies_defeated.to_string()));
-    stats.push((
-        "Seen".to_owned(),
-        format!(
-            "{} threats / {} hazards",
-            result.enemies_encountered, result.hazards_encountered
-        ),
-    ));
-    let time_value = result
-        .time_limit
-        .map(|limit| format!("{:.0}s / {:.0}s", result.elapsed, limit))
-        .unwrap_or_else(|| format!("{:.0}s", result.elapsed));
-    stats.push(("Time".to_owned(), time_value));
-
-    let column_split = stats.len().div_ceil(2);
-    let row_h = 30.0;
-    for (index, (label, value)) in stats.iter().enumerate() {
-        let (column, row) = if index < column_split {
-            (0, index)
-        } else {
-            (1, index - column_split)
-        };
-        let y = grid_top + 34.0 + row as f32 * row_h;
-        let (label_x, value_x) = if column == 0 {
-            (panel.x + 64.0, panel.x + 300.0)
-        } else {
-            (panel.x + 348.0, panel.right() - 64.0)
-        };
-        draw_ui_text_ex(label, label_x, y, TextStyle::new(17.0, MUTED).params());
-        draw_text_right(value, value_x, y, TextStyle::new(17.0, INK));
-    }
-
-    // Courier-log epilogue on a win: bookends the loadout intro. Fixed-size
-    // single line (short by construction) so the capture stays atlas-safe.
-    if result.success {
-        if let Some(outro) = ctx
-            .data
-            .missions
-            .get(&result.mission_id)
-            .map(|mission| mission.outro_text.as_str())
-            .filter(|outro| !outro.is_empty())
-        {
-            const COURIER_LOG: Color = Color::new(0.82, 0.71, 0.49, 0.92);
-            draw_text_centered(
-                outro,
-                panel.x + panel.w * 0.5,
-                panel.bottom() - 84.0,
-                TextStyle::new(15.0, COURIER_LOG),
-            );
-        }
-    }
-
-    let button_y = panel.bottom() - 62.0;
     if virtual_button(
-        Rect::new(panel.x + 82.0, button_y, 136.0, 40.0),
-        "Map",
+        Rect::new(panel.x + 220.0, panel.bottom() - 72.0, 240.0, 42.0),
+        "Back to Title",
         true,
         ButtonTone::Primary,
         mouse,
     ) {
-        actions.push(UiAction::OpenMap);
-    }
-    if virtual_button(
-        Rect::new(panel.x + 252.0, button_y, 136.0, 40.0),
-        "Retry",
-        true,
-        ButtonTone::Secondary,
-        mouse,
-    ) {
-        actions.push(UiAction::RetryMission);
-    }
-    if virtual_button(
-        Rect::new(panel.x + 422.0, button_y, 136.0, 40.0),
-        "Upgrades",
-        true,
-        ButtonTone::Positive,
-        mouse,
-    ) {
-        actions.push(UiAction::OpenUpgrades);
+        actions.push(UiAction::ReturnTitle);
     }
 }

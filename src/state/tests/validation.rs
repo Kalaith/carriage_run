@@ -9,6 +9,25 @@ fn shipped_mission_content_ids_all_resolve() {
 }
 
 #[test]
+fn shipped_campaign_has_three_acts_and_the_release_content_target() {
+    let data = GameData::load().unwrap();
+    let missions = data.missions_ordered();
+    assert_eq!(missions.len(), 30);
+    validate_campaign_metadata(&missions).unwrap();
+    for act in 1..=3 {
+        assert!(missions.iter().any(|mission| mission.authored_act() == act));
+    }
+    assert!(missions.iter().any(|mission| mission.boss_id.is_some()));
+    assert!(
+        missions
+            .iter()
+            .filter(|mission| mission.side_mission)
+            .count()
+            >= 6
+    );
+}
+
+#[test]
 fn shipped_mission_graph_is_fully_reachable() {
     let data = GameData::load().unwrap();
     validate_mission_reachability(&data.missions_ordered()).unwrap();

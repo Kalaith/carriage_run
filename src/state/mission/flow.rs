@@ -2,9 +2,24 @@
 
 use super::*;
 use crate::data::MissionDef;
+use crate::state::BossEvent;
 use macroquad::prelude::*;
 
 impl MissionRun {
+    /// Controller-friendly order action. It gives a player without a pointer
+    /// a deterministic way to keep the first active guard on the road or in
+    /// formation; mouse dragging remains the more precise option.
+    pub fn cycle_first_guard_order(&mut self) {
+        let Some(guard) = self.guards.iter_mut().find(|guard| guard.is_active()) else {
+            return;
+        };
+        guard.order = match guard.order {
+            GuardOrder::Roam | GuardOrder::Move(_) | GuardOrder::Attack(_) => GuardOrder::Escort,
+            GuardOrder::Escort => GuardOrder::Roam,
+            GuardOrder::Hold => GuardOrder::Roam,
+        };
+    }
+
     pub fn handle_input(&mut self, input: MissionInput) {
         self.drive = DriveKeys {
             left: input.steer_left,
@@ -49,7 +64,15 @@ impl MissionRun {
     }
 
     pub fn update(&mut self, mission: &MissionDef, dt: f32) -> Option<MissionReport> {
+        if self.hit_stop > 0.0 {
+            self.hit_stop = (self.hit_stop - dt).max(0.0);
+            self.screen_shake.update(dt);
+            self.float_texts.update(dt);
+            self.particles.update(dt);
+            return None;
+        }
         self.elapsed += dt;
+        self.screen_shake.update(dt);
         self.alert.update(dt);
         self.carriage.update_timers(dt);
         self.handle_keyboard(dt);
@@ -58,6 +81,7 @@ impl MissionRun {
         self.update_hazards(dt);
         self.update_guard_orders(dt);
         self.update_enemies(dt);
+        self.update_boss(dt);
         self.update_shots(dt);
         self.handle_hazard_collisions(dt);
         self.update_mission_pressure(dt);
@@ -86,7 +110,9 @@ impl MissionRun {
             Some(self.make_report(mission, false, "Siege momentum lost"))
         } else if self.time_limit.is_some_and(|limit| self.elapsed >= limit) {
             Some(self.make_report(mission, false, "Delivery deadline missed"))
-        } else if self.progress >= self.distance {
+        } else if self.progress >= self.distance
+            && self.boss.as_ref().is_none_or(BossState::is_defeated)
+        {
             Some(self.make_report(mission, true, "Destination reached"))
         } else {
             None
@@ -100,6 +126,56 @@ impl MissionRun {
             _ => 17.5,
         };
         (base + self.wheel_bonus) * self.speed_factor() * self.throttle * self.chassis_speed_mult
+    }
+
+    fn update_boss(&mut self, dt: f32) {
+        if self.boss.is_none() {
+            return;
+        }
+        let progress = self.progress_ratio();
+        let target = self.carriage.pos;
+        let damage = self
+            .guards
+            .iter()
+            .filter(|guard| guard.is_active())
+            .map(|guard| guard.attack / guard.attack_cooldown.max(0.4))
+            .sum::<f32>()
+            * dt
+            * 0.68;
+        let events = {
+            let boss = self.boss.as_mut().expect("boss presence checked above");
+            let mut events = Vec::new();
+            if progress > 0.78 && !boss.is_defeated() {
+                if let Some(event) = boss.damage(damage) {
+                    events.push(event);
+                }
+            }
+            events.extend(boss.update(dt, target));
+            events
+        };
+        let boss_name = self
+            .boss
+            .as_ref()
+            .map(|boss| boss.definition.name)
+            .unwrap_or("Road boss");
+        for event in events {
+            match event {
+                BossEvent::Attack { damage, target } => {
+                    if target.distance(self.carriage.pos) < 80.0 {
+                        self.damage_carriage(damage, 2.0, "Boss impact");
+                    }
+                }
+                BossEvent::Telegraph { phase, .. } => {
+                    self.alert
+                        .set(&format!("{} — {} attack", boss_name, phase.label()));
+                }
+                BossEvent::PhaseChanged(phase) => {
+                    self.alert
+                        .set(&format!("{} enters {}", boss_name, phase.label()));
+                }
+                BossEvent::Victory => self.alert.set("The road boss is defeated!"),
+            }
+        }
     }
 
     fn issue_guard_order(&mut self, guard_id: u32, grab: Vec2, point: Vec2) {
@@ -179,6 +255,12 @@ impl MissionRun {
         let previous_center = road_center_at_y(CARRIAGE_Y, self.progress);
         let scroll_step = self.scroll_speed() * dt;
         self.progress += self.progress_speed() * dt;
+        // A final roadside segment is a visual arrival buffer. Once the
+        // carriage has crossed it, snap to the marker so a lingering slow
+        // effect cannot leave a route one frame short of completion forever.
+        if self.progress >= self.distance * 0.985 {
+            self.progress = self.distance;
+        }
         self.road_scroll = (self.road_scroll + scroll_step) % 96.0;
         self.terrain_scroll = (self.terrain_scroll + scroll_step) % 1_000_000.0;
         let center_delta = road_center_at_y(CARRIAGE_Y, self.progress) - previous_center;

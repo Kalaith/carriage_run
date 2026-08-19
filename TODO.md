@@ -1,108 +1,133 @@
 # TODO — Carriage Run
 
-Open work toward a commercial release (Steam + itch, web build as the free demo).
-Everything below is still unbuilt; the campaign loop, expedition roguelite, difficulty
-presets, chassis/frames, mission-type verbs, and the feedback round are done.
+Actionable work remaining toward a commercial release. This list is limited to
+repository changes an AI agent can implement or verify. Completed campaign,
+expedition, difficulty, chassis/frame, balance, atlas-loading, confirmation,
+web-shell, capture, and publishing work is intentionally omitted.
 
-## Owner decisions still needed
+## Campaign depth
 
-- Art direction: commissioned sprite set vs. asset-pack base vs. deliberate stylized-vector.
-- Platform scope: Steam Deck verification? mobile ever? — this gates how hard gamepad work bites.
-- Price point and content bar: $10–15 premium (needs the full content expansion) vs. $5–8 compact.
-- Localization tier: EFIGS only vs. adding CJK (font and cost implications).
+- Add a cosmetic progression system: livery and guard-color unlocks, gold
+  purchases, save data, and previews using the existing sprite pipeline.
+- Replace the prisoner's passive security meter with periodic breakout attempts,
+  including escape state, counterplay, failure/recovery feedback, and tests.
+- Add 3-star specialization branches for Swordsman and Mage, including data,
+  purchase flow, combat effects, roster text, save migration, and tests.
+- Add a reusable multi-phase boss state machine with telegraphs, phase changes,
+  damage handling, and victory/failure hooks.
+- Add three to four standard enemy types with data, behavior, sprites, codex
+  entries, and balance coverage.
+- Author one campaign finale boss and one expedition finale boss using the boss
+  framework.
 
-## Game depth
+## Campaign content
 
-- Cosmetic gold sink (carriage liveries, guard colors) once art exists; optional prestige/NG+.
-- Prisoner escort: periodic breakout attempt instead of a passive security meter.
-- 3★ guard specialization forks (Swordsman → Berserker/Bodyguard, Mage → Pyromancer/Warden).
-- Rebalance upgrades so no build can max every track in one campaign.
-- 2–3 multi-phase bosses for the campaign and expedition finales; 3–4 more standard enemies.
-
-## Content volume
-
-- Campaign expansion to ~24–30 missions across 3 acts/biomes with distinct hazard and enemy palettes.
-- 2–3 new hazards per biome (rockslides, cursed fog, night stretches) — only River Ford shipped.
-- 2–3 new guard classes; 1–2 new chassis plus 3–4 equipment items so 4-slot choices stay contested.
-- Designed campaign finale with a boss and an ending screen.
-- World framing: name the region and acts, stylized map background tying the missions into one journey.
-- Guard barks / hire quotes and per-class flavor in the roster.
+- Add act and biome metadata to mission data and show the current journey,
+  act, and biome on the route map.
+- Add six Act II missions with a distinct enemy mix, hazard mix, route choices,
+  rewards, and unlock graph.
+- Add six Act III missions with a distinct enemy mix, hazard mix, route choices,
+  rewards, and unlock graph.
+- Add up to six optional side missions after the core acts are complete, taking
+  the campaign from 24 to the 30-mission content target.
+- Implement a rockslide hazard, including collision rules, rendering, codex
+  text, mission placement, and tests.
+- Implement a cursed-fog hazard, including gameplay effect, rendering, codex
+  text, mission placement, and tests.
+- Implement a night-stretch hazard, including gameplay effect, rendering,
+  codex text, mission placement, and tests.
+- Populate each act with at least two of the authored hazards and validate that
+  every biome has a distinct hazard palette.
+- Add a designed campaign ending screen connected to the final mission report.
+- Add a stylized region/act map background and connect it to the authored map
+  metadata.
+- Add guard hire quotes, combat barks, and per-class roster flavor text.
 
 ## Art and game feel
 
-- Asset production: chassis sprites with damage states, guard and enemy animation sets, 3 biome
-  tile/prop sets, UI icon set, screen art; sprite loading and a texture atlas via the toolkit.
-- Screen shake and hit-stop; more particle emitters (mud splash, embers, arrow trails, summon FX);
-  consider extracting the particle system into `macroquad-toolkit`.
-- Tween/easing helpers for UI transitions; telegraph VFX on wave spawns.
-- Carriage bob, wheel rotation, horse animation.
+- Add carriage damage-state sprites and select the correct state from current
+  hull health.
+- Add frame-based guard and enemy animation playback with idle, attack, hit,
+  and defeat states.
+- Add biome-specific tile and prop art for the new acts and wire it into the
+  route renderer.
+- Replace remaining procedural/provisional UI symbols with a consistent icon
+  set and add any missing screen art.
+- Add screen shake and hit-stop driven by carriage, guard, hazard, and boss
+  impacts.
+- Add event-specific particle effects for mud, embers, arrows, summons, and
+  boss attacks using the toolkit particle system.
+- Add shared easing helpers and use them for menu transitions and wave-spawn
+  telegraph effects.
+- Animate carriage bob, wheel rotation, and horse movement during routes.
 
-## Audio (nothing exists)
+## Audio integration
 
-- SFX set (~40–60): UI, per-weapon combat, carriage rolling loop pitched by speed, alerts, stingers.
-- Music: title, 2–3 gameplay tracks, results/shop ambient, expedition hub, boss.
-- Wire the toolkit `SoundManager` onto `Game`, event-driven hooks off the pending-hit collection,
-  per-screen music state machine, ducking on pause.
-- SFX/music/master sliders in Settings (needs the codebase's first slider widget), mute on web focus loss.
+- Integrate the toolkit `SoundManager` into `Game`, with event-driven combat/UI
+  hooks, per-screen music state, and pause ducking.
+- Add SFX, music, and master volume sliders to Settings and mute audio when the
+  web page loses focus.
 
 ## Onboarding and UX
 
-- Guided first mission: contextual prompts for steer, wave telegraph, drag order, Roam toggle,
-  mounting a ranged guard, brake/boost — first campaign only.
-- Tooltip system (toolkit candidate) on shop items, upgrades, equipment, guard cards, meters, HUD.
-- Confirmation dialogs — New Campaign silently overwrites the autosave today; also chassis purchase
-  and expedition abandon.
-- Post-mission score breakdown explaining *why*, plus a "what to buy next" nudge on early shop visits.
-- Menu transitions, hover-state audit, controller focus states, credits screen.
-- In-mission readability: threat indicator, off-screen enemy pips, stance-ring legibility.
+- Add a first-campaign guided mission with explicit visible controls for
+  steering, wave telegraphs, drag orders, Roam, ranged mounting, brake, and
+  boost.
+- Integrate the toolkit `HoverTooltip` and add tooltip content for shop items,
+  upgrades, equipment, guard cards, meters, and HUD controls.
+- Add confirmation before chassis purchases and before abandoning an active
+  expedition; keep banking an expedition as a separate safe action.
+- Expand the results screen with explanations for stars, bonuses, penalties,
+  and the final reward calculation.
+- Add an early-campaign shop nudge that recommends a useful next purchase.
+- Add menu transition effects and audit every button's hover, disabled, and
+  pressed states.
+- Add controller focus states and a credits screen.
+- Add an in-mission threat indicator and off-screen enemy direction pips.
+- Improve guard stance-ring legibility in the mission HUD.
 
-## Settings, accessibility, input
+## Settings, accessibility, and input
 
-- Settings expansion: fullscreen/resolution, vsync/FPS cap, UI scale (`set_ui_text_scale` is unused).
-- Accessibility: colorblind-safe palette (hit-flash and On/Off badges are red/green), text size,
-  reduced motion, hold-vs-toggle for drag interactions.
-- Gamepad support — the riskiest UX item; needs a toolkit gamepad module and a non-mouse scheme
-  for drag orders. Prototype early.
-- Key rebinding: keys are hardcoded literals and `S`/`L` are unmodified global save/load hotkeys.
-- Decide touch ambition — `index.html` claims touch support that does not exist.
+- Add fullscreen, resolution, vsync/FPS-cap, and UI-scale settings using the
+  toolkit's text-scaling support.
+- Add a colorblind-safe palette, independent text-size control, reduced-motion
+  behavior, and hold-vs-toggle preferences for drag interactions.
+- Integrate the toolkit `GamepadInput` with semantic menu/gameplay actions,
+  including a non-mouse scheme for drag orders and native/Deck coverage.
+- Add key rebinding for gameplay and save/load actions instead of hardcoded
+  key literals.
+- Add touch/pointer controls for steering, brake, boost, repair, and every
+  tutorial/recovery action advertised by the web page.
 
-## Localization
+## Localization infrastructure
 
-- String externalization to a keyed table (toolkit candidate) covering `src/` literals and the
-  text fields in the data JSON — cost grows with every feature, so do it early.
-- Font fallbacks per language tier; German/French expansion pass on fixed-width panels.
-- Translation at content freeze: EFIGS + Simplified Chinese + PT-BR.
+- Externalize source literals and data text into a keyed localization table,
+  with a fallback language and missing-key diagnostics.
+- Add per-language font fallbacks and layout/overflow checks for longer German
+  and French strings.
 
 ## Technical robustness
 
-- Corrupt-save recovery with a rolling `.bak` — a corrupt autosave silently breaks Continue today.
-- Real save timestamps (`SaveSlot.save_date` is hardcoded `"Unknown"`); multiple slots with delete/rename.
-- Move autosave onto the unused `AutoSaveManager` timer instead of ~20 per-action write sites.
-- Save/load round-trip and corruption-path tests — the persistence layer has no test coverage.
-- Panic hook writing a crash log plus a user-facing dialog; startup data-load failure hard-panics silently.
-- Opt-in crash reporting and anonymous balance telemetry for native builds.
-- Benchmark native `opt-level=3` against the workspace `"z"`; evaluate a fixed timestep for seeded-run fairness.
-- WASM size budget: asset atlas and PNG compression (the title PNG alone is 2.6 MB).
-- Pin/tag the `macroquad-toolkit` path dependency; single source of truth for the version
-  (duplicated in `Cargo.toml` and `game_config.json`), git tags, release automation in CI.
+- Add rolling save backups and quarantine/recovery behavior when the primary
+  save is corrupt.
+- Store real save timestamps instead of `"Unknown"`.
+- Add multiple save slots with create, rename, delete, and active-slot UI.
+- Replace per-action autosave writes with the toolkit `AutoSaveManager` timer.
+- Add save/load round-trip and corruption-path tests, then extend compatibility
+  fixtures for every supported save version.
+- Replace startup data-load hard panics with a user-facing recovery screen;
+  retain the existing native crash-log hook for unrecoverable panics.
+- Measure native and WebGL release sizes and enforce a documented WASM budget;
+  compress the title image and atlas assets where quality permits.
+- Make the `macroquad-toolkit` dependency reproducible and keep its version in
+  one source of truth across `Cargo.toml`, game configuration, tags, and builds.
+- Repair the CI workflow's project paths and add formatting, lint, test,
+  Windows, WebGL, and publisher checks for the repository layout.
 
-## Distribution and business
+## Packaging and release QA
 
-- LICENSE/EULA and third-party license inventory (Rajdhani OFL, macroquad, commissioned assets).
-- App icon and Windows version resource; Steamworks integration, achievements, Cloud, Deck pass;
-  itch.io butler pipeline; optional code signing.
-- Steam page live 6+ months before launch: capsule art, screenshots (gated on the art pass), trailer, copy.
-- Demo strategy: gate the web build to act 1 plus a limited expedition, add a wishlist link, ship a Steam demo.
-- Press kit and GIF library (extend `scripts/capture_ui.ps1` to record footage deterministically),
-  devlogs, streamer outreach; trademark/store-collision check on the name.
-- Web shell: the loading spinner hides before the WASM download finishes, leaving a blank canvas;
-  add a progress bar, WebGL-failure fallback, orientation notice.
-
-## QA and balance
-
-- External playtest program — the game has had exactly one tester. Rounds at alpha, beta, and RC.
-- Headless balance simulation harness over the deterministic seeds, asserting win-rate corridors
-  and difficulty monotonicity so JSON tuning stops being playtest-gated.
-- Full-clear economy audit against the choice-exclusion upgrade model.
-- Platform QA matrix (GPUs/DPIs, Deck, browsers) and a save-compat regression suite per release.
-- Extend the screenshot capture harness to the newer screens (settings, results, bestiary).
+- Add an application icon and Windows version resource to the native build.
+- Generate a third-party dependency and asset license inventory from the
+  current repository contents.
+- Add automated browser viewport smoke captures for supported desktop,
+  touch-sized, and fullscreen layouts.

@@ -57,7 +57,7 @@ pub(super) fn draw_gameplay(ctx: &UiContext<'_>, mouse: Vec2, actions: &mut Vec<
 
 /// Burst particles: death scatter and combat sparks, fading and shrinking.
 fn draw_particles(run: &MissionRun) {
-    for particle in run.particles.particles() {
+    for particle in run.effects.particles.particles() {
         let fade = particle.life_fraction();
         let mut color = particle.color;
         color.a = fade;
@@ -71,7 +71,7 @@ fn draw_particles(run: &MissionRun) {
 /// Floating combat numbers: damage dealt (gold) and taken (red), drifting up
 /// and fading.
 fn draw_float_texts(run: &MissionRun) {
-    for text in run.float_texts.texts() {
+    for text in run.effects.float_texts.texts() {
         let mut color = text.color;
         color.a = text.life_fraction();
         draw_text_centered(

@@ -64,15 +64,13 @@ impl MissionRun {
     }
 
     pub fn update(&mut self, mission: &MissionDef, dt: f32) -> Option<MissionReport> {
-        if self.hit_stop > 0.0 {
-            self.hit_stop = (self.hit_stop - dt).max(0.0);
-            self.screen_shake.update(dt);
-            self.float_texts.update(dt);
-            self.particles.update(dt);
+        if self.effects.hit_stop > 0.0 {
+            self.effects.hit_stop = (self.effects.hit_stop - dt).max(0.0);
+            self.effects.update(dt);
             return None;
         }
         self.elapsed += dt;
-        self.screen_shake.update(dt);
+        self.effects.screen_shake.update(dt);
         self.alert.update(dt);
         self.carriage.update_timers(dt);
         self.handle_keyboard(dt);
@@ -87,8 +85,8 @@ impl MissionRun {
         self.update_mission_pressure(dt);
         self.cleanup_entities();
 
-        self.float_texts.update(dt);
-        self.particles.update(dt);
+        self.effects.float_texts.update(dt);
+        self.effects.particles.update(dt);
 
         if self.carriage.health <= 0.0 {
             Some(self.make_report(mission, false, "Carriage destroyed"))

@@ -8,60 +8,14 @@
 //! and never touches campaign mission records, but persistent meta-progression
 //! (expedition tokens, unlocks, and run records) carries across runs.
 
+mod options;
+mod records;
+
+pub use options::{LegOption, LegReward};
+pub use records::{ExpeditionRecords, ExpeditionRunSummary};
+
 use super::{GameSession, MissionReport, MissionRun, Screen};
 use crate::data::{GameData, MissionDef, RelicDef, RunEventOptionDef};
-use serde::{Deserialize, Serialize};
-
-/// The most recent expeditions kept in the run-history log.
-const RUN_HISTORY_CAP: usize = 8;
-
-/// Persistent expedition statistics and recent-run history, saved on the
-/// campaign. Powers the Records screen.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ExpeditionRecords {
-    /// Expeditions ever started.
-    #[serde(default)]
-    pub runs_started: u32,
-    /// Expeditions run to full completion (all legs cleared).
-    #[serde(default)]
-    pub wins: u32,
-    /// Most legs cleared in a single run.
-    #[serde(default)]
-    pub best_legs: u32,
-    /// Most gold banked from a single run.
-    #[serde(default)]
-    pub best_banked: i64,
-    /// Legs cleared across all runs.
-    #[serde(default)]
-    pub total_legs: u32,
-    /// Most recent runs, newest first, capped at `RUN_HISTORY_CAP`.
-    #[serde(default)]
-    pub history: Vec<ExpeditionRunSummary>,
-}
-
-/// A single completed expedition's outcome, for the history log.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExpeditionRunSummary {
-    pub seed_code: String,
-    pub seeded: bool,
-    pub legs_cleared: u32,
-    pub banked: i64,
-    pub won: bool,
-}
-
-impl ExpeditionRecords {
-    /// Folds a finished run into the records: bests, totals, and history.
-    fn record(&mut self, summary: ExpeditionRunSummary) {
-        self.best_legs = self.best_legs.max(summary.legs_cleared);
-        self.best_banked = self.best_banked.max(summary.banked);
-        self.total_legs += summary.legs_cleared;
-        if summary.won {
-            self.wins += 1;
-        }
-        self.history.insert(0, summary);
-        self.history.truncate(RUN_HISTORY_CAP);
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Journey {
@@ -119,99 +73,6 @@ impl Journey {
     /// already-paid entry stake are deliberately outside the expedition loop.
     pub fn can_choose_event_option(&self, option: &RunEventOptionDef) -> bool {
         option.gold >= 0 || self.banked_gold >= option.gold.saturating_abs()
-    }
-}
-
-/// One branch in the expedition's next-leg choice: a base campaign route paired
-/// with a bespoke [`crate::data::LegModifierDef`] twist. Resolved against the
-/// data registries for display and application.
-#[derive(Debug, Clone)]
-pub struct LegOption {
-    pub mission_id: String,
-    pub modifier_id: String,
-}
-
-impl LegOption {
-    /// The modifier's name, e.g. "Raider Ambush".
-    pub fn title(&self, data: &GameData) -> String {
-        data.leg_modifiers
-            .get(&self.modifier_id)
-            .map(|m| m.name.clone())
-            .unwrap_or_else(|| "Onward".to_owned())
-    }
-}
-
-/// One of the three rewards offered after clearing an expedition leg. A relic is
-/// a run-defining build pick; the others are trades between raw gold and carriage
-/// upkeep. Which is best depends on how battered the convoy is — not a flat payout.
-#[derive(Debug, Clone)]
-pub enum LegReward {
-    /// Pure gold, generous — the greedy pick with no upkeep.
-    Bounty(i64),
-    /// Modest gold plus a partial patch-up.
-    Provisions { gold: i64, heal: f32 },
-    /// A full carriage repair plus a little gold — best when badly damaged.
-    Repair { gold: i64 },
-    /// A run-scoped relic (id) that reshapes how the rest of the run plays.
-    Relic(String),
-}
-
-impl LegReward {
-    /// Applies this reward to the run and records it as the last leg reward.
-    fn apply(self, journey: &mut Journey) {
-        match self {
-            LegReward::Bounty(gold) => {
-                journey.banked_gold += gold;
-                journey.last_reward = gold;
-            }
-            LegReward::Provisions { gold, heal } => {
-                journey.banked_gold += gold;
-                journey.carriage_health_ratio = (journey.carriage_health_ratio + heal).min(1.0);
-                journey.last_reward = gold;
-            }
-            LegReward::Repair { gold } => {
-                journey.banked_gold += gold;
-                journey.carriage_health_ratio = 1.0;
-                journey.last_reward = gold;
-            }
-            LegReward::Relic(id) => {
-                journey.relics.push(id);
-                journey.last_reward = 0;
-            }
-        }
-    }
-
-    /// Display title. Relics need the data registry to resolve their name.
-    pub fn title(&self, data: &GameData) -> String {
-        match self {
-            LegReward::Bounty(_) => "Bounty Purse".to_owned(),
-            LegReward::Provisions { .. } => "War Provisions".to_owned(),
-            LegReward::Repair { .. } => "Field Repairs".to_owned(),
-            LegReward::Relic(id) => data
-                .relics
-                .get(id)
-                .map(|relic| format!("Relic — {}", relic.name))
-                .unwrap_or_else(|| "Relic".to_owned()),
-        }
-    }
-
-    pub fn detail(&self, data: &GameData) -> String {
-        match self {
-            LegReward::Bounty(gold) => format!("+{} gold banked", gold),
-            LegReward::Provisions { gold, heal } => {
-                format!(
-                    "+{} gold, +{}% carriage health",
-                    gold,
-                    (heal * 100.0) as i32
-                )
-            }
-            LegReward::Repair { gold } => format!("Full repair, +{} gold", gold),
-            LegReward::Relic(id) => data
-                .relics
-                .get(id)
-                .map(|relic| relic.description.clone())
-                .unwrap_or_else(|| "A mysterious boon.".to_owned()),
-        }
     }
 }
 
@@ -394,14 +255,11 @@ impl GameSession {
         }
         self.campaign.expedition_records.runs_started += 1;
         // Pay the selected ante in full; callers must choose an affordable tier.
-        let stake_mult = data
-            .stakes
-            .get(&self.campaign.selected_stake_id)
-            .map(|stake| {
-                self.campaign.gold -= stake.cost;
-                stake.reward_mult
-            })
-            .expect("affordability check resolved the selected stake");
+        let Some(stake) = data.stakes.get(&self.campaign.selected_stake_id) else {
+            return false;
+        };
+        let stake_mult = stake.reward_mult;
+        self.campaign.gold -= stake.cost;
         self.journey = Some(Journey {
             leg: 1,
             banked_gold: 0,

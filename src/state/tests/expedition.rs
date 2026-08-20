@@ -3,6 +3,25 @@
 use super::*;
 
 #[test]
+fn unknown_expedition_stake_fails_without_mutating_campaign() {
+    let data = GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config, Some("muddy_road"));
+    session.sync_chassis(&data);
+    session.campaign.selected_stake_id = "missing_stake".to_owned();
+    let gold_before = session.campaign.gold;
+    let runs_before = session.campaign.expedition_records.runs_started;
+
+    assert!(!session.start_journey(&data, 11));
+    assert_eq!(session.campaign.gold, gold_before);
+    assert_eq!(
+        session.campaign.expedition_records.runs_started,
+        runs_before
+    );
+    assert!(session.journey.is_none());
+    assert!(session.mission.is_none());
+}
+
+#[test]
 fn expedition_banks_rewards_and_advances_legs() {
     let data = GameData::load().unwrap();
     let mut session = GameSession::new(&data.config, Some("muddy_road"));

@@ -483,7 +483,7 @@ impl MissionRun {
                 color,
             );
             particle.drag = PARTICLE_DRAG;
-            self.particles.spawn(particle);
+            self.effects.particles.spawn(particle);
         }
     }
 

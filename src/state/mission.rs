@@ -2,15 +2,16 @@
 
 mod combat;
 mod damage;
+mod effects;
 mod flow;
 mod pressure;
 mod scoring;
+mod setup;
 
 use super::entities::*;
-use super::{BossState, CampaignState, CarriageEquipment, CarriageVisual};
+use super::{BossState, CampaignState, CarriageVisual};
 use crate::data::MissionDef;
 use macroquad::prelude::*;
-use macroquad_toolkit::fx::{FloatingTextLayer, ParticleSystem, ScreenShake};
 use macroquad_toolkit::rng::SeededRng;
 use macroquad_toolkit::timing::Timer;
 
@@ -158,12 +159,9 @@ pub struct MissionRun {
     /// expedition finales.
     pub boss: Option<BossState>,
     pub shots: Vec<Shot>,
-    /// Floating combat numbers (juice); short-lived, purely visual.
-    pub float_texts: FloatingTextLayer,
-    /// Burst particles (juice); short-lived, purely visual.
-    pub particles: ParticleSystem,
-    pub screen_shake: ScreenShake,
-    pub hit_stop: f32,
+    /// Short-lived combat feedback; kept separate from authoritative route
+    /// state so visual effects do not become additional simulation concerns.
+    pub effects: effects::MissionEffects,
     pub drag: DragState,
     pub alert: Alert,
     pub progress: f32,
@@ -238,16 +236,16 @@ pub struct RewardBreakdown {
     pub bonus_objective: i64,
 }
 
-impl RewardBreakdown {
-    pub fn total(self) -> i64 {
-        self.contract + self.stars + self.cargo + self.special + self.threats + self.bonus_objective
-    }
-}
-
 #[derive(Debug, Clone, Copy)]
 enum MissionRunContext {
     Campaign,
     Expedition { seed: u64 },
+}
+
+impl RewardBreakdown {
+    pub fn total(self) -> i64 {
+        self.contract + self.stars + self.cargo + self.special + self.threats + self.bonus_objective
+    }
 }
 
 impl MissionRun {
@@ -268,162 +266,33 @@ impl MissionRun {
         campaign: &CampaignState,
         context: MissionRunContext,
     ) -> Self {
-        // Accessibility assists: sturdier carriage (+health) and gentler pacing.
-        let assist_health = if campaign.sturdy_carriage { 1.25 } else { 1.0 };
-        let wave_pace = if campaign.slower_waves { 1.5 } else { 1.0 };
-        let max_health = (100.0 + campaign.armor_level as f32 * 26.0)
-            * campaign.chassis_health_mult
-            * campaign.frame_health_mult
-            * assist_health;
-        let cargo_max = (100.0 + campaign.cargo_level as f32 * 6.0) * campaign.frame_cargo_mult;
-        let route_choice = match context {
-            MissionRunContext::Campaign => campaign.selected_route_choice(mission),
-            MissionRunContext::Expedition { .. } => None,
-        };
-        let route_choice_id = route_choice
-            .map(|choice| choice.id.clone())
-            .unwrap_or_default();
-        let route_seed = route_choice_id.bytes().fold(0_u64, |seed, byte| {
-            seed.wrapping_mul(37).wrapping_add(byte as u64)
-        });
-        let seed = match context {
-            MissionRunContext::Campaign => {
-                mission.order as u64 * 10_007
-                    + campaign
-                        .records
-                        .get(&mission.id)
-                        .map(|record| record.completions as u64)
-                        .unwrap_or(0)
-                    + route_seed
-            }
-            MissionRunContext::Expedition { seed } => seed,
-        };
-        let mission_kind = MissionKind::from_id(&mission.mission_type);
-        let mut enemy_mix = mission.enemy_mix.clone();
-        let mut hazard_mix = mission.hazard_mix.clone();
-        if let Some(choice) = route_choice {
-            enemy_mix.extend(choice.enemy_add.iter().cloned());
-            hazard_mix.extend(choice.hazard_add.iter().cloned());
-        }
-        let distance = route_choice
-            .map(|choice| mission.distance + choice.distance_delta)
-            .unwrap_or(mission.distance)
-            .max(420.0);
-        let authored_content_scale = if mission.authored_act() > 1 {
-            0.72
-        } else {
-            1.0
-        };
-        let difficulty = (route_choice
-            .map(|choice| mission.difficulty + choice.difficulty_delta)
-            .unwrap_or(mission.difficulty)
-            .max(0.6)
-            * campaign.difficulty_preset.difficulty_scale())
-            * authored_content_scale
-            * if mission_kind == MissionKind::SiegeSupplyRun {
-                0.60
-            } else {
-                1.0
-            };
-        let difficulty = difficulty.max(0.5);
-        let base_reward = route_choice
-            .map(|choice| mission.base_reward + choice.reward_delta)
-            .unwrap_or(mission.base_reward)
-            .max(0);
-        let time_limit = mission.time_limit.map(|limit| {
-            let base = route_choice
-                .map(|choice| limit + choice.time_limit_delta)
-                .unwrap_or(limit)
-                .max(30.0);
-            // Accessibility assist: extra seconds on the clock, orthogonal to
-            // the difficulty preset.
-            base + if campaign.generous_timers {
-                GENEROUS_TIMER_BONUS
-            } else {
-                0.0
-            }
-        });
-        let mut guards = Vec::new();
-        for (index, kind) in campaign.selected_melee_kinds().into_iter().enumerate() {
-            if !campaign.is_guard_available(kind) {
-                continue;
-            }
-            let side = if index % 2 == 0 { -1.0 } else { 1.0 };
-            guards.push(Guard::new(
-                index as u32 + 1,
-                kind,
-                vec2(
-                    ROAD_LEFT + 235.0 + side * index as f32 * 52.0,
-                    CARRIAGE_Y + 34.0,
-                ),
-                campaign.guard_level,
-                campaign.archer_level,
-                campaign.guard_star_level(kind),
-                None,
-            ));
-        }
-
-        let ranged_slots = campaign.ranged_slot_count();
-        for (index, kind) in campaign.selected_ranged_kinds().into_iter().enumerate() {
-            if !campaign.is_guard_available(kind) {
-                continue;
-            }
-            guards.push(Guard::new(
-                guards.len() as u32 + 1,
-                kind,
-                carriage_slot_pos(ROAD_CENTER, index, ranged_slots),
-                campaign.guard_level,
-                campaign.archer_level,
-                campaign.guard_star_level(kind),
-                Some(index),
-            ));
-        }
-        for guard in &mut guards {
-            guard.specialized = campaign.guard_specialization(guard.kind).is_some();
-        }
-
-        let armor_equipped = campaign.is_equipment_equipped(CarriageEquipment::IronPlating);
-        let wheels_equipped = campaign.is_equipment_equipped(CarriageEquipment::ReinforcedWheels);
-        let straps_equipped = campaign.is_equipment_equipped(CarriageEquipment::CargoStraps);
-        let repair_equipped = campaign.is_equipment_equipped(CarriageEquipment::RepairKit);
-        let hubs_equipped = campaign.is_equipment_equipped(CarriageEquipment::SpikedHubs);
-        let lantern_equipped = campaign.is_equipment_equipped(CarriageEquipment::WardingLantern);
+        let setup = setup::MissionSetup::resolve(mission, campaign, context);
+        let mission_kind = setup.mission_kind;
 
         Self {
             mission_id: mission.id.clone(),
             mission_name: mission.name.clone(),
-            route_name: route_choice
-                .map(|choice| choice.name.clone())
-                .unwrap_or_else(|| mission.route.clone()),
+            route_name: setup.route_name,
             biome: mission.authored_biome().to_owned(),
             hazard_palette: mission.palette().to_owned(),
             mission_kind,
-            carriage: Carriage::new(max_health, cargo_max),
-            guards,
+            carriage: Carriage::new(setup.max_health, setup.cargo_max),
+            guards: setup.guards,
             enemies: Vec::new(),
             hazards: Vec::new(),
             boss: mission.boss_id.as_deref().map(BossState::new),
             shots: Vec::new(),
-            float_texts: {
-                let mut layer = FloatingTextLayer::new();
-                layer.default_lifetime = FLOAT_TEXT_LIFE;
-                layer.default_rise_speed = 26.0;
-                layer.shadow = false;
-                layer
-            },
-            particles: ParticleSystem::new(),
-            screen_shake: ScreenShake::new(8.0),
-            hit_stop: 0.0,
+            effects: effects::MissionEffects::new(FLOAT_TEXT_LIFE),
             drag: DragState::None,
             alert: Alert::default(),
             progress: 0.0,
-            distance,
-            difficulty,
-            base_reward,
-            enemy_mix,
-            hazard_mix,
+            distance: setup.distance,
+            difficulty: setup.difficulty,
+            base_reward: setup.base_reward,
+            enemy_mix: setup.enemy_mix,
+            hazard_mix: setup.hazard_mix,
             elapsed: 0.0,
-            time_limit,
+            time_limit: setup.time_limit,
             road_scroll: 0.0,
             terrain_scroll: 0.0,
             enemies_defeated: 0,
@@ -442,10 +311,10 @@ impl MissionRun {
             carriage_visual: CarriageVisual::from_campaign(campaign),
             throttle: 1.0,
             drive: DriveKeys::default(),
-            chassis_speed_mult: campaign.chassis_speed_mult * campaign.frame_speed_mult,
+            chassis_speed_mult: setup.chassis_speed_mult,
             // Siege runs open with a longer calm before the first mega-wave.
             wave: WavePhase::Lull(
-                2.2 * wave_pace
+                2.2 * setup.wave_pace
                     * if mission_kind == MissionKind::SiegeSupplyRun {
                         2.0
                     } else {
@@ -455,39 +324,15 @@ impl MissionRun {
             wave_index: 0,
             next_enemy_id: 10,
             hazard_timer: 1.6,
-            rng: SeededRng::new(seed),
-            ranged_slots,
-            armor_reduction: if armor_equipped {
-                campaign.armor_level as f32 * 1.8
-            } else {
-                campaign.armor_level as f32 * 0.45
-            },
-            cargo_protection: if straps_equipped {
-                (campaign.cargo_level as f32 * 0.12).min(0.42)
-            } else {
-                0.0
-            },
-            wheel_bonus: if wheels_equipped {
-                campaign.wheel_level as f32 * 1.5
-            } else {
-                0.0
-            },
-            repair_heal: if repair_equipped {
-                campaign.repair_level as f32 * 22.0
-            } else {
-                0.0
-            },
-            hub_damage: if hubs_equipped {
-                8.0 + campaign.hubs_level as f32 * 7.0
-            } else {
-                0.0
-            },
-            ward_radius: if lantern_equipped {
-                86.0 + campaign.lantern_level as f32 * 20.0
-            } else {
-                0.0
-            },
-            wave_pace,
+            rng: SeededRng::new(setup.seed),
+            ranged_slots: setup.ranged_slots,
+            armor_reduction: setup.armor_reduction,
+            cargo_protection: setup.cargo_protection,
+            wheel_bonus: setup.wheel_bonus,
+            repair_heal: setup.repair_heal,
+            hub_damage: setup.hub_damage,
+            ward_radius: setup.ward_radius,
+            wave_pace: setup.wave_pace,
             egg_cracked: false,
             egg_hatched: false,
             breakout_timer: 6.0,
@@ -593,7 +438,7 @@ impl MissionRun {
     }
 
     pub fn screen_shake_offset(&self) -> Vec2 {
-        self.screen_shake.offset()
+        self.effects.screen_shake.offset()
     }
 
     /// The wave number being telegraphed, if a warning is currently showing.

@@ -120,14 +120,14 @@ impl MissionRun {
             enemy.hit_flash = Timer::new(0.12);
             enemy.pos
         };
-        self.float_texts.spawn(
+        self.effects.float_texts.spawn(
             format!("{:.0}", damage.max(1.0)),
             vec2(pos.x, pos.y - 22.0),
             Color::new(0.98, 0.90, 0.52, 1.0),
         );
-        self.hit_stop = self.hit_stop.max(0.018);
-        self.screen_shake.add_trauma(0.025);
-        self.particles.spawn_burst(
+        self.effects.hit_stop = self.effects.hit_stop.max(0.018);
+        self.effects.screen_shake.add_trauma(0.025);
+        self.effects.particles.spawn_burst(
             pos,
             5,
             &BurstConfig {
@@ -219,7 +219,7 @@ impl MissionRun {
         self.carriage.health = (self.carriage.health - final_damage).max(0.0);
         self.carriage.cargo = (self.carriage.cargo - final_cargo_loss).max(0.0);
         if final_damage >= 1.0 {
-            self.float_texts.spawn(
+            self.effects.float_texts.spawn(
                 format!("-{:.0}", final_damage),
                 vec2(self.carriage.pos.x, self.carriage.pos.y - 44.0),
                 Color::new(0.98, 0.42, 0.34, 1.0),
@@ -229,8 +229,8 @@ impl MissionRun {
         self.damage_taken += final_damage;
         self.cargo_lost += final_cargo_loss;
         self.carriage.hit_flash = Timer::new(0.22);
-        self.hit_stop = self.hit_stop.max(0.035);
-        self.screen_shake.add_trauma(0.10);
+        self.effects.hit_stop = self.effects.hit_stop.max(0.035);
+        self.effects.screen_shake.add_trauma(0.10);
         if !label.is_empty() {
             self.alert.set(label);
         }

@@ -33,13 +33,25 @@ check was normally sufficient, but an invalid selected stake should be a
 normal failed action, not a panic boundary. Startup now resolves the stake with
 an explicit `Option` path and leaves the campaign unchanged on failure.
 
+### High impact — application shell mixed input and action families
+
+The game shell previously assembled keyboard, touch, and gamepad input in
+`game.rs`, while `game/actions.rs` handled navigation, preferences, campaign
+progression, expedition flow, and persistence in one match. The shell now has
+explicit boundaries: `game/input.rs` owns device-to-intent translation;
+`action_navigation.rs`, `action_settings.rs`, and `action_expedition.rs` own
+their corresponding action families; and `actions.rs` retains the central
+audio hook plus campaign/progression and save-slot dispatch. Gameplay behavior
+and action ordering are unchanged.
+
 ## Deliberately deferred debt
 
-- `Game` and `game/actions.rs` still form a broad application shell: input,
-  audio, autosave, notifications, screen navigation, persistence, and UI-intent
-  dispatch meet there. This is the next architectural seam to split, but it is
-  behavior-sensitive and should be extracted by action family with focused
-  integration coverage.
+- `Game` remains the application shell for startup, rendering, audio,
+  autosave, notifications, and persistence. The action dispatcher is now split
+  by family, but campaign/progression and save-slot handling still share
+  `game/actions.rs`. The next safe seam is to separate those remaining action
+  families or extract startup/render services if new features increase their
+  size.
 - `state.rs` still contains the serialized `CampaignState` aggregate and much
   of its normalization logic. The aggregate is intentionally a single save
   boundary; its normalization helpers are a future extraction candidate if
